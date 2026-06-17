@@ -1156,3 +1156,86 @@ def add_signature_line(input_path: str, output_path: str,
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'page': pg_idx + 1, 'label': label}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL SIGNING FUNCTIONS ────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def add_signature_line(input_path: str, output_path: str,
+                        signer_name: str = '',
+                        position: str = 'bottom-right',
+                        pages: str = 'all') -> dict:
+    """
+    Add a professional signature line (blank line + name + date field)
+    to specified pages.
+    """
+    import fitz, os
+    from datetime import datetime
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+
+    if pages.lower() == 'all':
+        page_list = list(range(total))
+    else:
+        page_list = [int(p)-1 for p in str(pages).split(',') if p.strip().isdigit()]
+
+    for pg_idx in page_list:
+        if pg_idx >= total: continue
+        page = doc[pg_idx]
+        pw, ph = page.rect.width, page.rect.height
+
+        pos_map = {
+            'bottom-right': (pw - 200, ph - 80),
+            'bottom-left': (60, ph - 80),
+            'bottom-center': (pw/2 - 100, ph - 80),
+        }
+        x, y = pos_map.get(position, (pw - 200, ph - 80))
+
+        shape = page.new_shape()
+        # Signature line
+        shape.draw_line(fitz.Point(x, y+30), fitz.Point(x+150, y+30))
+        shape.finish(color=(0.3, 0.3, 0.3), width=1)
+        # Signer name
+        if signer_name:
+            shape.insert_text(fitz.Point(x, y+45), signer_name, fontsize=8, color=(0.3,0.3,0.3))
+        shape.insert_text(fitz.Point(x, y+55), 'Date: ___________', fontsize=8, color=(0.3,0.3,0.3))
+        shape.insert_text(fitz.Point(x, y+20), 'Signature', fontsize=7, color=(0.5,0.5,0.5))
+        shape.commit()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'signature_lines_added': len(page_list)}
+
+
+def verify_signature_presence(input_path: str) -> dict:
+    """
+    Check if a PDF has any signature fields or digital signatures.
+    Returns signature field info if found.
+    """
+    import fitz, pikepdf
+
+    result = {'has_signatures': False, 'signature_fields': [], 'is_certified': False}
+
+    try:
+        with pikepdf.open(input_path) as pdf:
+            if '/AcroForm' in pdf.Root:
+                acroform = pdf.Root.AcroForm
+                if '/SigFlags' in acroform:
+                    result['has_signatures'] = True
+                    result['sig_flags'] = int(acroform.SigFlags)
+                    if '/Fields' in acroform:
+                        for field in acroform.Fields:
+                            try:
+                                ft = str(field.get('/FT', ''))
+                                if ft == '/Sig':
+                                    result['signature_fields'].append({
+                                        'name': str(field.get('/T', 'Unknown')),
+                                        'type': 'digital_signature',
+                                    })
+                            except: pass
+    except Exception as e:
+        result['error'] = str(e)
+
+    return result

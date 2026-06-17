@@ -787,3 +787,85 @@ def crop_to_content(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'crop_to_content failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL CROP FUNCTIONS ───────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def auto_crop_whitespace(input_path: str, output_path: str,
+                          threshold: int = 250, padding: int = 10) -> dict:
+    """
+    Automatically detect and crop white margins from all pages.
+    Uses pixel analysis to find content boundaries.
+    """
+    import fitz, os
+    from PIL import Image
+    import numpy as np
+
+    doc = fitz.open(input_path)
+
+    for page in doc:
+        # Render to image for analysis
+        pix = page.get_pixmap(dpi=72)
+        img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        arr = np.array(img.convert('L'))
+
+        # Find non-white pixels
+        mask = arr < threshold
+        rows = np.any(mask, axis=1)
+        cols = np.any(mask, axis=0)
+
+        if rows.any() and cols.any():
+            rmin, rmax = np.where(rows)[0][[0, -1]]
+            cmin, cmax = np.where(cols)[0][[0, -1]]
+
+            # Convert pixel coords to PDF point coords
+            scale_x = page.rect.width / pix.width
+            scale_y = page.rect.height / pix.height
+
+            # Apply padding
+            x0 = max(0, cmin * scale_x - padding)
+            y0 = max(0, rmin * scale_y - padding)
+            x1 = min(page.rect.width, cmax * scale_x + padding)
+            y1 = min(page.rect.height, rmax * scale_y + padding)
+
+            page.set_cropbox(fitz.Rect(x0, y0, x1, y1))
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'method': 'auto_whitespace_detection'}
+
+
+def crop_to_selection(input_path: str, output_path: str,
+                       x1_pct: float, y1_pct: float,
+                       x2_pct: float, y2_pct: float,
+                       pages: str = 'all') -> dict:
+    """
+    Crop PDF to a selection defined as percentage of page dimensions.
+    x1_pct, y1_pct = top-left corner (0.0 to 1.0)
+    x2_pct, y2_pct = bottom-right corner (0.0 to 1.0)
+    """
+    import fitz, os
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+
+    if pages.lower() == 'all':
+        page_list = list(range(total))
+    else:
+        page_list = [int(p)-1 for p in pages.split(',') if p.strip().isdigit()]
+
+    for pg_idx in page_list:
+        if pg_idx >= total: continue
+        page = doc[pg_idx]
+        pw, ph = page.rect.width, page.rect.height
+        crop = fitz.Rect(
+            x1_pct * pw, y1_pct * ph,
+            x2_pct * pw, y2_pct * ph,
+        )
+        page.set_cropbox(crop)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_cropped': len(page_list)}

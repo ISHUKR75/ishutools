@@ -1181,3 +1181,97 @@ def create_pdf_from_urls(image_urls: list, output_path: str,
         'images_downloaded': len(local_paths),
         'failed': failed,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL IMAGE-TO-PDF FUNCTIONS ──────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def images_to_pdf_with_captions(image_paths: list, output_path: str,
+                                  captions: list = None,
+                                  page_size: str = 'A4') -> dict:
+    """
+    Convert images to PDF with optional captions below each image.
+    Creates a photo-book style PDF.
+    """
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4, letter, LETTER
+    from PIL import Image
+    import io, os
+
+    size_map = {'A4': A4, 'letter': letter, 'LETTER': LETTER}
+    ps = size_map.get(page_size, A4)
+    W, H = ps
+
+    c = rl_canvas.Canvas(output_path, pagesize=ps)
+    captions = captions or [''] * len(image_paths)
+
+    for idx, img_path in enumerate(image_paths):
+        caption = captions[idx] if idx < len(captions) else ''
+        try:
+            img = Image.open(img_path).convert('RGB')
+            # Calculate fit dimensions
+            margin = 40
+            cap_h = 30 if caption else 0
+            avail_w = W - 2*margin
+            avail_h = H - 2*margin - cap_h
+            ratio = min(avail_w/img.width, avail_h/img.height)
+            iw, ih = img.width*ratio, img.height*ratio
+            x = (W - iw) / 2
+            y = (H - ih - cap_h) / 2 + cap_h
+
+            # Save temp
+            buf = io.BytesIO()
+            img.save(buf, format='JPEG', quality=92)
+            buf.seek(0)
+
+            c.drawImage(__import__('reportlab.lib.utils', fromlist=['ImageReader']).ImageReader(buf),
+                        x, y, width=iw, height=ih)
+            if caption:
+                c.setFont('Helvetica', 11)
+                c.setFillColorRGB(0.3, 0.3, 0.3)
+                c.drawCentredString(W/2, y - 20, caption)
+
+            c.setFont('Helvetica', 8)
+            c.setFillColorRGB(0.6, 0.6, 0.6)
+            c.drawCentredString(W/2, 20, f'Page {idx+1} — IshuTools.fun')
+
+            if idx < len(image_paths) - 1:
+                c.showPage()
+        except Exception as e:
+            c.setFont('Helvetica', 12)
+            c.drawString(margin, H/2, f'Error loading image: {e}')
+            if idx < len(image_paths) - 1:
+                c.showPage()
+
+    c.save()
+    return {'output_path': output_path, 'images': len(image_paths)}
+
+
+def image_to_pdf_preserve_quality(image_path: str, output_path: str,
+                                    dpi: int = 300) -> dict:
+    """
+    Convert single high-quality image to PDF preserving original resolution and DPI.
+    Uses img2pdf for lossless conversion (no JPEG re-compression).
+    """
+    import img2pdf, os
+    from PIL import Image
+
+    try:
+        # img2pdf: lossless conversion
+        with open(output_path, 'wb') as f:
+            f.write(img2pdf.convert(image_path))
+        return {
+            'output_path': output_path,
+            'method': 'img2pdf_lossless',
+            'file_size': os.path.getsize(output_path),
+        }
+    except Exception:
+        # Fallback: PIL conversion
+        img = Image.open(image_path).convert('RGB')
+        img.save(output_path, 'PDF', resolution=dpi, save_all=False)
+        return {
+            'output_path': output_path,
+            'method': 'pillow',
+            'file_size': os.path.getsize(output_path),
+        }

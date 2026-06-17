@@ -1143,3 +1143,99 @@ def compress_strip_javascript(input_path: str, output_path: str) -> dict:
         'output_size': new,
         'reduction_pct': round((orig - new) / max(orig, 1) * 100, 1),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADVANCED COMPRESSION UTILITIES ─────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def compress_progressive(input_path: str, output_path: str,
+                          target_size_mb: float = 2.0) -> dict:
+    """
+    Progressively compress PDF until target size is reached.
+    Tries lossless → medium → aggressive until target met.
+    """
+    import os
+    strategies = ['lossless', 'high', 'medium', 'low', 'screen']
+    original_size = os.path.getsize(input_path)
+    target_bytes = int(target_size_mb * 1024 * 1024)
+
+    best_path = None
+    best_size = original_size
+    best_strategy = None
+
+    import tempfile
+    for strategy in strategies:
+        tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False).name
+        try:
+            compress_pdf(input_path, tmp, level=strategy)
+            sz = os.path.getsize(tmp)
+            if best_path is None or sz < best_size:
+                best_path = tmp
+                best_size = sz
+                best_strategy = strategy
+            if sz <= target_bytes:
+                break
+        except Exception:
+            try: os.unlink(tmp)
+            except: pass
+
+    if best_path and os.path.exists(best_path):
+        import shutil
+        shutil.copy2(best_path, output_path)
+        os.unlink(best_path)
+
+    return {
+        'output_path': output_path,
+        'original_size': original_size,
+        'compressed_size': os.path.getsize(output_path),
+        'reduction_percent': round((1 - os.path.getsize(output_path)/original_size)*100, 1),
+        'strategy_used': best_strategy,
+        'target_size_mb': target_size_mb,
+        'target_met': os.path.getsize(output_path) <= target_bytes,
+    }
+
+
+def strip_pdf_bloat(input_path: str, output_path: str) -> dict:
+    """
+    Strip non-essential bloat: thumbnails, embedded files, JavaScript,
+    forms XFA, duplication data, unused objects.
+    """
+    import pikepdf, os
+
+    with pikepdf.open(input_path) as pdf:
+        # Remove embedded files
+        if '/Names' in pdf.Root:
+            try: del pdf.Root.Names.EmbeddedFiles
+            except: pass
+        # Remove XFA forms
+        if '/AcroForm' in pdf.Root:
+            try:
+                acroform = pdf.Root.AcroForm
+                if '/XFA' in acroform:
+                    del acroform['/XFA']
+            except: pass
+        # Remove JavaScript
+        if '/Names' in pdf.Root:
+            try:
+                names = pdf.Root.Names
+                for key in ['/JavaScript', '/JS']:
+                    if key in names:
+                        del names[key]
+            except: pass
+        # Remove thumbnails
+        for page in pdf.pages:
+            try:
+                if '/Thumb' in page:
+                    del page['/Thumb']
+            except: pass
+
+        pdf.save(output_path, compress_streams=True,
+                 object_stream_mode=pikepdf.ObjectStreamMode.generate)
+
+    return {
+        'output_path': output_path,
+        'original_size': os.path.getsize(input_path),
+        'stripped_size': os.path.getsize(output_path),
+        'reduction_bytes': os.path.getsize(input_path) - os.path.getsize(output_path),
+    }

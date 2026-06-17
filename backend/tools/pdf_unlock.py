@@ -1032,3 +1032,51 @@ def unlock_and_optimize(input_path: str, output_path: str,
         if os.path.exists(tmp_unlocked):
             os.remove(tmp_unlocked)
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL UNLOCK FUNCTIONS ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def check_pdf_password_required(input_path: str) -> dict:
+    """Check if a PDF requires a password without attempting to open it."""
+    import pikepdf, fitz, os
+    result = {
+        'is_encrypted': False,
+        'needs_password': False,
+        'encryption_method': None,
+        'file_size': os.path.getsize(input_path),
+    }
+    try:
+        with pikepdf.open(input_path) as pdf:
+            result['is_encrypted'] = pdf.is_encrypted
+            result['needs_password'] = False
+    except pikepdf.PasswordError:
+        result['is_encrypted'] = True
+        result['needs_password'] = True
+    except Exception as e:
+        result['error'] = str(e)
+    return result
+
+
+def remove_print_restrictions(input_path: str, output_path: str,
+                                owner_password: str = '') -> dict:
+    """
+    Remove print/copy restrictions from an owner-restricted PDF.
+    Only works on permission-locked PDFs (not user-password protected).
+    """
+    import pikepdf, os
+    try:
+        with pikepdf.open(input_path, password=owner_password) as pdf:
+            pdf.save(output_path,
+                     encryption=False)
+        return {
+            'output_path': output_path,
+            'restrictions_removed': True,
+            'original_size': os.path.getsize(input_path),
+            'output_size': os.path.getsize(output_path),
+        }
+    except pikepdf.PasswordError:
+        return {'error': 'Incorrect password or file is user-password protected'}
+    except Exception as e:
+        return {'error': str(e)}

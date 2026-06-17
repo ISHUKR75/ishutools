@@ -1012,3 +1012,100 @@ def generate_redaction_report(input_path: str,
         'matches': matches[:200],  # limit to first 200
         'pages_scanned': doc.page_count,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL REDACTION FUNCTIONS ─────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def redact_email_addresses(input_path: str, output_path: str) -> dict:
+    """
+    Auto-detect and redact all email addresses from PDF.
+    Uses regex pattern matching on extracted text.
+    """
+    import fitz, re, os
+
+    email_pattern = re.compile(
+        r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Z|a-z]{2,}\b'
+    )
+    doc = fitz.open(input_path)
+    redacted_count = 0
+
+    for page in doc:
+        text = page.get_text()
+        emails = email_pattern.findall(text)
+        for email in emails:
+            instances = page.search_for(email)
+            for rect in instances:
+                page.add_redact_annot(rect, fill=(0, 0, 0))
+                redacted_count += 1
+        if emails:
+            page.apply_redactions()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'emails_redacted': redacted_count}
+
+
+def redact_phone_numbers(input_path: str, output_path: str) -> dict:
+    """
+    Auto-detect and redact phone numbers from PDF.
+    Handles multiple formats: +91-XXXXXXXX, (XXX) XXX-XXXX, etc.
+    """
+    import fitz, re, os
+
+    phone_pattern = re.compile(
+        r'(\+?\d{1,3}[\s\-\.]?)?'
+        r'(\(?\d{3}\)?[\s\-\.]?)?'
+        r'\d{3}[\s\-\.]?\d{4}'
+    )
+    doc = fitz.open(input_path)
+    redacted_count = 0
+
+    for page in doc:
+        text = page.get_text()
+        phones = phone_pattern.findall(text)
+        for match in phones:
+            phone_str = ''.join(match).strip()
+            if len(re.sub(r'\D', '', phone_str)) >= 7:
+                instances = page.search_for(phone_str)
+                for rect in instances:
+                    page.add_redact_annot(rect, fill=(0, 0, 0))
+                    redacted_count += 1
+        if phones:
+            page.apply_redactions()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'phones_redacted': redacted_count}
+
+
+def redact_custom_patterns(input_path: str, output_path: str,
+                             patterns: list) -> dict:
+    """
+    Redact text matching any of the provided regex patterns.
+    patterns: list of regex strings, e.g. ['\bSSN:\s*\d{3}-\d{2}-\d{4}\b']
+    """
+    import fitz, re, os
+
+    compiled = [re.compile(p) for p in patterns]
+    doc = fitz.open(input_path)
+    total_redacted = 0
+
+    for page in doc:
+        text = page.get_text()
+        page_redacted = False
+        for regex in compiled:
+            for match in regex.finditer(text):
+                matched_text = match.group()
+                instances = page.search_for(matched_text)
+                for rect in instances:
+                    page.add_redact_annot(rect, fill=(0, 0, 0))
+                    total_redacted += 1
+                    page_redacted = True
+        if page_redacted:
+            page.apply_redactions()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'total_redacted': total_redacted}

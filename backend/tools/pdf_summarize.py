@@ -1166,3 +1166,138 @@ def generate_executive_summary(input_path: str, max_sentences: int = 10,
         'questions': questions,
         'top_words': [w for w, _ in word_freq.most_common(20)],
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL AI SUMMARIZATION FUNCTIONS ──────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def extract_key_topics(input_path: str, max_topics: int = 10) -> dict:
+    """
+    Extract key topics and entities from PDF using TF-IDF keyword extraction.
+    No API key required — pure Python NLP.
+    """
+    import fitz, re
+    from collections import Counter
+
+    doc = fitz.open(input_path)
+    full_text = ' '.join(p.get_text('text') for p in doc)
+    doc.close()
+
+    # Stop words
+    STOP = frozenset({
+        'the','and','for','are','but','not','you','all','this','that','with',
+        'have','from','they','will','been','was','were','can','has','had','its',
+        'also','more','some','such','then','than','when','which','who','what',
+        'where','how','each','both','few','most','other','same','very','may',
+        'might','should','would','could','there','their','them','these','those',
+        'about','after','before','between','through','under','over','into','out',
+        'an','a','is','in','of','to','at','by','on','or','as','if','it','be',
+        'do','we','he','she','i','me','our','his','her','they','us','was','were',
+        'said','use','using','used','page','pdf','figure','table','section','chapter',
+    })
+
+    words = re.findall(r'\b[a-zA-Z]{4,20}\b', full_text.lower())
+    filtered = [w for w in words if w not in STOP]
+    freq = Counter(filtered)
+    top_keywords = [{'keyword': w, 'frequency': c}
+                    for w, c in freq.most_common(max_topics)]
+
+    # Bigrams for compound topics
+    bigrams = []
+    for i in range(len(words)-1):
+        w1, w2 = words[i], words[i+1]
+        if w1 not in STOP and w2 not in STOP and len(w1)>3 and len(w2)>3:
+            bigrams.append(f'{w1} {w2}')
+    top_bigrams = [{'phrase': p, 'frequency': c}
+                    for p, c in Counter(bigrams).most_common(5)]
+
+    return {
+        'keywords': top_keywords,
+        'key_phrases': top_bigrams,
+        'total_words': len(words),
+        'unique_words': len(set(filtered)),
+    }
+
+
+def generate_executive_summary(input_path: str, max_sentences: int = 5) -> dict:
+    """
+    Generate a concise executive summary using TextRank-inspired extraction.
+    Picks the most representative sentences from the document.
+    No AI API needed — pure extractive summarization.
+    """
+    import fitz, re
+    from collections import defaultdict
+
+    doc = fitz.open(input_path)
+    full_text = ' '.join(p.get_text('text') for p in doc)
+    doc.close()
+
+    # Split into sentences
+    sentences = re.split(r'(?<=[.!?])\s+', full_text)
+    sentences = [s.strip() for s in sentences if len(s.strip()) > 30][:200]
+
+    if not sentences:
+        return {'summary': 'No content found', 'sentences': 0}
+
+    if len(sentences) <= max_sentences:
+        return {'summary': ' '.join(sentences), 'sentences': len(sentences)}
+
+    # Score sentences by word frequency
+    STOP = frozenset({'the','and','for','are','but','not','you','all','this',
+                      'that','with','have','from','they','will','is','in',
+                      'of','to','at','by','on','a','an','it','its'})
+
+    word_freq = defaultdict(int)
+    for sent in sentences:
+        for word in re.findall(r'\b[a-z]{3,}\b', sent.lower()):
+            if word not in STOP:
+                word_freq[word] += 1
+
+    def score_sentence(sent):
+        words = re.findall(r'\b[a-z]{3,}\b', sent.lower())
+        return sum(word_freq[w] for w in words if w not in STOP) / max(len(words), 1)
+
+    scored = [(score_sentence(s), i, s) for i, s in enumerate(sentences)]
+    scored.sort(reverse=True)
+    top = sorted(scored[:max_sentences], key=lambda x: x[1])  # Restore order
+    summary = ' '.join(s for _, _, s in top)
+
+    return {
+        'summary': summary,
+        'sentences_selected': max_sentences,
+        'total_sentences': len(sentences),
+        'extraction_method': 'frequency_based_textrank',
+    }
+
+
+def count_pdf_stats(input_path: str) -> dict:
+    """
+    Comprehensive document statistics for a PDF.
+    Word count, page count, reading time, language guess, etc.
+    """
+    import fitz, re
+    from collections import Counter
+
+    doc = fitz.open(input_path)
+    pages_text = [p.get_text('text') for p in doc]
+    full_text = ' '.join(pages_text)
+    doc.close()
+
+    words = re.findall(r'\b\w+\b', full_text)
+    sentences = re.findall(r'[.!?]+', full_text)
+    paragraphs = [p for p in re.split(r'\n{2,}', full_text) if p.strip()]
+    chars_no_space = len(full_text.replace(' ', '').replace('\n', ''))
+
+    return {
+        'pages': len(pages_text),
+        'words': len(words),
+        'characters': len(full_text),
+        'characters_no_spaces': chars_no_space,
+        'sentences': len(sentences),
+        'paragraphs': len(paragraphs),
+        'avg_words_per_page': round(len(words)/max(len(pages_text),1), 1),
+        'avg_words_per_sentence': round(len(words)/max(len(sentences),1), 1),
+        'reading_time_minutes': round(len(words)/238, 1),
+        'speaking_time_minutes': round(len(words)/130, 1),
+    }

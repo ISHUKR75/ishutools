@@ -1066,3 +1066,81 @@ def repair_xref_table(input_path: str, output_path: str) -> dict:
         return {'output_path': output_path, 'engine': 'pikepdf', 'rebuilt': True}
     except Exception as e:
         raise RuntimeError(f'xref rebuild failed: {e}')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL REPAIR & RECOVERY FUNCTIONS ──────────────────────────────────
+
+
+def diagnose_pdf(input_path: str) -> dict:
+    """Comprehensive PDF diagnosis — detects issues before repair attempt."""
+    import os, fitz, pikepdf, hashlib
+    report = {'file': input_path, 'size_bytes': os.path.getsize(input_path),
+              'issues': [], 'severity': 'none', 'engines_tested': []}
+    with open(input_path, 'rb') as f:
+        header = f.read(8)
+    if not header.startswith(b'%PDF'):
+        report['issues'].append('Missing PDF header (%PDF)')
+        report['severity'] = 'critical'
+    try:
+        with pikepdf.open(input_path, suppress_warnings=True) as pdf:
+            report['page_count'] = len(pdf.pages)
+            report['is_encrypted'] = pdf.is_encrypted
+            report['engines_tested'].append('pikepdf:ok')
+    except pikepdf.PasswordError:
+        report['issues'].append('PDF is password protected')
+        report['engines_tested'].append('pikepdf:password-required')
+    except Exception as e:
+        report['issues'].append(f'pikepdf failed: {str(e)[:100]}')
+        report['engines_tested'].append('pikepdf:error')
+    try:
+        doc = fitz.open(input_path)
+        report['page_count_fitz'] = doc.page_count
+        report['engines_tested'].append('fitz:ok')
+        doc.close()
+    except Exception as e:
+        report['issues'].append(f'PyMuPDF failed: {str(e)[:100]}')
+    if not report['issues']:
+        report['severity'] = 'none'
+    return report
+
+
+def recover_text_from_damaged_pdf(input_path: str, output_txt_path: str) -> dict:
+    """Last-resort text recovery from a damaged PDF using multiple engines."""
+    import fitz, os
+    from pypdf import PdfReader
+    from pdfminer.high_level import extract_text as pdfminer_extract
+    recovered_texts = []
+    strategies = []
+    try:
+        doc = fitz.open(input_path)
+        text = '\n\n'.join(page.get_text('text') for page in doc)
+        doc.close()
+        if text.strip():
+            recovered_texts.append(('fitz', text))
+            strategies.append('fitz:success')
+    except Exception:
+        strategies.append('fitz:failed')
+    try:
+        text = pdfminer_extract(input_path)
+        if text.strip():
+            recovered_texts.append(('pdfminer', text))
+            strategies.append('pdfminer:success')
+    except Exception:
+        strategies.append('pdfminer:failed')
+    try:
+        reader = PdfReader(input_path, strict=False)
+        texts = []
+        for page in reader.pages:
+            try: texts.append(page.extract_text() or '')
+            except: pass
+        text = '\n\n'.join(texts)
+        if text.strip():
+            recovered_texts.append(('pypdf', text))
+            strategies.append('pypdf:success')
+    except Exception:
+        strategies.append('pypdf:failed')
+    best_text = max((t[1] for t in recovered_texts), key=len) if recovered_texts else ''
+    with open(output_txt_path, 'w', encoding='utf-8', errors='replace') as f:
+        f.write(best_text or 'No text could be recovered.')
+    return {'output_path': output_txt_path, 'chars_recovered': len(best_text), 'strategies': strategies}

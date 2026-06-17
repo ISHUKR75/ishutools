@@ -680,10 +680,36 @@ def translate_pdf(
     full_text, page_texts = extract_text_structured(input_path)
     full_text = _clean_text(full_text)
 
+    # ── Auto-OCR fallback for scanned/image-based PDFs ────────────────────────
+    if len(full_text.strip()) < 10:
+        logger.info('PDF has no extractable text — running automatic OCR before translation')
+        try:
+            import tempfile as _tempfile
+            from tools.pdf_ocr import ocr_pdf as _ocr_pdf
+            _ocr_tmp = _tempfile.NamedTemporaryFile(suffix='.pdf', delete=False).name
+            _ocr_result = _ocr_pdf(
+                input_path, _ocr_tmp,
+                language='eng',
+                output_format='pdf',
+                dpi=300,
+                preprocess=True,
+                deskew=True,
+            )
+            # Re-extract from OCR'd PDF
+            full_text, page_texts = extract_text_structured(_ocr_tmp)
+            full_text = _clean_text(full_text)
+            try:
+                os.unlink(_ocr_tmp)
+            except Exception:
+                pass
+        except Exception as _ocr_err:
+            logger.warning(f'Auto-OCR fallback failed: {_ocr_err}')
+
     if len(full_text.strip()) < 10:
         raise ValueError(
             'PDF contains no extractable text. '
-            'Please run OCR first to extract text from scanned documents.'
+            'The file appears to be a scanned image PDF. '
+            'Please run the OCR tool first, then translate the OCR output.'
         )
 
     # Language detection

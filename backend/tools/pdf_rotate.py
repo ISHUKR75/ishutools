@@ -854,3 +854,68 @@ def rotate_and_crop_margins(input_path: str, output_path: str,
 
     return {'output_path': output_path, 'angle': angle,
             'crop_margin_pt': crop_margin_pt}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL ROTATE FUNCTIONS ────────────────────────────────────────────
+
+
+def auto_rotate_pages(input_path: str, output_path: str) -> dict:
+    """Auto-detect and correct page orientation using Tesseract OSD."""
+    import fitz, os
+    try:
+        import pytesseract
+        from pdf2image import convert_from_path
+        images = convert_from_path(input_path, dpi=72)
+        rotations = []
+        for img in images:
+            try:
+                osd = pytesseract.image_to_osd(img, config='--psm 0')
+                rotation = 0
+                for line in osd.split('\n'):
+                    if 'Rotate:' in line:
+                        rotation = int(line.split(':')[1].strip())
+                        break
+                rotations.append(rotation)
+            except Exception:
+                rotations.append(0)
+        doc = fitz.open(input_path)
+        for i, (page, rot) in enumerate(zip(doc, rotations)):
+            if rot != 0:
+                page.set_rotation((page.rotation + rot) % 360)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        corrected = sum(1 for r in rotations if r != 0)
+        return {'output_path': output_path, 'pages_corrected': corrected, 'rotations': rotations}
+    except Exception as e:
+        import shutil
+        shutil.copy2(input_path, output_path)
+        return {'output_path': output_path, 'pages_corrected': 0, 'note': str(e)}
+
+
+def flip_pages_horizontal(input_path: str, output_path: str, pages: str = 'all') -> dict:
+    """Flip PDF pages horizontally (mirror effect)."""
+    import fitz, os
+    doc = fitz.open(input_path)
+    total = doc.page_count
+    if pages.lower() == 'all':
+        page_list = list(range(total))
+    else:
+        page_list = [int(p)-1 for p in pages.split(',') if p.strip().isdigit()]
+    new_doc = fitz.open()
+    for i in range(total):
+        page = doc[i]
+        if i in page_list:
+            pix = page.get_pixmap(dpi=150)
+            from PIL import Image
+            import io
+            img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            buf = io.BytesIO(); img.save(buf, 'JPEG', quality=90); buf.seek(0)
+            new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+            new_page.insert_image(new_page.rect, stream=buf.getvalue())
+        else:
+            new_doc.insert_pdf(doc, from_page=i, to_page=i)
+    new_doc.save(output_path, garbage=4, deflate=True)
+    doc.close(); new_doc.close()
+    return {'output_path': output_path, 'pages_flipped': len(page_list)}

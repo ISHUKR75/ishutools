@@ -1122,3 +1122,46 @@ def find_added_removed_pages(path1: str, path2: str) -> dict:
         'doc1_pages': doc1.page_count,
         'doc2_pages': doc2.page_count,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL COMPARISON FUNCTIONS ────────────────────────────────────────
+
+
+def compare_text_only(path_a: str, path_b: str) -> dict:
+    """Fast text-only comparison of two PDFs with diff summary."""
+    import fitz, difflib
+    def get_text(path):
+        doc = fitz.open(path)
+        text = '\n'.join(p.get_text('text') for p in doc)
+        doc.close()
+        return text
+    text_a = get_text(path_a).splitlines()
+    text_b = get_text(path_b).splitlines()
+    matcher = difflib.SequenceMatcher(None, text_a, text_b)
+    similarity = round(matcher.ratio() * 100, 2)
+    added = [l for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+             if tag in ('insert','replace') for l in text_b[j1:j2]]
+    removed = [l for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+               if tag in ('delete','replace') for l in text_a[i1:i2]]
+    return {'similarity_percent': similarity, 'lines_added': len(added),
+            'lines_removed': len(removed), 'added_preview': added[:20],
+            'removed_preview': removed[:20], 'are_identical': similarity == 100.0}
+
+
+def compare_metadata(path_a: str, path_b: str) -> dict:
+    """Compare metadata between two PDFs."""
+    import fitz, os
+    def get_meta(path):
+        doc = fitz.open(path)
+        meta = dict(doc.metadata)
+        meta['page_count'] = doc.page_count
+        meta['file_size'] = os.path.getsize(path)
+        doc.close()
+        return meta
+    meta_a = get_meta(path_a)
+    meta_b = get_meta(path_b)
+    diff = {k: {'file_a': meta_a.get(k,'N/A'), 'file_b': meta_b.get(k,'N/A')}
+            for k in set(meta_a)|set(meta_b)
+            if meta_a.get(k) != meta_b.get(k)}
+    return {'metadata_a': meta_a, 'metadata_b': meta_b, 'differences': diff, 'are_identical': len(diff)==0}

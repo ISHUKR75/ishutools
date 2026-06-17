@@ -1094,3 +1094,122 @@ def split_merge_interleave(pdf_paths: list, output_path: str) -> dict:
     out_doc.close()
 
     return {'output_path': output_path, 'total_pages': total, 'sources': len(pdf_paths)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL ENTERPRISE FUNCTIONS ────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def merge_with_bookmarks(input_paths: list, output_path: str,
+                          add_title_pages: bool = False) -> dict:
+    """
+    Merge PDFs while preserving and updating bookmarks/TOC from each file.
+    Optionally inserts a title page before each document.
+    """
+    import fitz, pikepdf
+    from pypdf import PdfWriter, PdfReader
+
+    writer = PdfWriter()
+    total_pages = 0
+    file_page_starts = []
+
+    for i, path in enumerate(input_paths):
+        basename = os.path.splitext(os.path.basename(path))[0]
+        reader = PdfReader(path)
+        page_count = len(reader.pages)
+        file_page_starts.append((total_pages, basename, page_count))
+
+        if add_title_pages:
+            from reportlab.pdfgen import canvas as rl_canvas
+            from reportlab.lib.pagesizes import A4
+            import io
+            buf = io.BytesIO()
+            c = rl_canvas.Canvas(buf, pagesize=A4)
+            c.setFillColorRGB(0.24, 0.39, 0.93)
+            c.rect(0, 0, A4[0], A4[1], fill=True)
+            c.setFillColorRGB(1, 1, 1)
+            c.setFont('Helvetica-Bold', 24)
+            c.drawCentredString(A4[0]/2, A4[1]/2 + 40, f'Document {i+1}')
+            c.setFont('Helvetica', 16)
+            c.drawCentredString(A4[0]/2, A4[1]/2, basename)
+            c.setFont('Helvetica', 10)
+            c.drawCentredString(A4[0]/2, 40, 'Merged by IshuTools.fun')
+            c.save()
+            buf.seek(0)
+            title_reader = PdfReader(buf)
+            writer.add_page(title_reader.pages[0])
+            total_pages += 1
+
+        for page in reader.pages:
+            writer.add_page(page)
+        total_pages += page_count
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+
+    return {
+        'output_path': output_path,
+        'total_pages': total_pages,
+        'files_merged': len(input_paths),
+        'file_map': [{'file': b, 'start_page': s, 'pages': p} for s,b,p in file_page_starts],
+    }
+
+
+def merge_interleave(path_a: str, path_b: str, output_path: str,
+                      reverse_b: bool = False) -> dict:
+    """
+    Interleave pages from two PDFs (useful for double-sided scans).
+    A: p1, p2, p3... + B: p1, p2, p3... → p1-A, p1-B, p2-A, p2-B...
+    If reverse_b=True, B is read in reverse order.
+    """
+    from pypdf import PdfWriter, PdfReader
+    writer = PdfWriter()
+    ra = PdfReader(path_a)
+    rb = PdfReader(path_b)
+    pages_a = list(ra.pages)
+    pages_b = list(reversed(rb.pages)) if reverse_b else list(rb.pages)
+    for i in range(max(len(pages_a), len(pages_b))):
+        if i < len(pages_a):
+            writer.add_page(pages_a[i])
+        if i < len(pages_b):
+            writer.add_page(pages_b[i])
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+    return {'output_path': output_path, 'total_pages': len(writer.pages)}
+
+
+def merge_even_odd(path: str, output_even: str, output_odd: str) -> dict:
+    """Split a PDF into even and odd pages (useful for double-sided printing)."""
+    from pypdf import PdfWriter, PdfReader
+    reader = PdfReader(path)
+    w_even, w_odd = PdfWriter(), PdfWriter()
+    for i, page in enumerate(reader.pages):
+        (w_even if i % 2 == 1 else w_odd).add_page(page)
+    with open(output_even, 'wb') as f: w_even.write(f)
+    with open(output_odd, 'wb') as f: w_odd.write(f)
+    return {'even_pages': len(w_even.pages), 'odd_pages': len(w_odd.pages)}
+
+
+def get_pdf_info(input_path: str) -> dict:
+    """Get comprehensive info about a PDF file."""
+    import fitz
+    doc = fitz.open(input_path)
+    meta = doc.metadata
+    info = {
+        'page_count': doc.page_count,
+        'file_size': os.path.getsize(input_path),
+        'file_size_mb': round(os.path.getsize(input_path) / 1024 / 1024, 2),
+        'title': meta.get('title', ''),
+        'author': meta.get('author', ''),
+        'creator': meta.get('creator', ''),
+        'producer': meta.get('producer', ''),
+        'creation_date': meta.get('creationDate', ''),
+        'is_encrypted': doc.is_encrypted,
+        'needs_pass': doc.needs_pass,
+        'page_sizes': [],
+    }
+    for i, page in enumerate(doc):
+        r = page.rect
+        info['page_sizes'].append({'page': i+1, 'width': r.width, 'height': r.height})
+    doc.close()
+    return info

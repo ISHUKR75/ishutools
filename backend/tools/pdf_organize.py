@@ -1146,3 +1146,79 @@ def move_pages(input_path: str, output_path: str,
     doc.close()
     out_doc.close()
     return {'output_path': output_path, 'new_order': [p + 1 for p in new_order]}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL ORGANIZE FUNCTIONS ──────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def reverse_pdf_pages(input_path: str, output_path: str) -> dict:
+    """Reverse the page order of a PDF (last page becomes first)."""
+    import fitz
+    doc = fitz.open(input_path)
+    new_doc = fitz.open()
+    for i in range(doc.page_count - 1, -1, -1):
+        new_doc.insert_pdf(doc, from_page=i, to_page=i)
+    new_doc.save(output_path, garbage=4, deflate=True)
+    doc.close(); new_doc.close()
+    return {'output_path': output_path, 'pages': new_doc.page_count}
+
+
+def duplicate_pages(input_path: str, output_path: str,
+                     pages: list, copies: int = 2) -> dict:
+    """
+    Duplicate specified pages N times within the PDF.
+    Useful for printing extra copies of specific pages.
+    """
+    import fitz
+    from pypdf import PdfWriter, PdfReader
+    reader = PdfReader(input_path)
+    writer = PdfWriter()
+    total = len(reader.pages)
+
+    for i, page in enumerate(reader.pages):
+        pg_num = i + 1
+        n = copies if pg_num in pages else 1
+        for _ in range(n):
+            writer.add_page(page)
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+    return {'output_path': output_path, 'pages_duplicated': len(pages)}
+
+
+def insert_blank_pages(input_path: str, output_path: str,
+                        after_pages: list) -> dict:
+    """
+    Insert blank pages after specified page numbers.
+    Useful for adding space for handwritten notes or for duplex printing.
+    """
+    from pypdf import PdfWriter, PdfReader
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    import io
+
+    reader = PdfReader(input_path)
+    writer = PdfWriter()
+
+    # Create a blank page
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+    c.setFont('Helvetica', 8)
+    c.setFillColorRGB(0.8, 0.8, 0.8)
+    c.drawCentredString(A4[0]/2, 30, 'IshuTools.fun — Blank Page')
+    c.save()
+    buf.seek(0)
+    blank_reader = PdfReader(buf)
+    blank_page = blank_reader.pages[0]
+
+    blanks_added = 0
+    for i, page in enumerate(reader.pages):
+        writer.add_page(page)
+        if (i + 1) in after_pages:
+            writer.add_page(blank_page)
+            blanks_added += 1
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+    return {'output_path': output_path, 'blank_pages_inserted': blanks_added}

@@ -839,3 +839,52 @@ def pdf_to_pptx_with_animations(input_path: str, output_path: str,
     finally:
         import shutil as _sh
         _sh.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL PDF-TO-PPTX FUNCTIONS ───────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def pdf_to_pptx_visual(input_path: str, output_path: str, dpi: int = 150) -> dict:
+    """
+    Convert PDF to PowerPoint by rendering each page as an image slide.
+    Creates a visual presentation preserving exact PDF layout.
+    """
+    import fitz, io, os
+    from pptx import Presentation
+    from pptx.util import Inches, Pt, Emu
+    from PIL import Image
+
+    doc = fitz.open(input_path)
+    prs = Presentation()
+
+    # Match PDF page size (usually A4 = 8.27 x 11.69 inches)
+    first_page = doc[0]
+    pt_w, pt_h = first_page.rect.width, first_page.rect.height
+    # Convert points to EMUs (1 pt = 12700 EMU)
+    prs.slide_width = int(pt_w * 12700)
+    prs.slide_height = int(pt_h * 12700)
+
+    blank_layout = prs.slide_layouts[6]  # Blank layout
+
+    for page in doc:
+        # Render page to image
+        pix = page.get_pixmap(dpi=dpi)
+        img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        buf = io.BytesIO()
+        img.save(buf, 'JPEG', quality=90, optimize=True)
+        buf.seek(0)
+
+        slide = prs.slides.add_slide(blank_layout)
+        slide.shapes.add_picture(buf, 0, 0,
+                                  width=prs.slide_width,
+                                  height=prs.slide_height)
+
+    doc.close()
+    prs.save(output_path)
+    return {
+        'output_path': output_path,
+        'slides': len(prs.slides),
+        'slide_width_emu': prs.slide_width,
+        'method': 'visual_image_slides',
+    }

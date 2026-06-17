@@ -860,3 +860,90 @@ def flatten_form_fields(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'flatten_form_fields failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL EDIT FUNCTIONS ───────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def add_text_box(input_path: str, output_path: str,
+                  text: str, page_num: int = 1,
+                  x: float = 100, y: float = 100,
+                  width: float = 200, height: float = 50,
+                  font_size: int = 11, bg_color: str = '#FFFFFF',
+                  border_color: str = '#6366F1') -> dict:
+    """
+    Add a styled text box annotation to a specific position on a PDF page.
+    """
+    import fitz, os
+
+    doc = fitz.open(input_path)
+    if page_num < 1: page_num = 1
+    if page_num > doc.page_count: page_num = doc.page_count
+    page = doc[page_num - 1]
+
+    def hex_to_rgb(hex_color):
+        h = hex_color.lstrip('#')
+        return tuple(int(h[i:i+2], 16)/255 for i in (0, 2, 4))
+
+    bg_rgb = hex_to_rgb(bg_color)
+    border_rgb = hex_to_rgb(border_color)
+
+    shape = page.new_shape()
+    rect = fitz.Rect(x, y, x+width, y+height)
+    shape.draw_rect(rect)
+    shape.finish(color=border_rgb, fill=bg_rgb, width=1.5)
+    shape.insert_textbox(
+        rect,
+        text,
+        fontsize=font_size,
+        fontname='helv',
+        color=(0, 0, 0),
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+    shape.commit()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'text_added': text[:50], 'page': page_num}
+
+
+def replace_text_in_pdf(input_path: str, output_path: str,
+                          find_text: str, replace_text: str,
+                          case_sensitive: bool = False) -> dict:
+    """
+    Find and replace text content in a PDF.
+    Uses redaction + insertion for permanent text replacement.
+    """
+    import fitz, os
+
+    flags = 0 if case_sensitive else fitz.TEXT_INHIBIT_SPACES
+    doc = fitz.open(input_path)
+    replacements = 0
+
+    for page in doc:
+        search_flags = 0 if case_sensitive else fitz.TEXT_INHIBIT_SPACES
+        instances = page.search_for(find_text, flags=search_flags)
+        for rect in instances:
+            # Redact old text
+            page.add_redact_annot(rect, fill=(1, 1, 1))
+            replacements += 1
+        if instances:
+            page.apply_redactions()
+            # Insert replacement text at each position
+            for rect in instances:
+                page.insert_text(
+                    fitz.Point(rect.x0, rect.y1 - 2),
+                    replace_text,
+                    fontsize=10,
+                    color=(0, 0, 0),
+                )
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {
+        'output_path': output_path,
+        'replacements_made': replacements,
+        'find': find_text,
+        'replace': replace_text,
+    }

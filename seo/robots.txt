@@ -51,6 +51,31 @@ Disallow: /
 
 # Sitemap locations
 Sitemap: https://ishutools.fun/sitemap.xml
+Sitemap: https://ishutools.fun/sitemap-tools.xml
+
+# Preferred crawl frequency
+# Crawl-delay for all: 0 (as fast as possible)
+User-agent: YandexBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: Sogou Spider
+Allow: /
+
+User-agent: Bytespider
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended  
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
 
 # Canonical host
 Host: https://ishutools.fun

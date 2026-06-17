@@ -1115,3 +1115,44 @@ def ocr_with_confidence_map(input_path: str, output_path: str,
         'low_confidence_words': low_conf_words,
         'low_confidence_pct': round(low_conf_words / max(total_words, 1) * 100, 1),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL OCR FUNCTIONS ────────────────────────────────────────────────
+
+
+def ocr_detect_tables(input_path: str, page_num: int = 1, language: str = 'eng', dpi: int = 300) -> dict:
+    """Use Tesseract PSM 6 to detect and extract table-like content."""
+    import pytesseract
+    from pdf2image import convert_from_path
+    images = convert_from_path(input_path, dpi=dpi, first_page=page_num, last_page=page_num)
+    if not images:
+        return {'error': 'Page not found'}
+    img = images[0]
+    text = pytesseract.image_to_string(img, lang=language, config='--oem 3 --psm 6')
+    rows = [line.split() for line in text.strip().split('\n') if line.strip()]
+    return {'page': page_num, 'raw_text': text, 'rows': rows, 'row_count': len(rows)}
+
+
+def ocr_to_structured_json(input_path: str, output_json_path: str, language: str = 'eng', dpi: int = 300) -> dict:
+    """OCR a PDF and output structured JSON with word-level bounding boxes."""
+    import pytesseract, json
+    from pdf2image import convert_from_path
+    pages_data = []
+    images = convert_from_path(input_path, dpi=dpi)
+    for pg_idx, img in enumerate(images):
+        data = pytesseract.image_to_data(img, lang=language, output_type=pytesseract.Output.DICT, config='--oem 3 --psm 3')
+        words = []
+        for i, word in enumerate(data['text']):
+            if word.strip():
+                words.append({'word': word, 'confidence': int(data['conf'][i]),
+                              'x': data['left'][i], 'y': data['top'][i],
+                              'width': data['width'][i], 'height': data['height'][i]})
+        text = pytesseract.image_to_string(img, lang=language, config='--oem 3 --psm 3')
+        pages_data.append({'page': pg_idx+1, 'text': text.strip(), 'words': words,
+                           'word_count': len(words),
+                           'avg_confidence': round(sum(w['confidence'] for w in words)/len(words), 1) if words else 0})
+    result = {'total_pages': len(pages_data), 'language': language, 'pages': pages_data}
+    with open(output_json_path, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    return {'output_path': output_json_path, 'pages': len(pages_data)}

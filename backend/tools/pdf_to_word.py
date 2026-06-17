@@ -879,3 +879,74 @@ def extract_images_from_pdf_to_docx(input_path: str, output_path: str,
         'pages': pdf.page_count,
         'images_extracted': images_extracted,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL PDF-TO-WORD FUNCTIONS ───────────────────────────────────────
+
+
+def pdf_pages_to_word(input_path: str, output_path: str, page_range: str = 'all') -> dict:
+    """Convert specific page range from PDF to Word document."""
+    import fitz
+    from docx import Document
+    import os
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+    if page_range.lower() == 'all':
+        pages = list(range(total))
+    else:
+        pages = []
+        for part in page_range.split(','):
+            if '-' in part:
+                a, b = part.split('-')
+                pages.extend(range(int(a)-1, int(b)))
+            else:
+                pages.append(int(part)-1)
+        pages = [p for p in pages if 0 <= p < total]
+
+    word_doc = Document()
+    for pg_idx in pages:
+        page = doc[pg_idx]
+        word_doc.add_heading(f'Page {pg_idx+1}', level=2)
+        text = page.get_text('text').strip()
+        if text:
+            word_doc.add_paragraph(text)
+        if pg_idx < pages[-1]:
+            word_doc.add_page_break()
+    doc.close()
+    word_doc.save(output_path)
+    return {'output_path': output_path, 'pages_converted': len(pages)}
+
+
+def pdf_to_word_pdfplumber(input_path: str, output_path: str) -> dict:
+    """Alternative PDF to Word conversion using pdfplumber."""
+    import pdfplumber
+    from docx import Document
+    from docx.shared import Pt
+    import os
+
+    doc = Document()
+    with pdfplumber.open(input_path) as pdf:
+        for pg_idx, page in enumerate(pdf.pages):
+            if pg_idx > 0:
+                doc.add_page_break()
+            p = doc.add_paragraph(f'Page {pg_idx + 1}')
+            p.style = doc.styles['Heading 2']
+            tables = page.extract_tables() or []
+            for table_data in tables:
+                if not table_data: continue
+                word_table = doc.add_table(rows=len(table_data), cols=max(len(r) for r in table_data))
+                word_table.style = 'Table Grid'
+                for r_idx, row in enumerate(table_data):
+                    for c_idx, cell_text in enumerate(row):
+                        if c_idx < len(word_table.columns):
+                            word_table.cell(r_idx, c_idx).text = str(cell_text or '')
+                doc.add_paragraph()
+            text = page.extract_text() or ''
+            if text.strip():
+                for line in text.split('\n'):
+                    if line.strip():
+                        doc.add_paragraph(line)
+    doc.save(output_path)
+    return {'output_path': output_path, 'engine': 'pdfplumber+python-docx'}

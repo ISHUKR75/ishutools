@@ -722,3 +722,64 @@ def detect_scan_quality(input_path: str) -> dict:
     except Exception as e:
         logger.warning(f'detect_scan_quality failed: {e}')
         return {'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL SCAN-TO-PDF FUNCTIONS ───────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def enhance_scanned_image(input_path: str, output_path: str,
+                           auto_deskew: bool = True,
+                           auto_contrast: bool = True,
+                           denoise: bool = True,
+                           sharpen: bool = True) -> dict:
+    """
+    Enhance a scanned image or document photo for better OCR/readability.
+    Applies a pipeline of: deskew → denoise → contrast → sharpen.
+    """
+    from PIL import Image, ImageEnhance, ImageFilter
+    import numpy as np, os
+
+    img = Image.open(input_path).convert('RGB')
+
+    if auto_contrast:
+        img = ImageEnhance.Contrast(img).enhance(1.5)
+
+    if denoise:
+        img = img.filter(ImageFilter.MedianFilter(size=3))
+
+    if sharpen:
+        img = img.filter(ImageFilter.SHARPEN)
+
+    if auto_deskew:
+        # Simple deskew using numpy
+        gray = np.array(img.convert('L'))
+        # Find average skew angle using horizontal projection
+        from scipy import ndimage
+        try:
+            angles = range(-15, 16, 1)
+            best_angle, best_score = 0, -1
+            for angle in angles:
+                rotated = ndimage.rotate(gray, angle, reshape=False, cval=255)
+                proj = np.sum(rotated < 128, axis=1)
+                score = np.std(proj)
+                if score > best_score:
+                    best_score = score
+                    best_angle = angle
+            if best_angle != 0:
+                img = img.rotate(best_angle, fillcolor=(255,255,255), expand=True)
+        except Exception:
+            pass
+
+    img.save(output_path, quality=95)
+    return {
+        'output_path': output_path,
+        'width': img.width,
+        'height': img.height,
+        'enhancements': {
+            'deskewed': auto_deskew,
+            'contrast': auto_contrast,
+            'denoised': denoise,
+            'sharpened': sharpen,
+        }
+    }

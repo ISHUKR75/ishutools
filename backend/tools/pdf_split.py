@@ -912,3 +912,84 @@ def split_and_zip(input_path: str, output_zip: str, mode: str = 'all',
              split_pdf(input_path, out_dir, output_zip, mode=mode,
                        ranges=ranges, every_n=every_n)
     return {'output_zip': output_zip}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL SPLIT FUNCTIONS ──────────────────────────────────────────────
+
+
+def extract_text_as_txt(input_path: str, output_txt_path: str) -> dict:
+    """Extract all text from PDF to a plain .txt file."""
+    import fitz
+    doc = fitz.open(input_path)
+    lines = []
+    for pg_idx, page in enumerate(doc):
+        text = page.get_text('text').strip()
+        if text:
+            lines.append(f'--- Page {pg_idx+1} ---')
+            lines.append(text)
+    doc.close()
+    with open(output_txt_path, 'w', encoding='utf-8') as f:
+        f.write('\n\n'.join(lines))
+    return {'output_path': output_txt_path, 'page_count': doc.page_count}
+
+
+def split_by_file_size(input_path: str, output_dir: str, max_size_mb: float = 5.0) -> dict:
+    """Split PDF into parts each no larger than max_size_mb."""
+    import fitz, os, io
+    from pypdf import PdfWriter, PdfReader
+    os.makedirs(output_dir, exist_ok=True)
+    reader = PdfReader(input_path)
+    total = len(reader.pages)
+    max_bytes = int(max_size_mb * 1024 * 1024)
+    parts = []
+    i = 0; part_num = 1
+    while i < total:
+        lo, hi = 1, total - i
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            writer = PdfWriter()
+            for j in range(i, i + mid):
+                writer.add_page(reader.pages[j])
+            buf = io.BytesIO()
+            writer.write(buf)
+            if buf.tell() <= max_bytes:
+                lo = mid
+            else:
+                hi = mid - 1
+        n = max(1, lo)
+        writer = PdfWriter()
+        for j in range(i, i + n):
+            writer.add_page(reader.pages[j])
+        out_path = os.path.join(output_dir, f'part_{part_num:03d}.pdf')
+        with open(out_path, 'wb') as f:
+            writer.write(f)
+        parts.append({'path': out_path, 'pages': n, 'size_bytes': os.path.getsize(out_path)})
+        i += n; part_num += 1
+    return {'parts': parts, 'total_parts': len(parts)}
+
+
+def split_at_bookmarks(input_path: str, output_dir: str) -> dict:
+    """Split PDF at each top-level bookmark/outline entry."""
+    import fitz, re, os
+    os.makedirs(output_dir, exist_ok=True)
+    doc = fitz.open(input_path)
+    toc = doc.get_toc(simple=True)
+    total = doc.page_count
+    if not toc:
+        return {'error': 'No bookmarks found in PDF', 'parts': []}
+    top_level = [(title, page-1) for lvl, title, page in toc if lvl == 1]
+    if not top_level:
+        top_level = [(title, page-1) for lvl, title, page in toc]
+    parts = []
+    for idx, (title, start_pg) in enumerate(top_level):
+        end_pg = top_level[idx+1][1] if idx+1 < len(top_level) else total
+        safe_title = re.sub(r'[^\w\s-]', '', title).strip()[:50] or f'section_{idx+1}'
+        out_path = os.path.join(output_dir, f'{idx+1:02d}_{safe_title}.pdf')
+        sub = fitz.open()
+        sub.insert_pdf(doc, from_page=start_pg, to_page=end_pg-1)
+        sub.save(out_path)
+        sub.close()
+        parts.append({'path': out_path, 'title': title, 'pages': end_pg - start_pg})
+    doc.close()
+    return {'parts': parts, 'total_parts': len(parts)}

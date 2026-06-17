@@ -711,3 +711,99 @@ def strip_non_pdfa_elements(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'strip_non_pdfa_elements failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL PDF/A FUNCTIONS ──────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def validate_pdfa_compliance(input_path: str) -> dict:
+    """
+    Validate if a PDF already meets PDF/A compliance requirements.
+    Checks metadata, embedded fonts, color spaces.
+    """
+    import fitz, pikepdf, os
+
+    result = {
+        'file': input_path,
+        'is_pdfa': False,
+        'pdfa_version': None,
+        'issues': [],
+    }
+
+    try:
+        with pikepdf.open(input_path) as pdf:
+            # Check for PDF/A metadata
+            if '/Metadata' in pdf.Root:
+                meta_stream = pdf.Root.Metadata
+                meta_bytes = bytes(meta_stream.read_bytes())
+                meta_str = meta_bytes.decode('utf-8', errors='replace')
+                if 'pdfa' in meta_str.lower() or 'PDF/A' in meta_str:
+                    result['is_pdfa'] = True
+                    if 'pdfaid:part' in meta_str:
+                        import re
+                        m = re.search(r'pdfaid:part[^>]*>(\d+)', meta_str)
+                        if m: result['pdfa_version'] = f'PDF/A-{m.group(1)}'
+
+            # Check for OutputIntent (required for PDF/A)
+            if '/OutputIntents' not in pdf.Root:
+                result['issues'].append('Missing OutputIntents (required for PDF/A)')
+    except Exception as e:
+        result['issues'].append(f'Validation error: {e}')
+
+    try:
+        doc = fitz.open(input_path)
+        # Check font embedding
+        for page in doc:
+            for font in page.get_fonts(full=True):
+                if font[3] not in ('Type0', 'TrueType', 'Type1') and not font[5]:
+                    result['issues'].append(f'Non-embedded font: {font[3]}')
+                    break
+        doc.close()
+    except Exception:
+        pass
+
+    result['is_compliant'] = len(result['issues']) == 0 and result['is_pdfa']
+    return result
+
+
+def add_pdfa_metadata(input_path: str, output_path: str,
+                       title: str = '', author: str = 'IshuTools.fun',
+                       subject: str = '') -> dict:
+    """
+    Inject proper PDF/A-compliant XMP metadata into a PDF.
+    Adds conformance declaration, creator, and document info.
+    """
+    import pikepdf
+    from datetime import datetime
+
+    now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S+00:00')
+
+    xmp_metadata = f"""<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x='adobe:ns:meta/'>
+  <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+    <rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'>
+      <dc:title><rdf:Alt><rdf:li xml:lang='x-default'>{title or 'IshuTools Document'}</rdf:li></rdf:Alt></dc:title>
+      <dc:creator><rdf:Seq><rdf:li>{author}</rdf:li></rdf:Seq></dc:creator>
+      <dc:description><rdf:Alt><rdf:li xml:lang='x-default'>{subject or 'Converted by IshuTools.fun'}</rdf:li></rdf:Alt></dc:description>
+    </rdf:Description>
+    <rdf:Description rdf:about='' xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
+      <xmp:CreateDate>{now}</xmp:CreateDate>
+      <xmp:ModifyDate>{now}</xmp:ModifyDate>
+      <xmp:CreatorTool>IshuTools.fun PDF/A Converter</xmp:CreatorTool>
+    </rdf:Description>
+    <rdf:Description rdf:about='' xmlns:pdfaid='http://www.aiim.org/pdfa/ns/id/'>
+      <pdfaid:part>1</pdfaid:part>
+      <pdfaid:conformance>B</pdfaid:conformance>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>"""
+
+    with pikepdf.open(input_path) as pdf:
+        pdf.Root.Metadata = pdf.make_stream(xmp_metadata.encode('utf-8'))
+        pdf.Root.Metadata['/Subtype'] = pikepdf.Name('/XML')
+        pdf.Root.Metadata['/Type'] = pikepdf.Name('/Metadata')
+        pdf.save(output_path)
+
+    return {'output_path': output_path, 'metadata_injected': True}

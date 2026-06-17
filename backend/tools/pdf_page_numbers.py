@@ -1022,3 +1022,80 @@ def remove_existing_page_numbers(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'remove_existing_page_numbers failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL PAGE NUMBERING FUNCTIONS ────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def add_page_numbers_roman(input_path: str, output_path: str,
+                            position: str = 'bottom-center',
+                            prefix: str = '', fontsize: int = 10) -> dict:
+    """
+    Add Roman numeral page numbers (i, ii, iii, iv, v...) to PDF.
+    Useful for table of contents, prefaces, and introductory sections.
+    """
+    import fitz, os
+
+    def to_roman(n):
+        vals = [(1000,'M'),(900,'CM'),(500,'D'),(400,'CD'),(100,'C'),(90,'XC'),
+                (50,'L'),(40,'XL'),(10,'X'),(9,'IX'),(5,'V'),(4,'IV'),(1,'I')]
+        result = ''
+        for v, s in vals:
+            while n >= v:
+                result += s; n -= v
+        return result.lower()
+
+    doc = fitz.open(input_path)
+    for i, page in enumerate(doc):
+        num = f'{prefix}{to_roman(i + 1)}'
+        pw, ph = page.rect.width, page.rect.height
+        pos_map = {
+            'bottom-center': (pw/2, 30),
+            'bottom-right': (pw - 50, 30),
+            'bottom-left': (50, 30),
+            'top-center': (pw/2, ph - 30),
+            'top-right': (pw - 50, ph - 30),
+            'top-left': (50, ph - 30),
+        }
+        x, y = pos_map.get(position, (pw/2, 30))
+        page.insert_text(fitz.Point(x, y), num, fontsize=fontsize,
+                          color=(0.3, 0.3, 0.3), fontname='helv')
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_numbered': doc.page_count}
+
+
+def add_running_header_footer(input_path: str, output_path: str,
+                               header_text: str = '', footer_text: str = '',
+                               include_page_num: bool = True,
+                               font_size: int = 9) -> dict:
+    """
+    Add running header and/or footer to all pages.
+    Header/footer can include {page} and {total} placeholders.
+    """
+    import fitz, os
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+
+    for i, page in enumerate(doc):
+        pw, ph = page.rect.width, page.rect.height
+        page_num = i + 1
+
+        h_text = header_text.replace('{page}', str(page_num)).replace('{total}', str(total))
+        f_text = footer_text.replace('{page}', str(page_num)).replace('{total}', str(total))
+
+        if include_page_num and not h_text and not f_text:
+            f_text = f'Page {page_num} of {total}'
+
+        if h_text:
+            page.insert_text(fitz.Point(pw/2, ph - 20), h_text,
+                              fontsize=font_size, color=(0.4,0.4,0.4), fontname='helv')
+        if f_text:
+            page.insert_text(fitz.Point(pw/2, 20), f_text,
+                              fontsize=font_size, color=(0.4,0.4,0.4), fontname='helv')
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'total_pages': total}

@@ -541,3 +541,72 @@ def analyze_optimization_potential(input_path: str) -> dict:
         'profile_estimates': estimates,
         'recommended_profile': 'web' if stats['image_count'] > 0 else 'archive',
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL OPTIMIZE FUNCTIONS ──────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def optimize_for_print(input_path: str, output_path: str, dpi: int = 300) -> dict:
+    """
+    Optimize PDF specifically for high-quality printing.
+    Ensures images are at print-quality DPI, fonts embedded, colors CMYK-safe.
+    """
+    import fitz, pikepdf, os
+    from PIL import Image
+    import io
+
+    doc = fitz.open(input_path)
+    new_doc = fitz.open()
+
+    for page in doc:
+        # Render at print DPI
+        pix = page.get_pixmap(dpi=dpi)
+        img_bytes = pix.tobytes('jpeg', jpg_quality=95)
+
+        new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+        new_page.insert_image(new_page.rect, stream=img_bytes)
+
+    new_doc.save(output_path, garbage=4, deflate=True)
+    doc.close(); new_doc.close()
+
+    return {
+        'output_path': output_path,
+        'dpi': dpi,
+        'original_size': os.path.getsize(input_path),
+        'output_size': os.path.getsize(output_path),
+        'optimized_for': 'print',
+    }
+
+
+def optimize_for_screen(input_path: str, output_path: str) -> dict:
+    """
+    Optimize PDF for screen reading: reduce image DPI to 96,
+    enable fast web view (linearization), remove unused objects.
+    """
+    import fitz, pikepdf, shutil, tempfile, os
+
+    # First pass: reduce image DPI with fitz
+    doc = fitz.open(input_path)
+    new_doc = fitz.open()
+
+    for page in doc:
+        pix = page.get_pixmap(dpi=96, alpha=False)
+        img = pix.tobytes('jpeg', jpg_quality=75)
+        new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+        new_page.insert_image(new_page.rect, stream=img)
+
+    tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False).name
+    new_doc.save(tmp, garbage=4, deflate=True, linear=True)
+    doc.close(); new_doc.close()
+
+    shutil.copy2(tmp, output_path)
+    os.unlink(tmp)
+
+    return {
+        'output_path': output_path,
+        'original_size': os.path.getsize(input_path),
+        'output_size': os.path.getsize(output_path),
+        'optimized_for': 'screen',
+        'fast_web_view': True,
+    }

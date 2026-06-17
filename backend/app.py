@@ -154,6 +154,12 @@ def sitemap():
     """Serve the SEO sitemap."""
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap.xml')
 
+@app.route('/sitemap-tools.xml')
+def sitemap_tools():
+    """Serve the tools-specific SEO sitemap."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-tools.xml',
+                               mimetype='application/xml')
+
 @app.route('/robots.txt')
 def robots():
     """Serve robots.txt for SEO crawlers."""

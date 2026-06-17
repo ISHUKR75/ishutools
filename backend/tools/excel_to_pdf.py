@@ -1007,3 +1007,65 @@ def analyze_excel_workbook(input_path: str) -> dict:
     result['total_data_cells'] = sum(s['data_cells'] for s in result['sheets'])
     wb.close()
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL EXCEL-TO-PDF FUNCTIONS ──────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def excel_sheet_to_pdf_table(input_path: str, output_path: str,
+                              sheet_index: int = 0) -> dict:
+    """Convert a specific Excel sheet to PDF using ReportLab table rendering."""
+    import openpyxl, os
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+
+    wb = openpyxl.load_workbook(input_path, data_only=True)
+    ws = wb.worksheets[min(sheet_index, len(wb.worksheets)-1)]
+    data = []
+    for row in ws.iter_rows(values_only=True):
+        data.append([str(cell) if cell is not None else "" for cell in row])
+
+    if not data:
+        return {"error": "Sheet is empty"}
+
+    doc = SimpleDocTemplate(output_path, pagesize=landscape(A4))
+    col_count = max(len(r) for r in data)
+    col_width = (landscape(A4)[0] - 60) / max(col_count, 1)
+    table = Table(data, colWidths=[col_width]*col_count)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#6366F1")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 8),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8F0")),
+        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#F8FAFF")]),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("TOPPADDING", (0,0), (-1,-1), 3),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 3),
+    ]))
+    doc.build([table])
+    return {
+        "output_path": output_path,
+        "sheet_name": ws.title,
+        "rows": len(data),
+        "cols": col_count,
+    }
+
+
+def excel_to_csv(input_path: str, output_dir: str) -> dict:
+    """Convert every Excel sheet to a separate CSV file."""
+    import openpyxl, csv, os
+    os.makedirs(output_dir, exist_ok=True)
+    wb = openpyxl.load_workbook(input_path, data_only=True)
+    csv_files = []
+    for ws in wb.worksheets:
+        safe_name = "".join(c for c in ws.title if c.isalnum() or c in " _-")
+        csv_path = os.path.join(output_dir, f"{safe_name}.csv")
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            for row in ws.iter_rows(values_only=True):
+                writer.writerow([str(c) if c is not None else "" for c in row])
+        csv_files.append(csv_path)
+    return {"csv_files": csv_files, "sheets_converted": len(csv_files)}

@@ -983,3 +983,124 @@ def add_qr_watermark(input_path: str, output_path: str,
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'qr_data': qr_data}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL WATERMARK FUNCTIONS ─────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def add_image_watermark_fitz(input_path: str, output_path: str,
+                              watermark_image_path: str,
+                              opacity: float = 0.3,
+                              position: str = 'center',
+                              scale: float = 0.5,
+                              pages: str = 'all') -> dict:
+    """
+    Add image watermark (logo/stamp) to PDF using PyMuPDF.
+    More precise than ReportLab for image positioning.
+    """
+    import fitz, os
+    from PIL import Image
+    import io
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+
+    # Parse pages
+    if pages.lower() == 'all':
+        page_list = list(range(total))
+    else:
+        page_list = []
+        for part in pages.split(','):
+            if '-' in part:
+                a, b = part.split('-')
+                page_list.extend(range(int(a)-1, int(b)))
+            else:
+                page_list.append(int(part)-1)
+
+    # Load watermark image
+    wm_img = Image.open(watermark_image_path).convert('RGBA')
+
+    for pg_idx in page_list:
+        if pg_idx >= total: continue
+        page = doc[pg_idx]
+        pw, ph = page.rect.width, page.rect.height
+
+        # Scale watermark
+        wm_w = int(pw * scale)
+        wm_h = int(wm_img.height * wm_w / wm_img.width)
+        wm_scaled = wm_img.resize((wm_w, wm_h), Image.LANCZOS)
+
+        # Apply opacity
+        r, g, b, a = wm_scaled.split()
+        a = a.point(lambda x: int(x * opacity))
+        wm_scaled = Image.merge('RGBA', (r, g, b, a))
+
+        # Position
+        pos_map = {
+            'center': ((pw - wm_w)/2, (ph - wm_h)/2),
+            'top-left': (20, 20),
+            'top-right': (pw - wm_w - 20, 20),
+            'bottom-left': (20, ph - wm_h - 20),
+            'bottom-right': (pw - wm_w - 20, ph - wm_h - 20),
+        }
+        x, y = pos_map.get(position, ((pw - wm_w)/2, (ph - wm_h)/2))
+
+        # Convert to bytes and insert
+        buf = io.BytesIO()
+        wm_scaled.save(buf, format='PNG')
+        rect = fitz.Rect(x, y, x + wm_w, y + wm_h)
+        page.insert_image(rect, stream=buf.getvalue(), overlay=True)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_watermarked': len(page_list)}
+
+
+def add_confidential_stamp(input_path: str, output_path: str,
+                            stamp_text: str = 'CONFIDENTIAL',
+                            color: str = '#FF0000',
+                            pages: str = 'all',
+                            angle: float = -45) -> dict:
+    """
+    Add a professional CONFIDENTIAL / DRAFT / APPROVED rubber stamp to PDF.
+    Red diagonal stamp across each page.
+    """
+    import fitz, os
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+    if pages.lower() == 'all':
+        page_list = list(range(total))
+    else:
+        page_list = [int(p)-1 for p in pages.split(',') if p.strip().isdigit()]
+
+    r, g, b = (int(color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4))
+
+    for pg_idx in page_list:
+        if pg_idx >= total: continue
+        page = doc[pg_idx]
+        pw, ph = page.rect.width, page.rect.height
+
+        shape = page.new_shape()
+        # Draw stamp rectangle
+        cx, cy = pw/2, ph/2
+        w, h = min(pw*0.6, 300), 60
+
+        # Draw border rectangle
+        shape.draw_rect(fitz.Rect(cx-w/2, cy-h/2, cx+w/2, cy+h/2))
+        shape.finish(color=(r, g, b), fill=None, width=3)
+
+        # Add text
+        shape.insert_text(
+            fitz.Point(cx - w/2 + 10, cy + 8),
+            stamp_text,
+            fontsize=min(36, int(w/len(stamp_text)*1.2)),
+            color=(r, g, b),
+            fontname='helv',
+        )
+        shape.commit()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'stamp_text': stamp_text, 'pages': len(page_list)}

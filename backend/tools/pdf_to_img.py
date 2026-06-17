@@ -803,3 +803,94 @@ def stitch_pages_vertically(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'stitch_pages_vertically failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL PDF-TO-IMAGE FUNCTIONS ──────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+
+def pdf_to_thumbnails(input_path: str, output_dir: str,
+                       width: int = 300, format: str = 'JPEG',
+                       quality: int = 85) -> dict:
+    """
+    Generate thumbnail previews of each PDF page.
+    Returns list of thumbnail paths.
+    """
+    import fitz, os
+    from PIL import Image
+
+    os.makedirs(output_dir, exist_ok=True)
+    doc = fitz.open(input_path)
+    thumbs = []
+
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(dpi=72)
+        img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        # Resize to target width preserving aspect ratio
+        ratio = width / img.width
+        h = int(img.height * ratio)
+        img = img.resize((width, h), Image.LANCZOS)
+        ext = format.lower().replace('jpeg', 'jpg')
+        out = os.path.join(output_dir, f'page_{i+1:04d}.{ext}')
+        if format == 'JPEG':
+            img.save(out, 'JPEG', quality=quality, optimize=True)
+        else:
+            img.save(out, format)
+        thumbs.append({'page': i+1, 'path': out, 'width': width, 'height': h})
+
+    doc.close()
+    return {'thumbnails': thumbs, 'total': len(thumbs)}
+
+
+def pdf_to_webp(input_path: str, output_dir: str,
+                 dpi: int = 150, quality: int = 80) -> dict:
+    """
+    Convert PDF pages to WebP format (modern web-optimized format).
+    WebP files are ~30% smaller than JPEG at same quality.
+    """
+    import fitz, os
+    from PIL import Image
+
+    os.makedirs(output_dir, exist_ok=True)
+    doc = fitz.open(input_path)
+    paths = []
+
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(dpi=dpi, alpha=False)
+        img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        out = os.path.join(output_dir, f'page_{i+1:04d}.webp')
+        img.save(out, 'WEBP', quality=quality, method=6)
+        paths.append(out)
+
+    doc.close()
+    return {'paths': paths, 'total': len(paths), 'format': 'WebP'}
+
+
+def pdf_page_to_base64(input_path: str, page_num: int = 1,
+                        dpi: int = 150, format: str = 'JPEG') -> dict:
+    """
+    Convert a single PDF page to base64-encoded image string.
+    Useful for API responses and previews.
+    """
+    import fitz, base64, io
+    from PIL import Image
+
+    doc = fitz.open(input_path)
+    if page_num < 1 or page_num > doc.page_count:
+        page_num = 1
+    page = doc[page_num - 1]
+    pix = page.get_pixmap(dpi=dpi)
+    img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+    doc.close()
+
+    buf = io.BytesIO()
+    img.save(buf, format=format, quality=85)
+    b64 = base64.b64encode(buf.getvalue()).decode()
+
+    return {
+        'base64': b64,
+        'format': format,
+        'width': img.width,
+        'height': img.height,
+        'page': page_num,
+    }

@@ -1264,3 +1264,61 @@ def batch_html_files_to_pdf(html_paths: list, output_path: str) -> dict:
     out_doc.close()
     return {'output_path': output_path, 'files_converted': len(html_paths),
             'total_pages': total_pages}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ── ADDITIONAL HTML-TO-PDF FUNCTIONS ───────────────────────────────────────
+
+
+def html_string_to_pdf(html_content: str, output_path: str,
+                        page_size: str = 'A4', margins_mm: int = 15) -> dict:
+    """Convert raw HTML string to PDF with full CSS support using WeasyPrint."""
+    import os
+    try:
+        import weasyprint
+        from weasyprint import HTML, CSS
+        base_css = CSS(string=f"""
+            @page {{ size: {page_size}; margin: {margins_mm}mm; }}
+            body {{ font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; }}
+            h1, h2, h3 {{ color: #1E3A8A; }}
+            table {{ border-collapse: collapse; width: 100%; }}
+            td, th {{ border: 1px solid #ddd; padding: 6px; }}
+            th {{ background: #6366F1; color: white; }}
+        """)
+        HTML(string=html_content).write_pdf(output_path, stylesheets=[base_css])
+        engine = 'weasyprint'
+    except Exception:
+        from fpdf import FPDF
+        import html, re
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font('Helvetica', size=11)
+        clean = html.unescape(re.sub(r'<[^>]+>', ' ', html_content))
+        pdf.multi_cell(0, 6, clean)
+        pdf.output(output_path)
+        engine = 'fpdf2'
+    return {'output_path': output_path, 'engine': engine, 'file_size': os.path.getsize(output_path)}
+
+
+def markdown_to_pdf(md_content: str, output_path: str) -> dict:
+    """Convert Markdown content to a well-formatted PDF."""
+    import os
+    try:
+        import markdown
+        html_content = markdown.markdown(md_content, extensions=['tables', 'fenced_code', 'nl2br'])
+        return html_string_to_pdf(f'<html><body>{html_content}</body></html>', output_path)
+    except ImportError:
+        from fpdf import FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        for line in md_content.split('\n'):
+            if line.startswith('# '):
+                pdf.set_font('Helvetica', 'B', 18); pdf.multi_cell(0, 8, line[2:])
+            elif line.startswith('## '):
+                pdf.set_font('Helvetica', 'B', 14); pdf.multi_cell(0, 7, line[3:])
+            elif line.startswith('### '):
+                pdf.set_font('Helvetica', 'B', 12); pdf.multi_cell(0, 6, line[4:])
+            else:
+                pdf.set_font('Helvetica', '', 11); pdf.multi_cell(0, 5, line or ' ')
+        pdf.output(output_path)
+        return {'output_path': output_path, 'engine': 'fpdf2_fallback'}
