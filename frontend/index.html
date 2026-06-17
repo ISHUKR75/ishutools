@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ SEO Meta Tags ═══ -->
+  <title>IshuTools - Free Online PDF Tools | Merge, Split, Compress, Convert PDF</title>
+  <meta name="description" content="IshuTools.fun - The world's best free online PDF tools. Merge PDF, Split PDF, Compress PDF, Convert PDF to Word, Excel, PowerPoint, JPG and more. No installation required. Fast, free, and secure. Created by Ishu Kumar." />
+  <meta name="keywords" content="PDF tools, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, PDF converter, free PDF tools, online PDF editor, IshuTools, Ishu Kumar, ishu tools, pdf converter online, jpg to pdf, word to pdf, excel to pdf, ocr pdf, unlock pdf, protect pdf, watermark pdf, rotate pdf, ishu, ishutools, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="theme-color" content="#6366F1" />
+  <link rel="canonical" href="https://ishutools.fun/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ishutools.fun/" />
+  <meta property="og:title" content="IshuTools - Free Online PDF Tools" />
+  <meta property="og:description" content="Best free online PDF tools: Merge, Split, Compress, Convert PDF. No signup needed. Fast, secure, professional." />
+  <meta property="og:image" content="https://ishutools.fun/static/icons/og-image.png" />
+  <meta property="og:site_name" content="IshuTools.fun" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@IshuKumar" />
+  <meta name="twitter:title" content="IshuTools - Free Online PDF Tools" />
+  <meta name="twitter:description" content="Best free online PDF tools. No signup, no watermark. Merge, Split, Compress, Convert & more." />
+  <meta name="twitter:image" content="https://ishutools.fun/static/icons/og-image.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="/static/icons/favicon.svg" />
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Fonts: Inter (Instagram-like) + Poppins (Flipkart-like) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Icons: Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- GSAP Animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/ScrollTrigger.min.js"></script>
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="/static/css/main.css" />
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "IshuTools",
+    "url": "https://ishutools.fun",
+    "description": "Free online PDF tools - Merge, Split, Compress, Convert PDF and more",
+    "author": {
+      "@type": "Person",
+      "name": "Ishu Kumar",
+      "url": "https://github.com/ISHUKR41"
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://ishutools.fun/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <!-- ═══ Cursor Glow ═══ -->
+  <div class="cursor-glow" id="cursorGlow"></div>
+
+  <!-- ═══ Particles Background ═══ -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <!-- Logo -->
+      <a href="/" class="logo" aria-label="IshuTools Home">
+        <div class="logo-icon">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="10" fill="url(#logoGrad)"/>
+            <path d="M8 18L14 12L20 18L26 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 24L14 18L20 24L26 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="36" y2="36">
+                <stop offset="0%" stop-color="#6366F1"/>
+                <stop offset="100%" stop-color="#8B5CF6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">IshuTools</span>
+          <span class="logo-tld">.fun</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="#organize" class="nav-link">Organize</a>
+        <a href="#convert" class="nav-link">Convert</a>
+        <a href="#edit" class="nav-link">Edit PDF</a>
+        <a href="#security" class="nav-link">Security</a>
+        <a href="#ai" class="nav-link">
+          <span class="ai-badge">AI</span> Intelligent
+        </a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="header-actions">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light mode">
+          <span class="theme-icon sun"><i class="fas fa-sun"></i></span>
+          <span class="theme-icon moon"><i class="fas fa-moon"></i></span>
+        </button>
+
+        <!-- Hamburger -->
+        <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu" role="dialog" aria-label="Mobile navigation">
+      <div class="mobile-menu-inner">
+        <a href="#organize" class="mobile-nav-link" onclick="closeMobileMenu()">
+          <i class="fas fa-layer-group"></i> Organize
+        </a>
+        <a href="#convert" class="mobile-nav-link" onclick="closeMobileMenu()">
+          <i class="fas fa-exchange-alt"></i> Convert
+        </a>
+        <a href="#edit" class="mobile-nav-link" onclick="closeMobileMenu()">
+          <i class="fas fa-edit"></i> Edit PDF
+        </a>
+        <a href="#security" class="mobile-nav-link" onclick="closeMobileMenu()">
+          <i class="fas fa-shield-alt"></i> Security
+        </a>
+        <a href="#ai" class="mobile-nav-link" onclick="closeMobileMenu()">
+          <i class="fas fa-brain"></i> AI Tools
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ HERO SECTION ═══ -->
+  <section class="hero" id="home">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span>35+ Professional PDF Tools • 100% Free</span>
+      </div>
+
+      <h1 class="hero-title">
+        <span class="gradient-text">Every PDF Tool</span><br />
+        <span class="hero-subtitle-text">You Will Ever Need</span>
+      </h1>
+
+      <p class="hero-desc">
+        Merge, Split, Compress, Convert, Edit, Sign &amp; Protect PDFs.<br />
+        No signup. No watermark. Works on all devices. Lightning fast.
+      </p>
+
+      <!-- Search Bar -->
+      <div class="search-container" id="searchContainer">
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search tools: merge, compress, OCR, translate..."
+            autocomplete="off"
+            aria-label="Search PDF tools"
+          />
+          <button class="search-clear" id="searchClear" aria-label="Clear search">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="search-suggestions" id="searchSuggestions"></div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-num" data-count="35">0</span>
+          <span class="stat-label">Tools</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num" data-count="100">0</span><span class="stat-percent">%</span>
+          <span class="stat-label">Free</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num" data-count="0">0</span>
+          <span class="stat-label">Signup Required</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num" data-count="100">0</span><span class="stat-percent">MB</span>
+          <span class="stat-label">Max File Size</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Visual -->
+    <div class="hero-visual" aria-hidden="true">
+      <div class="pdf-stack">
+        <div class="pdf-card pdf-card-1">
+          <div class="pdf-icon"><i class="fas fa-file-pdf"></i></div>
+          <div class="pdf-label">document.pdf</div>
+          <div class="pdf-size">2.4 MB</div>
+        </div>
+        <div class="pdf-card pdf-card-2">
+          <div class="pdf-icon"><i class="fas fa-file-word"></i></div>
+          <div class="pdf-label">report.docx</div>
+          <div class="pdf-size">1.1 MB</div>
+        </div>
+        <div class="pdf-card pdf-card-3">
+          <div class="pdf-icon"><i class="fas fa-image"></i></div>
+          <div class="pdf-label">scan.jpg</div>
+          <div class="pdf-size">840 KB</div>
+        </div>
+        <div class="pdf-arrow">
+          <i class="fas fa-arrow-right"></i>
+          <span>IshuTools</span>
+        </div>
+        <div class="pdf-result">
+          <div class="pdf-icon"><i class="fas fa-file-pdf"></i></div>
+          <div class="pdf-label">output.pdf</div>
+          <div class="pdf-check"><i class="fas fa-check-circle"></i> Ready!</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURES STRIP ═══ -->
+  <div class="features-strip">
+    <div class="feature-item">
+      <i class="fas fa-bolt feature-icon"></i>
+      <span>Lightning Fast Processing</span>
+    </div>
+    <div class="feature-item">
+      <i class="fas fa-shield-halved feature-icon"></i>
+      <span>100% Secure &amp; Private</span>
+    </div>
+    <div class="feature-item">
+      <i class="fas fa-mobile-alt feature-icon"></i>
+      <span>Works on All Devices</span>
+    </div>
+    <div class="feature-item">
+      <i class="fas fa-infinity feature-icon"></i>
+      <span>Unlimited Usage</span>
+    </div>
+    <div class="feature-item">
+      <i class="fas fa-certificate feature-icon"></i>
+      <span>Professional Quality</span>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN TOOLS SECTION ═══ -->
+  <main class="tools-main" id="toolsMain">
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" data-filter="all">
+        <i class="fas fa-th-large"></i> All Tools
+      </button>
+      <button class="filter-btn" data-filter="organize">
+        <i class="fas fa-layer-group"></i> Organize
+      </button>
+      <button class="filter-btn" data-filter="convert-to">
+        <i class="fas fa-file-import"></i> Convert to PDF
+      </button>
+      <button class="filter-btn" data-filter="convert-from">
+        <i class="fas fa-file-export"></i> Convert from PDF
+      </button>
+      <button class="filter-btn" data-filter="edit">
+        <i class="fas fa-edit"></i> Edit PDF
+      </button>
+      <button class="filter-btn" data-filter="security">
+        <i class="fas fa-shield-alt"></i> Security
+      </button>
+      <button class="filter-btn" data-filter="ai">
+        <i class="fas fa-brain"></i> AI Tools
+      </button>
+    </div>
+
+    <!-- No Results -->
+    <div class="no-results" id="noResults" style="display:none">
+      <i class="fas fa-search"></i>
+      <h3>No tools found</h3>
+      <p>Try different keywords like "merge", "convert", "compress"</p>
+    </div>
+
+    <!-- ──── ORGANIZE SECTION ──── -->
+    <section class="tools-section" id="organize" data-category="organize">
+      <div class="section-header">
+        <div class="section-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6)">
+          <i class="fas fa-layer-group"></i>
+        </div>
+        <div>
+          <h2 class="section-title">Organize PDF</h2>
+          <p class="section-desc">Rearrange, merge, and manage PDF pages with ease</p>
+        </div>
+      </div>
+
+      <div class="tools-grid" id="organizeGrid">
+        <!-- Tool cards injected by JS -->
+      </div>
+    </section>
+
+    <!-- ──── CONVERT TO PDF SECTION ──── -->
+    <section class="tools-section" id="convert" data-category="convert-to">
+      <div class="section-header">
+        <div class="section-icon" style="background: linear-gradient(135deg, #10B981, #059669)">
+          <i class="fas fa-file-import"></i>
+        </div>
+        <div>
+          <h2 class="section-title">Convert to PDF</h2>
+          <p class="section-desc">Convert any format — images, Word, Excel, HTML — to PDF</p>
+        </div>
+      </div>
+      <div class="tools-grid" id="convertToGrid"></div>
+    </section>
+
+    <!-- ──── CONVERT FROM PDF SECTION ──── -->
+    <section class="tools-section" id="convert-from" data-category="convert-from">
+      <div class="section-header">
+        <div class="section-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706)">
+          <i class="fas fa-file-export"></i>
+        </div>
+        <div>
+          <h2 class="section-title">Convert from PDF</h2>
+          <p class="section-desc">Export your PDF to editable Word, Excel, PowerPoint, or images</p>
+        </div>
+      </div>
+      <div class="tools-grid" id="convertFromGrid"></div>
+    </section>
+
+    <!-- ──── EDIT PDF SECTION ──── -->
+    <section class="tools-section" id="edit" data-category="edit">
+      <div class="section-header">
+        <div class="section-icon" style="background: linear-gradient(135deg, #EC4899, #BE185D)">
+          <i class="fas fa-edit"></i>
+        </div>
+        <div>
+          <h2 class="section-title">Edit PDF</h2>
+          <p class="section-desc">Rotate, crop, watermark, and customize your PDF documents</p>
+        </div>
+      </div>
+      <div class="tools-grid" id="editGrid"></div>
+    </section>
+
+    <!-- ──── SECURITY SECTION ──── -->
+    <section class="tools-section" id="security" data-category="security">
+      <div class="section-header">
+        <div class="section-icon" style="background: linear-gradient(135deg, #EF4444, #DC2626)">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div>
+          <h2 class="section-title">PDF Security</h2>
+          <p class="section-desc">Unlock, protect, sign, and redact sensitive PDF documents</p>
+        </div>
+      </div>
+      <div class="tools-grid" id="securityGrid"></div>
+    </section>
+
+    <!-- ──── AI INTELLIGENCE SECTION ──── -->
+    <section class="tools-section" id="ai" data-category="ai">
+      <div class="section-header">
+        <div class="section-icon" style="background: linear-gradient(135deg, #7C3AED, #5B21B6)">
+          <i class="fas fa-brain"></i>
+        </div>
+        <div>
+          <h2 class="section-title">PDF Intelligence <span class="ai-badge-lg">AI</span></h2>
+          <p class="section-desc">AI-powered summarization, translation, and text analysis</p>
+        </div>
+      </div>
+      <div class="tools-grid" id="aiGrid"></div>
+    </section>
+
+  </main>
+
+  <!-- ═══ WHY ISHUTOOLS SECTION ═══ -->
+  <section class="why-section">
+    <div class="why-inner">
+      <h2 class="why-title">Why <span class="gradient-text">IshuTools</span>?</h2>
+      <p class="why-desc">Built by Ishu Kumar with passion for simplicity and performance</p>
+
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-lock-open"></i></div>
+          <h3>100% Free Forever</h3>
+          <p>No hidden charges, no premium plans, no tricks. All tools are completely free.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-user-shield"></i></div>
+          <h3>Privacy First</h3>
+          <p>Your files are processed securely and deleted immediately after download.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-zap"></i></div>
+          <h3>Blazing Fast</h3>
+          <p>Powered by Python's best PDF libraries. Process files in seconds, not minutes.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-mobile-screen"></i></div>
+          <h3>Works Everywhere</h3>
+          <p>Mobile, tablet, desktop — fully responsive and optimized for every screen.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-code"></i></div>
+          <h3>No Install Needed</h3>
+          <p>Works directly in your browser. No apps to download, no plugins required.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-headset"></i></div>
+          <h3>35+ Tools</h3>
+          <p>Everything from basic PDF editing to AI-powered summarization and translation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="10" fill="url(#footerLogoGrad)"/>
+            <path d="M8 18L14 12L20 18L26 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 24L14 18L20 24L26 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+            <defs>
+              <linearGradient id="footerLogoGrad" x1="0" y1="0" x2="36" y2="36">
+                <stop offset="0%" stop-color="#6366F1"/>
+                <stop offset="100%" stop-color="#8B5CF6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span>IshuTools<span style="color:#6366F1">.fun</span></span>
+        </div>
+        <p class="footer-tagline">The best free PDF tools on the internet.</p>
+        <p class="footer-creator">Made with <i class="fas fa-heart" style="color:#EF4444"></i> by <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">Ishu Kumar</a></p>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Organize</h4>
+        <a href="/tools/merge-pdf">Merge PDF</a>
+        <a href="/tools/split-pdf">Split PDF</a>
+        <a href="/tools/compress-pdf">Compress PDF</a>
+        <a href="/tools/remove-pages">Remove Pages</a>
+        <a href="/tools/extract-pages">Extract Pages</a>
+        <a href="/tools/organize-pdf">Organize PDF</a>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Convert</h4>
+        <a href="/tools/jpg-to-pdf">JPG to PDF</a>
+        <a href="/tools/word-to-pdf">Word to PDF</a>
+        <a href="/tools/excel-to-pdf">Excel to PDF</a>
+        <a href="/tools/html-to-pdf">HTML to PDF</a>
+        <a href="/tools/pdf-to-jpg">PDF to JPG</a>
+        <a href="/tools/pdf-to-word">PDF to Word</a>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Edit & Security</h4>
+        <a href="/tools/rotate-pdf">Rotate PDF</a>
+        <a href="/tools/add-watermark">Add Watermark</a>
+        <a href="/tools/unlock-pdf">Unlock PDF</a>
+        <a href="/tools/protect-pdf">Protect PDF</a>
+        <a href="/tools/sign-pdf">Sign PDF</a>
+        <a href="/tools/ocr-pdf">OCR PDF</a>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>AI Tools</h4>
+        <a href="/tools/summarize-pdf">AI Summarizer</a>
+        <a href="/tools/translate-pdf">Translate PDF</a>
+        <a href="/tools/compare-pdf">Compare PDF</a>
+        <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener"><i class="fab fa-github"></i> GitHub</a>
+        <a href="https://github.com/ISHUKR75" target="_blank" rel="noopener"><i class="fab fa-github"></i> Secondary</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2024 IshuTools.fun — All rights reserved. Created by <strong>Ishu Kumar</strong></p>
+      <p class="footer-seo-links">
+        <a href="/tools/merge-pdf">Merge PDF</a> •
+        <a href="/tools/compress-pdf">Compress PDF</a> •
+        <a href="/tools/pdf-to-word">PDF to Word</a> •
+        <a href="/tools/jpg-to-pdf">JPG to PDF</a> •
+        <a href="/tools/ocr-pdf">OCR PDF</a> •
+        <a href="/tools/protect-pdf">Protect PDF</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- ═══ Tool Detail Modal ═══ -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="toolModal">
+      <button class="modal-close" id="modalClose" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- ═══ Toast Notifications ═══ -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Main JS -->
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

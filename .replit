@@ -1,0 +1,35 @@
+modules = ["python-3.11"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "exiftool", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "imagemagickBig", "jbig2dec", "jre", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "mupdf", "netpbm", "openjpeg", "openssl", "pango", "pkg-config", "poppler_utils", "qpdf", "rustc", "tcl", "tesseract", "tk", "zlib"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && python3 app.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80

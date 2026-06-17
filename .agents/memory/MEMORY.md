@@ -1,0 +1,1 @@
+- [IshuTools import quirks](import-quirks.md) — pdfminer.layout does NOT have LTAnon or LTTable; use only LTTextBox
