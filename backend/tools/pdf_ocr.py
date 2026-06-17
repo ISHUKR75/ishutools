@@ -417,7 +417,7 @@ def ocr_pdf(
     # Filter by page range if specified
     total_pages = len(raw_images)
     if page_range and str(page_range).strip().lower() != 'all':
-        from backend.tools.pdf_split import parse_ranges
+        from tools.pdf_split import parse_ranges
         page_indices = parse_ranges(page_range, total_pages)
         raw_images = [raw_images[i] for i in page_indices
                       if i < len(raw_images)]
