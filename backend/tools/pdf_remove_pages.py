@@ -744,3 +744,134 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional Page Removal Functions ────────────────────────────────────────
+
+
+def remove_blank_pages_auto(input_path: str, output_path: str,
+                             blank_threshold: float = 0.99,
+                             password: str = '') -> dict:
+    """
+    Automatically detect and remove blank pages from a PDF.
+
+    Uses pixel analysis to detect pages with near-uniform color
+    (blank/white pages, empty pages, separator pages).
+
+    Args:
+        input_path:       Source PDF
+        output_path:      Output PDF with blanks removed
+        blank_threshold:  Fraction of white pixels required to call a page blank (0-1)
+        password:         PDF password
+
+    Returns:
+        dict: original_count, removed_count, blank_page_numbers, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        blank_pages = []
+        total = doc.page_count
+
+        for i in range(total):
+            pg = doc[i]
+            # Quick text check first
+            if len(pg.get_text().strip()) > 20:
+                continue
+            if pg.get_images():
+                continue
+
+            # Render at low res for speed
+            mat = fitz.Matrix(0.3, 0.3)
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+            samples = pix.samples
+
+            # Count white-ish pixels
+            white_threshold = 230
+            white_count = sum(1 for b in samples if b >= white_threshold)
+            white_fraction = white_count / len(samples) if samples else 0
+
+            if white_fraction >= blank_threshold:
+                blank_pages.append(i)
+
+        doc.close()
+
+        if not blank_pages:
+            import shutil as _sh
+            _sh.copy2(input_path, output_path)
+            return {
+                'original_count': total,
+                'removed_count': 0,
+                'blank_page_numbers': [],
+                'output_path': output_path,
+            }
+
+        # Remove blanks
+        keep_indices = [i for i in range(total) if i not in set(blank_pages)]
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            reader.decrypt(password or '')
+
+        writer = PdfWriter()
+        for idx in keep_indices:
+            if idx < len(reader.pages):
+                writer.add_page(reader.pages[idx])
+
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+
+        return {
+            'original_count': total,
+            'removed_count': len(blank_pages),
+            'blank_page_numbers': [p + 1 for p in blank_pages],
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'remove_blank_pages_auto failed: {e}')
+        raise
+
+
+def keep_only_pages(input_path: str, output_path: str,
+                     pages_to_keep: list,
+                     password: str = '') -> dict:
+    """
+    Keep only specified pages (inverse of remove_pages).
+
+    Simpler than extract_pages — just specify which pages to keep.
+
+    Args:
+        input_path:    Source PDF
+        output_path:   Output PDF
+        pages_to_keep: List of 1-based page numbers to keep
+        password:      PDF password
+
+    Returns:
+        dict: pages_kept, pages_removed, output_path
+    """
+    try:
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            reader.decrypt(password or '')
+
+        total = len(reader.pages)
+        keep_set = set(p - 1 for p in pages_to_keep if 1 <= p <= total)
+
+        writer = PdfWriter()
+        for idx in sorted(keep_set):
+            writer.add_page(reader.pages[idx])
+
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+
+        return {
+            'pages_kept': len(keep_set),
+            'pages_removed': total - len(keep_set),
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'keep_only_pages failed: {e}')
+        raise

@@ -590,3 +590,200 @@ def get_page_dimensions(input_path: str, password: str = '') -> list[dict]:
             'boxes': boxes,
         })
     return dims
+
+
+# ── Additional Crop Functions ─────────────────────────────────────────────────
+
+
+def get_optimal_crop_margins(input_path: str, pages: str = '1-3',
+                              password: str = '') -> dict:
+    """
+    Analyze page content and suggest optimal crop margins to remove whitespace.
+
+    Scans text and image bounding boxes to determine the tightest crop
+    that keeps all content while removing blank borders.
+
+    Args:
+        input_path: Source PDF
+        pages:      Pages to analyze ('1-3', 'all')
+        password:   PDF password
+
+    Returns:
+        dict: suggested margins (top, bottom, left, right in points),
+              content_bbox, page_size, estimated_reduction_pct
+    """
+    import re
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total = doc.page_count
+        # Parse page selection
+        sel_pages = []
+        for p in pages.split(','):
+            p = p.strip()
+            if '-' in p:
+                start, end = p.split('-', 1)
+                sel_pages.extend(range(int(start) - 1, min(int(end), total)))
+            elif p.isdigit():
+                sel_pages.append(int(p) - 1)
+        if not sel_pages:
+            sel_pages = list(range(min(total, 3)))
+
+        all_left = []
+        all_right = []
+        all_top = []
+        all_bottom = []
+        page_w, page_h = 595, 842
+
+        for pg_idx in sel_pages:
+            if pg_idx >= total:
+                continue
+            pg = doc[pg_idx]
+            page_w = pg.rect.width
+            page_h = pg.rect.height
+
+            # Get content bbox from fitz
+            blocks = pg.get_text('blocks', flags=0)
+            imgs = pg.get_images()
+
+            content_rects = []
+            for blk in blocks:
+                if blk[6] == 0:  # text block
+                    content_rects.append(fitz.Rect(blk[:4]))
+
+            for img_info in imgs:
+                xref = img_info[0]
+                try:
+                    rects = pg.get_image_rects(xref)
+                    content_rects.extend(rects)
+                except Exception:
+                    pass
+
+            if content_rects:
+                min_x = min(r.x0 for r in content_rects)
+                max_x = max(r.x1 for r in content_rects)
+                min_y = min(r.y0 for r in content_rects)
+                max_y = max(r.y1 for r in content_rects)
+
+                all_left.append(min_x)
+                all_right.append(page_w - max_x)
+                all_top.append(min_y)
+                all_bottom.append(page_h - max_y)
+
+        doc.close()
+
+        if not all_left:
+            return {'error': 'No content detected on analyzed pages'}
+
+        # Use minimum margins (tightest safe crop)
+        padding = 10  # 10pt safety margin
+        sug_left = max(0, min(all_left) - padding)
+        sug_right = max(0, min(all_right) - padding)
+        sug_top = max(0, min(all_top) - padding)
+        sug_bottom = max(0, min(all_bottom) - padding)
+
+        # Estimate content area reduction
+        new_w = page_w - sug_left - sug_right
+        new_h = page_h - sug_top - sug_bottom
+        reduction = (1 - (new_w * new_h) / (page_w * page_h)) * 100
+
+        return {
+            'suggested_margins': {
+                'left': round(sug_left, 1),
+                'right': round(sug_right, 1),
+                'top': round(sug_top, 1),
+                'bottom': round(sug_bottom, 1),
+            },
+            'page_size': {'width': page_w, 'height': page_h},
+            'content_area': {'width': round(new_w), 'height': round(new_h)},
+            'estimated_reduction_pct': round(reduction, 1),
+            'pages_analyzed': len(sel_pages),
+        }
+
+    except Exception as e:
+        logger.warning(f'get_optimal_crop_margins failed: {e}')
+        return {'error': str(e)}
+
+
+def crop_to_content(input_path: str, output_path: str,
+                     padding_pt: float = 10,
+                     password: str = '') -> dict:
+    """
+    Auto-crop all pages to remove blank margins around content.
+
+    Automatically detects content bounding box per page and crops
+    to tightly fit content with a configurable padding.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        padding_pt:  Safety padding in points around detected content
+        password:    PDF password
+
+    Returns:
+        dict: pages_cropped, average_reduction_pct, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        reductions = []
+        for i, pg in enumerate(doc):
+            pw, ph = pg.rect.width, pg.rect.height
+            blocks = pg.get_text('blocks', flags=0)
+            imgs = pg.get_images()
+
+            x0_list, y0_list, x1_list, y1_list = [], [], [], []
+
+            for blk in blocks:
+                if blk[4].strip():
+                    x0_list.append(blk[0])
+                    y0_list.append(blk[1])
+                    x1_list.append(blk[2])
+                    y1_list.append(blk[3])
+
+            for img_info in imgs:
+                xref = img_info[0]
+                try:
+                    for rect in pg.get_image_rects(xref):
+                        x0_list.append(rect.x0)
+                        y0_list.append(rect.y0)
+                        x1_list.append(rect.x1)
+                        y1_list.append(rect.y1)
+                except Exception:
+                    pass
+
+            if not x0_list:
+                continue
+
+            new_x0 = max(0, min(x0_list) - padding_pt)
+            new_y0 = max(0, min(y0_list) - padding_pt)
+            new_x1 = min(pw, max(x1_list) + padding_pt)
+            new_y1 = min(ph, max(y1_list) + padding_pt)
+
+            new_rect = fitz.Rect(new_x0, new_y0, new_x1, new_y1)
+            pg.set_cropbox(new_rect)
+
+            area_before = pw * ph
+            area_after = new_rect.width * new_rect.height
+            reductions.append((1 - area_after / area_before) * 100)
+
+        doc.save(output_path, garbage=3, deflate=True)
+        pages = doc.page_count
+        doc.close()
+
+        avg_reduction = round(sum(reductions) / len(reductions), 1) if reductions else 0
+
+        return {
+            'pages_cropped': len(reductions),
+            'average_reduction_pct': avg_reduction,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'crop_to_content failed: {e}')
+        raise

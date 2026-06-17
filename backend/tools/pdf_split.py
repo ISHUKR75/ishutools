@@ -607,3 +607,187 @@ def extract_page_range(input_path: str, output_path: str,
         'start_page': start_page,
         'end_page': end_page,
     }
+
+
+# ── Additional Enterprise Split Functions ──────────────────────────────────────
+
+
+def split_by_content_headings(input_path: str, output_dir: str,
+                               heading_pattern: str = None,
+                               password: str = '') -> list:
+    """
+    Split a PDF at pages that begin with a heading/chapter marker.
+
+    Uses fitz text analysis to detect heading-like text (large bold font
+    at top of page) and splits at each heading boundary.
+
+    Args:
+        input_path:      Source PDF
+        output_dir:      Directory to write split files
+        heading_pattern: Optional regex pattern for heading detection
+        password:        PDF password if encrypted
+
+    Returns:
+        List of dicts: filename, page_start, page_end, heading_text
+    """
+    import re, os
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        # Detect median body font size
+        all_sizes = []
+        for pg in doc:
+            for blk in pg.get_text('dict', flags=0)['blocks']:
+                for ln in blk.get('lines', []):
+                    for sp in ln.get('spans', []):
+                        if sp.get('text', '').strip():
+                            all_sizes.append(sp['size'])
+        median_size = sorted(all_sizes)[len(all_sizes) // 2] if all_sizes else 12
+
+        # Find heading pages
+        heading_pages = [0]  # Always start a section at page 0
+        heading_texts = ['Start']
+
+        compiled = re.compile(heading_pattern, re.I) if heading_pattern else None
+
+        for pg_idx in range(1, doc.page_count):
+            pg = doc[pg_idx]
+            blocks = pg.get_text('dict', flags=0)['blocks']
+            if not blocks:
+                continue
+            first_block = blocks[0]
+            for ln in first_block.get('lines', []):
+                for sp in ln.get('spans', []):
+                    txt = sp.get('text', '').strip()
+                    size = sp.get('size', 0)
+                    flags = sp.get('flags', 0)
+                    is_bold = bool(flags & 2**4)
+                    is_large = size >= median_size * 1.3
+
+                    if compiled:
+                        if compiled.search(txt):
+                            heading_pages.append(pg_idx)
+                            heading_texts.append(txt[:60])
+                            break
+                    elif is_large and is_bold and len(txt) < 120 and txt:
+                        heading_pages.append(pg_idx)
+                        heading_texts.append(txt[:60])
+                        break
+
+        doc.close()
+        if len(heading_pages) <= 1:
+            return []
+
+        # Write split files
+        results = []
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            reader.decrypt(password or '')
+
+        for i, (start, htxt) in enumerate(zip(heading_pages, heading_texts)):
+            end = heading_pages[i + 1] if i + 1 < len(heading_pages) else len(reader.pages)
+            safe = re.sub(r'[^\w\s-]', '', htxt[:40]).strip().replace(' ', '_') or f'section_{i+1}'
+            out_path = os.path.join(output_dir, f'{i+1:03d}_{safe}.pdf')
+            writer = PdfWriter()
+            for pg_i in range(start, end):
+                if pg_i < len(reader.pages):
+                    writer.add_page(reader.pages[pg_i])
+            with open(out_path, 'wb') as f:
+                writer.write(f)
+            results.append({
+                'filename': os.path.basename(out_path),
+                'path': out_path,
+                'page_start': start + 1,
+                'page_end': end,
+                'heading_text': htxt,
+                'page_count': end - start,
+            })
+
+        return results
+
+    except Exception as e:
+        logger.warning(f'split_by_content_headings failed: {e}')
+        return []
+
+
+def merge_split_outputs(split_dir: str, output_path: str,
+                         sort_by: str = 'name') -> dict:
+    """
+    Re-merge all PDFs in a split output directory back into one file.
+    Useful for round-trip testing or re-merging after editing split pages.
+
+    Args:
+        split_dir:  Directory with split PDF files
+        output_path: Output merged PDF path
+        sort_by:    'name' | 'mtime' | 'size' — sort order
+
+    Returns:
+        dict: file_count, total_pages, output_path
+    """
+    import glob, os
+    pdf_files = glob.glob(os.path.join(split_dir, '*.pdf'))
+    if not pdf_files:
+        raise ValueError(f'No PDF files found in {split_dir}')
+
+    if sort_by == 'mtime':
+        pdf_files.sort(key=lambda p: os.path.getmtime(p))
+    elif sort_by == 'size':
+        pdf_files.sort(key=lambda p: os.path.getsize(p))
+    else:
+        pdf_files.sort()
+
+    writer = PdfWriter()
+    total_pages = 0
+    for path in pdf_files:
+        try:
+            reader = PdfReader(path)
+            for pg in reader.pages:
+                writer.add_page(pg)
+                total_pages += 1
+        except Exception as e:
+            logger.warning(f'Skipping {path}: {e}')
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+
+    return {
+        'file_count': len(pdf_files),
+        'total_pages': total_pages,
+        'output_path': output_path,
+    }
+
+
+def get_page_word_counts(input_path: str, password: str = '') -> list:
+    """
+    Return per-page word count, character count, and image count.
+    Useful for content analysis before splitting.
+
+    Returns:
+        List of dicts per page: page, word_count, char_count, image_count,
+        has_text, is_blank
+    """
+    results = []
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+        for i, pg in enumerate(doc):
+            text = pg.get_text().strip()
+            words = len(text.split()) if text else 0
+            imgs = len(pg.get_images())
+            results.append({
+                'page': i + 1,
+                'word_count': words,
+                'char_count': len(text),
+                'image_count': imgs,
+                'has_text': words > 0,
+                'is_blank': words == 0 and imgs == 0,
+            })
+        doc.close()
+    except Exception as e:
+        logger.warning(f'get_page_word_counts failed: {e}')
+    return results

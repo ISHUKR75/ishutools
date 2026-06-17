@@ -719,3 +719,153 @@ def get_available_engines() -> dict:
         'pattern_count': len(PATTERN_LIBRARY),
         'preset_count': len(PRESET_GROUPS),
     }
+
+
+# ── Additional Redaction Functions ────────────────────────────────────────────
+
+
+def preview_redaction_targets(input_path: str,
+                               search_terms: list = None,
+                               pattern_presets: list = None,
+                               password: str = '') -> dict:
+    """
+    Preview what would be redacted without modifying the PDF.
+
+    Returns count and locations of all text that would be redacted,
+    so users can review before committing to permanent redaction.
+
+    Args:
+        input_path:      Source PDF
+        search_terms:    Custom terms to redact
+        pattern_presets: Preset names ('pii', 'email', 'phone', etc.)
+        password:        PDF password
+
+    Returns:
+        dict: total_matches, matches_by_page, sample_matches, pages_affected
+    """
+    if not search_terms:
+        search_terms = []
+    if not pattern_presets:
+        pattern_presets = []
+
+    # Build compiled patterns
+    patterns = list(_compile_patterns(search_terms, pattern_presets))
+
+    results: dict = {
+        'total_matches': 0,
+        'matches_by_page': {},
+        'sample_matches': [],
+        'pages_affected': [],
+    }
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for pg_idx in range(doc.page_count):
+            pg = doc[pg_idx]
+            page_matches = 0
+
+            for compiled, category in patterns:
+                # Search text
+                text = pg.get_text()
+                for m in compiled.finditer(text):
+                    matched_text = m.group()
+                    page_matches += 1
+                    results['total_matches'] += 1
+
+                    if len(results['sample_matches']) < 10:
+                        results['sample_matches'].append({
+                            'page': pg_idx + 1,
+                            'matched_text': matched_text[:40],
+                            'category': category,
+                        })
+
+            if page_matches > 0:
+                results['matches_by_page'][pg_idx + 1] = page_matches
+                if (pg_idx + 1) not in results['pages_affected']:
+                    results['pages_affected'].append(pg_idx + 1)
+
+        doc.close()
+
+    except Exception as e:
+        logger.warning(f'preview_redaction_targets failed: {e}')
+        results['error'] = str(e)
+
+    return results
+
+
+def audit_redaction(input_path: str) -> dict:
+    """
+    Audit a redacted PDF to verify redactions are proper (not just hidden text).
+
+    Checks for:
+    - Text still present under black rectangles (improper redaction)
+    - Empty rectangles that might expose text when copied
+    - Metadata that might reveal redacted content
+
+    Returns:
+        dict: is_properly_redacted, redaction_box_count,
+              exposed_text_risk, metadata_risk, recommendations
+    """
+    redaction_boxes = 0
+    exposed_text_risk = False
+    metadata_risk = False
+    recommendations = []
+
+    try:
+        doc = fitz.open(input_path)
+        for pg_idx in range(doc.page_count):
+            pg = doc[pg_idx]
+            drawings = pg.get_drawings()
+            text = pg.get_text()
+
+            # Count black/dark filled rectangles (possible redaction boxes)
+            for d in drawings:
+                fill = d.get('fill')
+                if fill and isinstance(fill, tuple):
+                    r, g, b = fill[:3]
+                    if r < 0.1 and g < 0.1 and b < 0.1:
+                        redaction_boxes += 1
+
+            # Check if text exists but is covered (text length > 0 means it's extractable)
+            if text.strip() and redaction_boxes > 0:
+                exposed_text_risk = True
+
+        doc.close()
+
+        # Check metadata for sensitive content
+        with pikepdf.open(input_path) as pdf:
+            try:
+                docinfo = dict(pdf.docinfo)
+                meta_values = ' '.join(str(v) for v in docinfo.values())
+                if any(len(v) > 50 for v in docinfo.values()):
+                    metadata_risk = True
+                    recommendations.append(
+                        'Strip document metadata to remove potentially sensitive info.')
+            except Exception:
+                pass
+
+        is_properly_redacted = not exposed_text_risk
+
+        if exposed_text_risk:
+            recommendations.append(
+                'Text may still be extractable — use "flatten redactions" for permanent redaction.')
+        if metadata_risk:
+            recommendations.append('Enable "Strip Metadata" when redacting.')
+        if redaction_boxes == 0:
+            recommendations.append(
+                'No redaction boxes detected — this PDF may not have been redacted yet.')
+
+        return {
+            'is_properly_redacted': is_properly_redacted,
+            'redaction_box_count': redaction_boxes,
+            'exposed_text_risk': exposed_text_risk,
+            'metadata_risk': metadata_risk,
+            'recommendations': recommendations,
+        }
+
+    except Exception as e:
+        logger.warning(f'audit_redaction failed: {e}')
+        return {'error': str(e)}

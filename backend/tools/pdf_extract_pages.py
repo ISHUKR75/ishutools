@@ -493,3 +493,143 @@ def get_page_info(input_path: str, password: str = '') -> dict:
         'file_size_kb': round(os.path.getsize(input_path) / 1024, 1),
         'pages': pages,
     }
+
+
+# ── Additional Page Extraction Functions ──────────────────────────────────────
+
+
+def extract_pages_as_images(input_path: str, output_dir: str,
+                              pages: str = 'all',
+                              dpi: int = 150,
+                              fmt: str = 'jpg',
+                              password: str = '') -> list:
+    """
+    Extract specified PDF pages as individual image files.
+
+    Args:
+        input_path:  Source PDF
+        output_dir:  Directory for output images
+        pages:       Page selection ('all', '1-5', '1,3,5')
+        dpi:         Rendering DPI
+        fmt:         Output format ('jpg', 'png', 'webp')
+        password:    PDF password
+
+    Returns:
+        List of dicts: page, filename, path, width, height, size_kb
+    """
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+
+    results = []
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total = doc.page_count
+        sel_pages = parse_page_selector(pages, total)
+
+        scale = dpi / 72.0
+        mat = fitz.Matrix(scale, scale)
+        fmt = fmt.lower().strip('.')
+        if fmt not in ('jpg', 'jpeg', 'png', 'webp'):
+            fmt = 'jpg'
+        ext = 'jpg' if fmt in ('jpg', 'jpeg') else fmt
+
+        for pg_num in sel_pages:
+            pg_idx = pg_num - 1
+            if pg_idx >= total:
+                continue
+            pg = doc[pg_idx]
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+            fname = f'page_{pg_num:04d}.{ext}'
+            out_path = os.path.join(output_dir, fname)
+            pix.save(out_path)
+            results.append({
+                'page': pg_num,
+                'filename': fname,
+                'path': out_path,
+                'width': pix.width,
+                'height': pix.height,
+                'size_kb': round(os.path.getsize(out_path) / 1024, 1),
+            })
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'extract_pages_as_images failed: {e}')
+
+    return results
+
+
+def extract_with_bookmarks(input_path: str, output_dir: str,
+                            password: str = '') -> list:
+    """
+    Extract pages grouped by top-level bookmark sections.
+
+    Each bookmark section becomes a separate PDF file named after the bookmark.
+
+    Args:
+        input_path:  Source PDF
+        output_dir:  Output directory
+        password:    PDF password
+
+    Returns:
+        List of dicts: section_name, filename, page_start, page_end, page_count
+    """
+    import os, re
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+        toc = doc.get_toc()
+        total = doc.page_count
+        doc.close()
+
+        if not toc:
+            return []
+
+        # Top-level only
+        top_level = [(title, page) for level, title, page in toc if level == 1]
+
+        if not top_level:
+            top_level = [(title, page) for level, title, page in toc]
+
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            reader.decrypt(password or '')
+
+        results = []
+        for i, (title, start_pg) in enumerate(top_level):
+            end_pg = (top_level[i + 1][1] - 1) if i + 1 < len(top_level) else total
+
+            start_idx = start_pg - 1
+            end_idx = end_pg
+
+            safe_name = re.sub(r'[^\w\s-]', '', title[:40]).strip().replace(' ', '_')
+            fname = f'{i+1:03d}_{safe_name or "section"}.pdf'
+            out_path = os.path.join(output_dir, fname)
+
+            writer = PdfWriter()
+            for pg_idx in range(start_idx, min(end_idx, len(reader.pages))):
+                writer.add_page(reader.pages[pg_idx])
+
+            if len(writer.pages) > 0:
+                with open(out_path, 'wb') as f:
+                    writer.write(f)
+
+                results.append({
+                    'section_name': title,
+                    'filename': fname,
+                    'path': out_path,
+                    'page_start': start_pg,
+                    'page_end': end_idx,
+                    'page_count': len(writer.pages),
+                })
+
+        return results
+
+    except Exception as e:
+        logger.warning(f'extract_with_bookmarks failed: {e}')
+        return []

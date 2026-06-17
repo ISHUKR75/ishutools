@@ -806,3 +806,188 @@ def get_available_engines() -> dict:
         'qpdf_path': QPDF_BIN or '',
         'gs_path': GS_BIN or '',
     }
+
+
+# ── Additional Security Functions ─────────────────────────────────────────────
+
+
+def verify_password(pdf_path: str, password: str) -> dict:
+    """
+    Test if a given password is correct for a PDF without unlocking it.
+
+    Args:
+        pdf_path: Path to encrypted PDF
+        password: Password to test
+
+    Returns:
+        dict: is_correct, encryption_type, can_open, can_edit, is_owner
+    """
+    result = {
+        'is_correct': False,
+        'encryption_type': 'none',
+        'can_open': False,
+        'can_edit': False,
+        'is_owner': False,
+    }
+    try:
+        with pikepdf.open(pdf_path, password=password) as pdf:
+            result['is_correct'] = True
+            result['can_open'] = True
+            if pdf.is_encrypted:
+                try:
+                    enc = get_encryption_info(pdf_path, password)
+                    result['encryption_type'] = enc.get('encryption_method', 'unknown')
+                except Exception:
+                    pass
+    except pikepdf.PasswordError:
+        result['is_correct'] = False
+    except Exception as e:
+        result['error'] = str(e)
+
+    # Test owner password
+    if not result['is_correct']:
+        try:
+            with pikepdf.open(pdf_path, password=password,
+                              suppress_warnings=True) as pdf:
+                result['is_correct'] = True
+                result['is_owner'] = True
+                result['can_edit'] = True
+        except Exception:
+            pass
+
+    return result
+
+
+def add_permission_restriction(input_path: str, output_path: str,
+                                 owner_password: str,
+                                 allow_print: bool = True,
+                                 allow_copy: bool = False,
+                                 allow_modify: bool = False,
+                                 allow_annotate: bool = True,
+                                 allow_fill_forms: bool = True) -> dict:
+    """
+    Restrict specific PDF permissions without changing the user password.
+
+    This is useful for distributing PDFs where you want to prevent
+    copying or editing while allowing printing.
+
+    Args:
+        input_path:     Source PDF
+        output_path:    Output PDF
+        owner_password: Owner password (required to set permissions)
+        allow_print:    Allow high-quality printing
+        allow_copy:     Allow text/image copying
+        allow_modify:   Allow document modification
+        allow_annotate: Allow annotations
+        allow_fill_forms: Allow form filling
+
+    Returns:
+        dict: permissions_set, encryption_used, output_path
+    """
+    try:
+        perms = pikepdf.Permissions(
+            print_highres=allow_print,
+            print_lowres=allow_print,
+            extract=allow_copy,
+            modify_other=allow_modify,
+            modify_annotation=allow_annotate,
+            fill_forms=allow_fill_forms,
+            accessibility=True,
+            assemble=allow_modify,
+        )
+
+        encryption = pikepdf.Encryption(
+            owner=owner_password,
+            user='',  # No user password (anyone can open)
+            R=6,       # AES-256
+            allow=perms,
+        )
+
+        with pikepdf.open(input_path) as pdf:
+            pdf.save(output_path, encryption=encryption,
+                     compress_streams=True)
+
+        return {
+            'permissions_set': {
+                'print': allow_print,
+                'copy': allow_copy,
+                'modify': allow_modify,
+                'annotate': allow_annotate,
+                'fill_forms': allow_fill_forms,
+            },
+            'encryption_used': 'AES-256',
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'add_permission_restriction failed: {e}')
+        raise
+
+
+def add_metadata_protection(input_path: str, output_path: str,
+                              title: str = '',
+                              author: str = '',
+                              subject: str = '',
+                              keywords: str = '',
+                              creator: str = 'IshuTools.fun') -> dict:
+    """
+    Set PDF metadata (title, author, subject, keywords) and
+    optionally strip existing identifying metadata.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        title:       Document title
+        author:      Document author
+        subject:     Document subject
+        keywords:    Keywords (comma-separated)
+        creator:     Application name
+
+    Returns:
+        dict: metadata_set, output_path
+    """
+    try:
+        with pikepdf.open(input_path) as pdf:
+            with pdf.open_metadata() as meta:
+                if title:
+                    meta['dc:title'] = title
+                if author:
+                    meta['dc:creator'] = [author]
+                if subject:
+                    meta['dc:description'] = subject
+                if keywords:
+                    meta['pdf:Keywords'] = keywords
+                meta['xmp:CreatorTool'] = creator
+                meta['xmp:ModifyDate'] = datetime.utcnow().strftime(
+                    '%Y-%m-%dT%H:%M:%SZ')
+
+            if title:
+                try:
+                    pdf.docinfo['/Title'] = title
+                except Exception:
+                    pass
+            if author:
+                try:
+                    pdf.docinfo['/Author'] = author
+                except Exception:
+                    pass
+            if creator:
+                try:
+                    pdf.docinfo['/Creator'] = creator
+                    pdf.docinfo['/Producer'] = 'IshuTools.fun'
+                except Exception:
+                    pass
+
+            pdf.save(output_path, compress_streams=True)
+
+        return {
+            'metadata_set': {
+                'title': title, 'author': author,
+                'subject': subject, 'keywords': keywords,
+            },
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'add_metadata_protection failed: {e}')
+        raise

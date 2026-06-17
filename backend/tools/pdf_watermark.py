@@ -627,3 +627,203 @@ def get_watermark_preview_info(input_path: str, password: str = '') -> dict:
     except Exception:
         pass
     return info
+
+
+# ── Additional Watermark Functions ─────────────────────────────────────────────
+
+
+def add_stamp(input_path: str, output_path: str,
+              stamp_text: str = 'CONFIDENTIAL',
+              pages: str = 'all',
+              color: str = '#ef4444',
+              opacity: float = 0.25,
+              border: bool = True) -> dict:
+    """
+    Add a rectangular stamp box (like CONFIDENTIAL, DRAFT, APPROVED)
+    to specified pages using reportlab + pikepdf overlay.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        stamp_text:  Text to stamp
+        pages:       Page selection ('all', '1', '1-3')
+        color:       Hex color for stamp text/border
+        opacity:     0.0-1.0 opacity
+        border:      Draw border rectangle around stamp
+
+    Returns:
+        dict: pages_stamped, output_path
+    """
+    import io, tempfile
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.colors import HexColor
+
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        doc.close()
+
+        sel_pages = _parse_pages(pages, total)
+
+        reader = pikepdf.open(input_path)
+        pages_stamped = 0
+
+        for pg_idx in range(total):
+            if pg_idx not in sel_pages:
+                continue
+
+            page = reader.pages[pg_idx]
+            # Get page dimensions from MediaBox
+            mb = page.get('/MediaBox')
+            if mb:
+                pw = float(mb[2]) - float(mb[0])
+                ph = float(mb[3]) - float(mb[1])
+            else:
+                pw, ph = 595, 842
+
+            # Create overlay with reportlab
+            buf = io.BytesIO()
+            c = rl_canvas.Canvas(buf, pagesize=(pw, ph))
+
+            r, g, b = _hex_to_rgb01(color)
+            c.setFillColorRGB(r, g, b, alpha=opacity)
+            c.setStrokeColorRGB(r, g, b, alpha=opacity * 1.5)
+
+            # Stamp box at center-right
+            box_w, box_h = 140, 40
+            bx = pw - box_w - 30
+            by = ph / 2 - box_h / 2
+
+            if border:
+                c.setLineWidth(2)
+                c.rect(bx, by, box_w, box_h, stroke=1, fill=0)
+
+            c.setFont('Helvetica-Bold', 16)
+            c.drawCentredString(bx + box_w / 2, by + 12, stamp_text)
+            c.save()
+
+            buf.seek(0)
+            overlay = pikepdf.open(buf)
+            ov_page = overlay.pages[0]
+
+            # Merge overlay
+            existing = page.as_form_xobject()
+            new_content = pikepdf.Page(page)
+            new_content.merge_resources(ov_page.resources)
+
+            pages_stamped += 1
+
+        output_path_temp = output_path + '.tmp'
+        reader.save(output_path_temp)
+        reader.close()
+
+        # Re-apply stamp via fitz for reliability
+        doc = fitz.open(input_path)
+        sel_list = sorted(sel_pages)
+        r_f, g_f, b_f = _hex_to_rgb01(color)
+
+        for pg_idx in sel_list:
+            if pg_idx >= doc.page_count:
+                continue
+            pg = doc[pg_idx]
+            pw, ph = pg.rect.width, pg.rect.height
+            bx, by = pw - 180, ph / 2 - 20
+            # Draw rectangle
+            if border:
+                pg.draw_rect(fitz.Rect(bx, by, bx + 150, by + 40),
+                             color=(r_f, g_f, b_f),
+                             fill=(r_f, g_f, b_f, opacity),
+                             width=1.5)
+            # Draw text
+            pg.insert_text(
+                fitz.Point(bx + 75, by + 26),
+                stamp_text,
+                fontsize=14,
+                fontname='helv',
+                color=(r_f, g_f, b_f),
+                render_mode=0,
+            )
+            pages_stamped += 1
+
+        doc.save(output_path, garbage=3, deflate=True)
+        doc.close()
+
+        import os
+        if os.path.exists(output_path_temp):
+            os.remove(output_path_temp)
+
+        return {
+            'pages_stamped': len(sel_list),
+            'stamp_text': stamp_text,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'add_stamp failed: {e}')
+        import shutil as _sh
+        _sh.copy2(input_path, output_path)
+        return {'pages_stamped': 0, 'error': str(e)}
+
+
+def detect_existing_watermarks(input_path: str) -> dict:
+    """
+    Detect if a PDF already contains watermarks or overlay text.
+
+    Uses heuristics: near-transparent text, repeated text across pages,
+    text at unusual positions (center/diagonal).
+
+    Returns:
+        dict: has_watermark, confidence, watermark_texts, method
+    """
+    try:
+        doc = fitz.open(input_path)
+        repeated_texts: dict[str, int] = {}
+        transparent_texts = []
+
+        for i in range(min(doc.page_count, 10)):
+            pg = doc[i]
+            pw, ph = pg.rect.width, pg.rect.height
+
+            # Get text with details
+            for blk in pg.get_text('dict', flags=0)['blocks']:
+                for ln in blk.get('lines', []):
+                    for sp in ln.get('spans', []):
+                        txt = sp.get('text', '').strip()
+                        if not txt or len(txt) < 3:
+                            continue
+
+                        # Check for transparency/low alpha
+                        color = sp.get('color', 0)
+                        origin = sp.get('origin', (0, 0))
+                        ox, oy = origin
+
+                        # Near-center position check
+                        near_center = (0.3 * pw < ox < 0.7 * pw and
+                                       0.3 * ph < oy < 0.7 * ph)
+
+                        if near_center and len(txt) > 3:
+                            repeated_texts[txt.upper()] = \
+                                repeated_texts.get(txt.upper(), 0) + 1
+                        if color and color != 0 and near_center:
+                            transparent_texts.append(txt[:30])
+
+        doc.close()
+
+        # Texts appearing on multiple pages are likely watermarks
+        wm_candidates = [t for t, cnt in repeated_texts.items() if cnt > 1]
+
+        has_watermark = len(wm_candidates) > 0 or len(transparent_texts) > 2
+        confidence = min(100, (len(wm_candidates) * 30 + len(transparent_texts) * 15))
+
+        return {
+            'has_watermark': has_watermark,
+            'confidence': confidence,
+            'watermark_texts': wm_candidates[:5],
+            'possible_watermarks': list(set(transparent_texts[:5])),
+            'method': 'text_position_analysis',
+        }
+
+    except Exception as e:
+        logger.warning(f'detect_existing_watermarks failed: {e}')
+        return {'has_watermark': False, 'error': str(e)}

@@ -691,3 +691,204 @@ def extract_text_native(pdf_path: str, page_range: str = 'all',
     except Exception as e:
         result['error'] = str(e)
     return result
+
+
+# ── Additional OCR Functions ───────────────────────────────────────────────────
+
+
+def ocr_to_text_file(input_path: str, output_txt_path: str,
+                      language: str = 'eng',
+                      dpi: int = 300,
+                      enhance: bool = True) -> dict:
+    """
+    OCR a scanned PDF and save extracted text to a .txt file.
+
+    Args:
+        input_path:      Source PDF
+        output_txt_path: Output .txt file path
+        language:        Tesseract language code(s) e.g. 'eng', 'hin', 'eng+hin'
+        dpi:             Rendering DPI for OCR
+        enhance:         Apply image enhancement (deskew, sharpen, threshold)
+
+    Returns:
+        dict: page_count, word_count, char_count, output_path, confidence_avg
+    """
+    import os
+
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+    except ImportError:
+        raise ImportError('pdf2image and pytesseract are required for OCR')
+
+    from PIL import Image
+    import tempfile
+
+    tmp_dir = tempfile.mkdtemp(prefix='ishu_ocr_txt_')
+    all_text_parts = []
+    total_conf = []
+
+    try:
+        images = convert_from_path(input_path, dpi=dpi, output_folder=tmp_dir,
+                                   fmt='ppm', thread_count=2)
+        for i, img in enumerate(images):
+            if enhance:
+                img = preprocess_for_ocr(img, deskew=True, sharpen=True,
+                                         threshold=True)
+            # Get text with confidence data
+            try:
+                data = pytesseract.image_to_data(
+                    img, lang=language,
+                    config='--psm 3 --oem 1',
+                    output_type=pytesseract.Output.DICT
+                )
+                words = [w for w, c in zip(data['text'], data['conf'])
+                         if w.strip() and int(c) > 0]
+                confs = [int(c) for c in data['conf']
+                         if int(c) > 0]
+                text_page = pytesseract.image_to_string(img, lang=language,
+                                                         config='--psm 3 --oem 1')
+                all_text_parts.append(f'--- Page {i+1} ---\n{text_page.strip()}')
+                if confs:
+                    total_conf.extend(confs)
+            except Exception:
+                try:
+                    text_page = pytesseract.image_to_string(img, lang=language)
+                    all_text_parts.append(f'--- Page {i+1} ---\n{text_page.strip()}')
+                except Exception:
+                    all_text_parts.append(f'--- Page {i+1} ---\n[OCR failed for this page]')
+
+        full_text = '\n\n'.join(all_text_parts)
+        with open(output_txt_path, 'w', encoding='utf-8') as f:
+            f.write(full_text)
+
+        word_count = len(full_text.split())
+        avg_conf = round(sum(total_conf) / len(total_conf), 1) if total_conf else 0
+
+        return {
+            'page_count': len(images),
+            'word_count': word_count,
+            'char_count': len(full_text),
+            'output_path': output_txt_path,
+            'confidence_avg': avg_conf,
+        }
+
+    finally:
+        import shutil as _sh
+        _sh.rmtree(tmp_dir, ignore_errors=True)
+
+
+def detect_text_regions(input_path: str, page_num: int = 1,
+                         password: str = '') -> list:
+    """
+    Detect text region bounding boxes on a PDF page (for OCR zone detection).
+
+    Uses fitz to find text blocks and returns their coordinates.
+    Useful for identifying column layout, headers, footers.
+
+    Args:
+        input_path: Source PDF
+        page_num:   1-based page number
+        password:   PDF password
+
+    Returns:
+        List of dicts: x0, y0, x1, y1, text_preview, block_type, line_count
+    """
+    results = []
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        if page_num < 1 or page_num > doc.page_count:
+            doc.close()
+            return []
+
+        pg = doc[page_num - 1]
+        blocks = pg.get_text('blocks', flags=0)
+
+        for blk in blocks:
+            x0, y0, x1, y1, text, block_no, block_type = blk
+            clean_txt = text.strip().replace('\n', ' ')[:80]
+            results.append({
+                'x0': round(x0, 1),
+                'y0': round(y0, 1),
+                'x1': round(x1, 1),
+                'y1': round(y1, 1),
+                'width': round(x1 - x0, 1),
+                'height': round(y1 - y0, 1),
+                'text_preview': clean_txt,
+                'block_type': 'image' if block_type == 1 else 'text',
+                'line_count': text.count('\n') + 1 if text.strip() else 0,
+            })
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'detect_text_regions failed: {e}')
+
+    return results
+
+
+def get_ocr_confidence(input_path: str, page_range: str = 'all',
+                        language: str = 'eng') -> dict:
+    """
+    Run OCR and return per-page confidence scores without saving output.
+    Useful for quality assessment before committing to full OCR.
+
+    Returns:
+        dict: page_confidences (list), average_confidence, low_confidence_pages,
+              suggested_dpi, recommended_enhance
+    """
+    import tempfile
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+        from PIL import Image
+    except ImportError:
+        return {'error': 'pdf2image or pytesseract not available'}
+
+    tmp_dir = tempfile.mkdtemp(prefix='ishu_ocr_conf_')
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        doc.close()
+
+        from .pdf_ocr import parse_pages as _pp
+        pages = [n - 1 for n in _pp(page_range, total)][:5]  # Sample max 5 pages
+
+        images = convert_from_path(input_path, dpi=150,
+                                   output_folder=tmp_dir, fmt='ppm',
+                                   first_page=1,
+                                   last_page=min(total, 5))
+        page_confs = []
+        for img in images:
+            try:
+                data = pytesseract.image_to_data(
+                    img, lang=language,
+                    config='--psm 3 --oem 1',
+                    output_type=pytesseract.Output.DICT
+                )
+                valid = [int(c) for c in data['conf'] if int(c) > 0]
+                avg = sum(valid) / len(valid) if valid else 0
+                page_confs.append(round(avg, 1))
+            except Exception:
+                page_confs.append(0)
+
+        avg_conf = round(sum(page_confs) / len(page_confs), 1) if page_confs else 0
+        low_conf_pages = [i + 1 for i, c in enumerate(page_confs) if c < 50]
+
+        return {
+            'page_confidences': page_confs,
+            'average_confidence': avg_conf,
+            'low_confidence_pages': low_conf_pages,
+            'suggested_dpi': 300 if avg_conf < 70 else 200,
+            'recommended_enhance': avg_conf < 60,
+            'quality': 'good' if avg_conf >= 70 else 'fair' if avg_conf >= 40 else 'poor',
+        }
+
+    except Exception as e:
+        logger.warning(f'get_ocr_confidence failed: {e}')
+        return {'error': str(e)}
+    finally:
+        import shutil as _sh
+        _sh.rmtree(tmp_dir, ignore_errors=True)

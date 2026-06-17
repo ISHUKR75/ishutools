@@ -585,3 +585,173 @@ def get_pdf_text_preview(input_path: str, pages: int = 3) -> dict:
     except Exception:
         pass
     return result
+
+
+# ── Additional Word Conversion Functions ──────────────────────────────────────
+
+
+def extract_tables_as_csv(input_path: str, output_dir: str,
+                            password: str = '') -> list:
+    """
+    Extract all tables from a PDF and save each as a separate CSV file.
+
+    Uses pdfplumber for high-accuracy table extraction with fallback
+    to fitz word-bbox column detection.
+
+    Args:
+        input_path:  Source PDF
+        output_dir:  Directory for CSV output files
+        password:    PDF password
+
+    Returns:
+        List of dicts: page, table_index, filename, rows, cols, path
+    """
+    import os, csv
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+
+    try:
+        import pdfplumber
+        with pdfplumber.open(input_path, password=password or '') as pdf:
+            for pg_idx, pg in enumerate(pdf.pages):
+                tables = pg.extract_tables()
+                for tbl_idx, table in enumerate(tables):
+                    if not table:
+                        continue
+                    fname = f'page{pg_idx+1}_table{tbl_idx+1}.csv'
+                    out_path = os.path.join(output_dir, fname)
+                    with open(out_path, 'w', newline='', encoding='utf-8') as f:
+                        writer = csv.writer(f)
+                        for row in table:
+                            cleaned = [str(c or '').strip() for c in row]
+                            writer.writerow(cleaned)
+                    rows = len(table)
+                    cols = max(len(r) for r in table) if table else 0
+                    results.append({
+                        'page': pg_idx + 1,
+                        'table_index': tbl_idx + 1,
+                        'filename': fname,
+                        'rows': rows,
+                        'cols': cols,
+                        'path': out_path,
+                    })
+    except ImportError:
+        # Fallback: fitz word-bbox column heuristic
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+        for pg_idx in range(doc.page_count):
+            pg = doc[pg_idx]
+            words = pg.get_text('words')
+            if not words:
+                continue
+            # Group words into rows by y-coordinate
+            rows_dict: dict[int, list] = {}
+            for w in words:
+                y_bucket = round(w[1] / 5) * 5
+                if y_bucket not in rows_dict:
+                    rows_dict[y_bucket] = []
+                rows_dict[y_bucket].append(w[4])
+            sorted_rows = [rows_dict[k] for k in sorted(rows_dict.keys())]
+            if len(sorted_rows) < 2:
+                continue
+            fname = f'page{pg_idx+1}_table1.csv'
+            out_path = os.path.join(output_dir, fname)
+            with open(out_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                for row in sorted_rows:
+                    writer.writerow(row)
+            results.append({
+                'page': pg_idx + 1,
+                'table_index': 1,
+                'filename': fname,
+                'rows': len(sorted_rows),
+                'cols': max(len(r) for r in sorted_rows),
+                'path': out_path,
+            })
+        doc.close()
+
+    return results
+
+
+def get_font_inventory(input_path: str, password: str = '') -> list:
+    """
+    Get a complete inventory of all fonts used in a PDF.
+
+    Returns list of dicts: font_name, font_type, is_embedded, is_subset,
+    pages_used (list), glyph_count_estimate.
+    """
+    fonts = {}
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for i, pg in enumerate(doc):
+            for font_tuple in pg.get_fonts(full=True):
+                xref, ext, font_type, basefont, name, encoding = font_tuple[:6]
+                key = basefont or name
+                if not key:
+                    continue
+                if key not in fonts:
+                    fonts[key] = {
+                        'font_name': key,
+                        'font_type': font_type,
+                        'is_embedded': ext not in ('', 'Type1'),
+                        'is_subset': '+' in key,
+                        'pages_used': [],
+                        'encoding': encoding,
+                    }
+                if (i + 1) not in fonts[key]['pages_used']:
+                    fonts[key]['pages_used'].append(i + 1)
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'get_font_inventory failed: {e}')
+
+    return list(fonts.values())
+
+
+def extract_hyperlinks(input_path: str, password: str = '') -> list:
+    """
+    Extract all hyperlinks (URLs and internal links) from a PDF.
+
+    Returns list of dicts: page, url, rect, link_type, text_near_link
+    """
+    results = []
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for i, pg in enumerate(doc):
+            links = pg.get_links()
+            for lnk in links:
+                url = lnk.get('uri', '')
+                if not url:
+                    # Internal link
+                    if lnk.get('kind') == 1:  # fitz.LINK_GOTO
+                        url = f'#page={lnk.get("page", 0) + 1}'
+                    else:
+                        continue
+
+                rect = lnk.get('from', fitz.Rect())
+                # Get text near link rect for context
+                nearby = pg.get_textbox(rect)
+
+                results.append({
+                    'page': i + 1,
+                    'url': url,
+                    'x0': round(rect.x0, 1),
+                    'y0': round(rect.y0, 1),
+                    'x1': round(rect.x1, 1),
+                    'y1': round(rect.y1, 1),
+                    'link_type': 'external' if url.startswith('http') else 'internal',
+                    'text_near_link': nearby.strip()[:80],
+                })
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'extract_hyperlinks failed: {e}')
+
+    return results

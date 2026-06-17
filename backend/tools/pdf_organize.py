@@ -836,3 +836,199 @@ def get_available_engines() -> dict:
         'gs_path': GS_BIN or '',
         'qpdf_path': QPDF_BIN or '',
     }
+
+
+# ── Additional Organization Functions ────────────────────────────────────────
+
+
+def reorder_by_toc(input_path: str, output_path: str,
+                    password: str = '') -> dict:
+    """
+    Reorder PDF pages to match the order defined in the document's Table of Contents.
+
+    Useful for PDFs where pages were added out of order but bookmarks are correct.
+
+    Returns:
+        dict: original_order, new_order, bookmarks_used, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total = doc.page_count
+        toc = doc.get_toc()
+        doc.close()
+
+        if not toc:
+            return {
+                'original_order': list(range(1, total + 1)),
+                'new_order': list(range(1, total + 1)),
+                'bookmarks_used': 0,
+                'note': 'No TOC found — order unchanged',
+                'output_path': output_path,
+            }
+
+        # Build page order from TOC entries (0-indexed)
+        toc_pages = []
+        seen = set()
+        for level, title, page in toc:
+            pg_idx = page - 1
+            if 0 <= pg_idx < total and pg_idx not in seen:
+                toc_pages.append(pg_idx)
+                seen.add(pg_idx)
+
+        # Append any pages not referenced by TOC
+        for i in range(total):
+            if i not in seen:
+                toc_pages.append(i)
+
+        # Apply reorder
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            reader.decrypt(password or '')
+
+        writer = PdfWriter()
+        for pg_idx in toc_pages:
+            if pg_idx < len(reader.pages):
+                writer.add_page(reader.pages[pg_idx])
+
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+
+        return {
+            'original_order': list(range(1, total + 1)),
+            'new_order': [pg + 1 for pg in toc_pages],
+            'bookmarks_used': len(toc),
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'reorder_by_toc failed: {e}')
+        raise
+
+
+def get_page_size_groups(input_path: str, password: str = '') -> dict:
+    """
+    Group pages by their physical size (A4, Letter, landscape, etc.).
+
+    Useful for detecting and fixing mixed-orientation PDFs.
+
+    Returns:
+        dict: groups (list of dicts), unique_sizes, has_mixed_sizes
+    """
+    groups: dict[str, list] = {}
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for i, pg in enumerate(doc):
+            w = round(pg.rect.width)
+            h = round(pg.rect.height)
+            key = f'{w}x{h}'
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(i + 1)
+
+        doc.close()
+
+        # Name common sizes
+        SIZE_NAMES = {
+            '595x842': 'A4 Portrait', '842x595': 'A4 Landscape',
+            '612x792': 'Letter Portrait', '792x612': 'Letter Landscape',
+            '595x420': 'A5 Landscape', '420x595': 'A5 Portrait',
+            '842x1191': 'A3 Portrait', '1191x842': 'A3 Landscape',
+        }
+
+        result_groups = []
+        for size_key, pages in groups.items():
+            w, h = size_key.split('x')
+            result_groups.append({
+                'size': size_key,
+                'name': SIZE_NAMES.get(size_key, 'Custom'),
+                'width_pt': int(w),
+                'height_pt': int(h),
+                'pages': pages,
+                'count': len(pages),
+            })
+
+        return {
+            'groups': result_groups,
+            'unique_sizes': len(groups),
+            'has_mixed_sizes': len(groups) > 1,
+        }
+
+    except Exception as e:
+        logger.warning(f'get_page_size_groups failed: {e}')
+        return {'groups': [], 'error': str(e)}
+
+
+def insert_blank_pages(input_path: str, output_path: str,
+                        after_pages: list,
+                        count_per_insertion: int = 1,
+                        match_page_size: bool = True,
+                        password: str = '') -> dict:
+    """
+    Insert blank pages after specified pages.
+
+    Useful for printing (adding blank pages for double-sided printing)
+    or creating section dividers.
+
+    Args:
+        input_path:          Source PDF
+        output_path:         Output PDF
+        after_pages:         List of 1-based page numbers to insert after
+        count_per_insertion: Number of blank pages to insert at each position
+        match_page_size:     Match blank page size to adjacent page
+        password:            PDF password
+
+    Returns:
+        dict: blanks_inserted, total_pages, output_path
+    """
+    try:
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            reader.decrypt(password or '')
+
+        total_src = len(reader.pages)
+        writer = PdfWriter()
+        blanks_inserted = 0
+
+        insertion_set = set(after_pages)
+
+        for i, page in enumerate(reader.pages):
+            writer.add_page(page)
+            if (i + 1) in insertion_set:
+                # Get page size for blank
+                if match_page_size:
+                    box = page.mediabox
+                    pw = float(box.width)
+                    ph = float(box.height)
+                else:
+                    pw, ph = 595, 842  # A4
+
+                from io import BytesIO
+                from reportlab.pdfgen import canvas as rl_canvas
+                for _ in range(count_per_insertion):
+                    buf = BytesIO()
+                    c = rl_canvas.Canvas(buf, pagesize=(pw, ph))
+                    c.save()
+                    buf.seek(0)
+                    blank_reader = PdfReader(buf)
+                    writer.add_page(blank_reader.pages[0])
+                    blanks_inserted += 1
+
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+
+        return {
+            'blanks_inserted': blanks_inserted,
+            'original_pages': total_src,
+            'total_pages': total_src + blanks_inserted,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'insert_blank_pages failed: {e}')
+        raise

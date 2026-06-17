@@ -822,3 +822,144 @@ def get_available_styles() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional Signing Functions ──────────────────────────────────────────────
+
+
+def add_initials_to_pages(input_path: str, output_path: str,
+                           initials: str,
+                           pages: str = 'all',
+                           position: str = 'bottom-right',
+                           color: str = '#1a56db',
+                           font_size: int = 10,
+                           password: str = '') -> dict:
+    """
+    Add small initials stamp to specified pages (for 'initial here' fields).
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        initials:    Initials text (e.g. 'I.K.')
+        pages:       Page selection ('all', '1,3', '1-5')
+        position:    'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+        color:       Hex color
+        font_size:   Font size for initials
+        password:    PDF password
+
+    Returns:
+        dict: pages_initialed, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total = doc.page_count
+        sel_pages = sorted(_parse_page_selector(pages, total))
+
+        r, g, b = _hex_to_rgb(color)
+        rgb = (r, g, b)
+
+        for pg_idx in sel_pages:
+            if pg_idx >= total:
+                continue
+            pg = doc[pg_idx]
+            pw, ph = pg.rect.width, pg.rect.height
+            margin = 15
+
+            POS_MAP = {
+                'bottom-right': fitz.Point(pw - margin - len(initials) * (font_size * 0.6), ph - margin),
+                'bottom-left':  fitz.Point(margin, ph - margin),
+                'top-right':    fitz.Point(pw - margin - len(initials) * (font_size * 0.6), margin + font_size),
+                'top-left':     fitz.Point(margin, margin + font_size),
+            }
+            pt = POS_MAP.get(position, POS_MAP['bottom-right'])
+
+            # Draw a small box around initials
+            box_x = pt.x - 4
+            box_y = pt.y - font_size - 2
+            pg.draw_rect(fitz.Rect(box_x, box_y, box_x + len(initials) * (font_size * 0.65) + 8,
+                                   pt.y + 4),
+                         color=rgb, width=0.8)
+            pg.insert_text(pt, initials, fontsize=font_size, fontname='helv', color=rgb)
+
+        doc.save(output_path, garbage=3, deflate=True)
+        pages_count = len(sel_pages)
+        doc.close()
+
+        return {'pages_initialed': pages_count, 'output_path': output_path}
+
+    except Exception as e:
+        logger.warning(f'add_initials_to_pages failed: {e}')
+        raise
+
+
+def generate_signature_from_name(name: str, output_path: str,
+                                   style: str = 'cursive',
+                                   color: str = '#1a56db',
+                                   width: int = 400,
+                                   height: int = 120) -> dict:
+    """
+    Generate a signature-style image from a typed name.
+
+    Creates a PNG with a stylized handwriting-look signature.
+
+    Args:
+        name:        Name to sign
+        output_path: Output .png path
+        style:       'cursive' | 'print' | 'bold'
+        color:       Signature color
+        width:       Image width in pixels
+        height:      Image height in pixels
+
+    Returns:
+        dict: output_path, width, height, name_used
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    import os
+
+    def _hex_to_rgb_tuple(h):
+        h = h.lstrip('#')
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    bg = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(bg)
+    text_color = _hex_to_rgb_tuple(color) + (255,)
+
+    # Use default PIL font with scaling
+    try:
+        # Try to use a system cursive font
+        font_size = min(height - 20, 72)
+        font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+                                  font_size)
+    except Exception:
+        try:
+            font = ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf',
+                                      60)
+        except Exception:
+            font = ImageFont.load_default()
+
+    # Draw with slight italic effect by horizontally shifting
+    bbox = draw.textbbox((0, 0), name, font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    x = (width - text_w) // 2
+    y = (height - text_h) // 2
+
+    # Shadow for depth
+    draw.text((x + 2, y + 2), name, font=font, fill=(100, 100, 100, 80))
+    draw.text((x, y), name, font=font, fill=text_color)
+
+    # Underline
+    draw.line([(x, y + text_h + 4), (x + text_w, y + text_h + 4)],
+              fill=text_color, width=2)
+
+    bg.save(output_path, 'PNG')
+
+    return {
+        'output_path': output_path,
+        'width': width,
+        'height': height,
+        'name_used': name,
+    }

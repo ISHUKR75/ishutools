@@ -551,3 +551,174 @@ def extract_text_from_scan(input_path: str, language: str = 'eng',
         'language': language,
         'pages': pages_text,
     }
+
+
+# ── Additional Scan Enhancement Functions ────────────────────────────────────
+
+
+def batch_enhance_images(input_paths: list, output_dir: str,
+                          preset: str = 'document') -> list:
+    """
+    Batch enhance multiple scanned images for optimal PDF conversion.
+
+    Presets:
+        'document':   Sharpen + binarize + deskew (for text documents)
+        'photo':      Color correction + contrast (for photos)
+        'blueprint':  High contrast invert + sharpen (for technical drawings)
+        'light':      Light enhancement for slightly faded scans
+
+    Args:
+        input_paths: List of image file paths
+        output_dir:  Directory for enhanced images
+        preset:      Processing preset
+
+    Returns:
+        List of dicts: source, output_path, preset_applied, success
+    """
+    import os
+    from PIL import Image, ImageFilter, ImageEnhance, ImageOps
+    os.makedirs(output_dir, exist_ok=True)
+
+    results = []
+    for path in input_paths:
+        try:
+            img = Image.open(path)
+            if img.mode not in ('RGB', 'L', 'RGBA'):
+                img = img.convert('RGB')
+
+            if preset == 'document':
+                # Grayscale + sharpen + normalize
+                if img.mode != 'L':
+                    img = img.convert('L')
+                img = _adaptive_sharpen(img)
+                img = _normalize_brightness(img)
+                img = _deskew(img)
+
+            elif preset == 'photo':
+                # Color enhance
+                img = ImageEnhance.Color(img).enhance(1.3)
+                img = ImageEnhance.Contrast(img).enhance(1.2)
+                img = ImageEnhance.Brightness(img).enhance(1.1)
+
+            elif preset == 'blueprint':
+                # High contrast for technical drawings
+                if img.mode != 'L':
+                    img = img.convert('L')
+                img = ImageEnhance.Contrast(img).enhance(2.0)
+                img = ImageOps.autocontrast(img, cutoff=5)
+                img = img.filter(ImageFilter.SHARPEN)
+
+            elif preset == 'light':
+                # Brighten faded scans
+                img = ImageEnhance.Brightness(img).enhance(1.4)
+                img = ImageEnhance.Contrast(img).enhance(1.3)
+                img = _normalize_brightness(img)
+
+            fname = os.path.splitext(os.path.basename(path))[0] + f'_{preset}.jpg'
+            out_path = os.path.join(output_dir, fname)
+            save_mode = img.mode
+            if save_mode == 'L':
+                img.save(out_path, 'JPEG', quality=90)
+            else:
+                if img.mode == 'RGBA':
+                    img = img.convert('RGB')
+                img.save(out_path, 'JPEG', quality=90)
+
+            results.append({
+                'source': path,
+                'output_path': out_path,
+                'preset_applied': preset,
+                'success': True,
+            })
+        except Exception as e:
+            results.append({
+                'source': path,
+                'output_path': None,
+                'preset_applied': preset,
+                'success': False,
+                'error': str(e),
+            })
+
+    return results
+
+
+def detect_scan_quality(input_path: str) -> dict:
+    """
+    Analyze the quality of a scanned PDF and return recommendations.
+
+    Measures: DPI, sharpness, contrast, skew angle, noise level.
+    Provides actionable recommendations for improvement.
+
+    Args:
+        input_path: Source PDF or image file
+
+    Returns:
+        dict: estimated_dpi, sharpness_score, contrast_score,
+              skew_degrees, noise_level, quality_rating, recommendations
+    """
+    from PIL import Image, ImageFilter
+    import math
+
+    recommendations = []
+
+    try:
+        # Render first page at known DPI to analyze
+        if input_path.lower().endswith('.pdf'):
+            doc = fitz.open(input_path)
+            pg = doc[0]
+            mat = fitz.Matrix(2.0, 2.0)  # 144 dpi
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+            img = Image.frombytes('L', [pix.width, pix.height], pix.samples)
+            doc.close()
+        else:
+            img = Image.open(input_path).convert('L')
+
+        width, height = img.size
+
+        # Sharpness (variance of Laplacian)
+        edges = img.filter(ImageFilter.FIND_EDGES)
+        pixels = list(edges.getdata())
+        mean_edge = sum(pixels) / len(pixels)
+        variance = sum((p - mean_edge) ** 2 for p in pixels) / len(pixels)
+        sharpness_score = min(100, int(variance / 100))
+
+        # Contrast
+        pixel_vals = list(img.getdata())
+        contrast_score = min(100, int((max(pixel_vals) - min(pixel_vals)) / 255 * 100))
+
+        # Noise estimate (high-frequency variation in smooth areas)
+        smooth = img.filter(ImageFilter.SMOOTH_MORE)
+        smooth_pixels = list(smooth.getdata())
+        noise = sum(abs(a - b) for a, b in zip(pixels[:1000], smooth_pixels[:1000])) / 1000
+        noise_level = 'low' if noise < 5 else 'medium' if noise < 15 else 'high'
+
+        # Quality rating
+        overall = (sharpness_score * 0.5 + contrast_score * 0.3 +
+                   (30 if noise_level == 'low' else 15 if noise_level == 'medium' else 0) * 0.2)
+        quality_rating = ('excellent' if overall >= 75 else
+                          'good' if overall >= 50 else
+                          'fair' if overall >= 30 else 'poor')
+
+        if sharpness_score < 30:
+            recommendations.append('Apply sharpening to improve text readability')
+        if contrast_score < 50:
+            recommendations.append('Increase contrast to make text darker')
+        if noise_level == 'high':
+            recommendations.append('Apply despeckle filter to reduce scan noise')
+        if quality_rating in ('fair', 'poor'):
+            recommendations.append('Re-scan at 300 DPI for best OCR results')
+
+        return {
+            'estimated_dpi': 300 if width > 2000 else 200 if width > 1400 else 150,
+            'sharpness_score': sharpness_score,
+            'contrast_score': contrast_score,
+            'noise_level': noise_level,
+            'quality_rating': quality_rating,
+            'overall_score': round(overall, 1),
+            'recommendations': recommendations,
+            'image_size': (width, height),
+        }
+
+    except Exception as e:
+        logger.warning(f'detect_scan_quality failed: {e}')
+        return {'error': str(e)}

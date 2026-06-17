@@ -603,3 +603,150 @@ def batch_rotate(
         except Exception as e:
             results.append({'source_path': path, 'output_path': None, 'error': str(e)})
     return results
+
+
+# ── Additional Rotation & Orientation Functions ────────────────────────────────
+
+
+def auto_rotate_all(input_path: str, output_path: str,
+                     confidence_threshold: float = 0.7,
+                     password: str = '') -> dict:
+    """
+    Automatically detect and correct page orientation for all pages.
+
+    Uses fitz text direction analysis to determine if pages are rotated.
+    Pages with confident orientation detection are auto-corrected.
+
+    Args:
+        input_path:            Source PDF
+        output_path:           Output PDF
+        confidence_threshold:  Min confidence to auto-rotate (0.0-1.0)
+        password:              PDF password
+
+    Returns:
+        dict: pages_rotated, pages_skipped, rotation_map, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        rotation_map = []
+        pages_rotated = 0
+
+        for i in range(doc.page_count):
+            pg = doc[i]
+            current_rotation = pg.rotation
+
+            # Use fitz text direction detection
+            text_dict = pg.get_text('dict', flags=0)
+            dir_votes: dict[int, float] = {0: 0, 90: 0, 180: 0, 270: 0}
+
+            for blk in text_dict.get('blocks', []):
+                for ln in blk.get('lines', []):
+                    for sp in ln.get('spans', []):
+                        txt = sp.get('text', '').strip()
+                        if not txt:
+                            continue
+                        # Direction from span flags
+                        size = sp.get('size', 10)
+                        dir_flag = sp.get('dir', (1, 0))
+                        dx, dy = dir_flag if isinstance(dir_flag, (list, tuple)) \
+                            and len(dir_flag) >= 2 else (1, 0)
+
+                        # Map direction vector to rotation
+                        if abs(dx) > abs(dy):
+                            direction = 0 if dx > 0 else 180
+                        else:
+                            direction = 90 if dy < 0 else 270
+
+                        weight = size * len(txt)
+                        dir_votes[direction] = dir_votes.get(direction, 0) + weight
+
+            total_weight = sum(dir_votes.values())
+            if total_weight < 1:
+                rotation_map.append({'page': i + 1, 'action': 'skipped', 'reason': 'no_text'})
+                continue
+
+            best_dir = max(dir_votes, key=dir_votes.get)
+            confidence = dir_votes[best_dir] / total_weight
+
+            if confidence < confidence_threshold:
+                rotation_map.append({'page': i + 1, 'action': 'skipped',
+                                      'reason': 'low_confidence', 'confidence': confidence})
+                continue
+
+            # Correct rotation: text should flow at 0°
+            needed_rotation = (-best_dir) % 360
+            if needed_rotation != current_rotation:
+                pg.set_rotation(needed_rotation)
+                pages_rotated += 1
+                rotation_map.append({
+                    'page': i + 1,
+                    'action': 'rotated',
+                    'from': current_rotation,
+                    'to': needed_rotation,
+                    'confidence': round(confidence, 3),
+                })
+            else:
+                rotation_map.append({'page': i + 1, 'action': 'ok',
+                                      'rotation': current_rotation})
+
+        doc.save(output_path, garbage=3, deflate=True)
+        doc.close()
+
+        return {
+            'pages_rotated': pages_rotated,
+            'pages_skipped': len([r for r in rotation_map if r['action'] == 'skipped']),
+            'rotation_map': rotation_map,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'auto_rotate_all failed: {e}')
+        import shutil as _sh
+        _sh.copy2(input_path, output_path)
+        return {'pages_rotated': 0, 'error': str(e)}
+
+
+def get_page_orientation_summary(input_path: str, password: str = '') -> dict:
+    """
+    Analyze orientation of all pages without modifying the PDF.
+
+    Returns a summary with counts of landscape vs portrait pages,
+    mixed orientation detection, and rotation values.
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        portrait = 0
+        landscape = 0
+        rotations: dict[int, int] = {}
+
+        for pg in doc:
+            w, h = pg.rect.width, pg.rect.height
+            rot = pg.rotation
+            if h >= w:
+                portrait += 1
+            else:
+                landscape += 1
+            rotations[rot] = rotations.get(rot, 0) + 1
+
+        doc.close()
+        total = portrait + landscape
+
+        return {
+            'total_pages': total,
+            'portrait_pages': portrait,
+            'landscape_pages': landscape,
+            'mixed_orientations': portrait > 0 and landscape > 0,
+            'dominant_orientation': 'portrait' if portrait >= landscape else 'landscape',
+            'rotation_counts': rotations,
+            'needs_normalization': landscape > 0 and portrait > 0,
+        }
+
+    except Exception as e:
+        logger.warning(f'get_page_orientation_summary failed: {e}')
+        return {'error': str(e)}

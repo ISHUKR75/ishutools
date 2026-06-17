@@ -917,3 +917,118 @@ def get_available_engines() -> dict:
         'gs_path': GS_BIN or '',
         'common_password_count': len(COMMON_PASSWORDS),
     }
+
+
+# ── Additional Unlock & Security Functions ─────────────────────────────────────
+
+
+def get_encryption_details(pdf_path: str, password: str = '') -> dict:
+    """
+    Get detailed encryption and permission information for a PDF.
+
+    Returns encryption algorithm, key length, version, and all permissions.
+
+    Args:
+        pdf_path: Path to PDF file
+        password: Password to test (optional)
+
+    Returns:
+        dict: is_encrypted, encryption_method, key_length, permissions,
+              pdf_version, can_open_without_password
+    """
+    result = {
+        'is_encrypted': False,
+        'encryption_method': 'none',
+        'key_length': 0,
+        'permissions': {},
+        'pdf_version': '',
+        'can_open_without_password': True,
+    }
+
+    try:
+        with pikepdf.open(pdf_path, password=password or '') as pdf:
+            result['is_encrypted'] = pdf.is_encrypted
+            result['pdf_version'] = str(pdf.pdf_version)
+
+            if pdf.is_encrypted:
+                enc = pdf.encryption
+                result['encryption_method'] = getattr(enc, 'method', 'RC4')
+                result['key_length'] = getattr(enc, 'keylen', 128)
+
+                try:
+                    perms = pdf.allow
+                    result['permissions'] = {
+                        'print': getattr(perms, 'print_highres', True),
+                        'print_lowres': getattr(perms, 'print_lowres', True),
+                        'copy': getattr(perms, 'extract', True),
+                        'modify': getattr(perms, 'modify_other', True),
+                        'annotate': getattr(perms, 'modify_annotation', True),
+                        'fill_forms': getattr(perms, 'fill_forms', True),
+                        'accessibility': getattr(perms, 'accessibility', True),
+                        'assemble': getattr(perms, 'assemble', True),
+                    }
+                except Exception:
+                    result['permissions'] = {}
+
+    except pikepdf.PasswordError:
+        result['is_encrypted'] = True
+        result['can_open_without_password'] = False
+    except Exception as e:
+        result['error'] = str(e)
+
+    return result
+
+
+def unlock_and_optimize(input_path: str, output_path: str,
+                         password: str = '',
+                         compress: bool = True) -> dict:
+    """
+    Unlock a PDF (remove password protection) and optionally compress it.
+
+    Combines unlock + compression in one step for efficiency.
+
+    Args:
+        input_path:  Source encrypted PDF
+        output_path: Output unlocked (and optionally compressed) PDF
+        password:    PDF password
+        compress:    Apply pikepdf compression pass after unlocking
+
+    Returns:
+        dict: unlocked, pages, original_size_kb, final_size_kb, reduction_pct
+    """
+    import os, tempfile
+
+    tmp_unlocked = output_path + '.unlocked_tmp'
+
+    try:
+        # Step 1: Unlock
+        result = unlock_pdf(input_path, tmp_unlocked, password=password)
+        if not result.get('unlocked'):
+            return result
+
+        if not compress:
+            os.rename(tmp_unlocked, output_path)
+            return result
+
+        # Step 2: Compress with pikepdf
+        orig_size = os.path.getsize(tmp_unlocked) / 1024
+        with pikepdf.open(tmp_unlocked) as pdf:
+            pdf.save(output_path,
+                     compress_streams=True,
+                     object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                     recompress_flate=True)
+        final_size = os.path.getsize(output_path) / 1024
+        reduction = (1 - final_size / orig_size) * 100 if orig_size > 0 else 0
+
+        os.remove(tmp_unlocked)
+
+        result['original_size_kb'] = round(orig_size, 1)
+        result['final_size_kb'] = round(final_size, 1)
+        result['compression_reduction_pct'] = round(reduction, 1)
+        return result
+
+    except Exception as e:
+        logger.warning(f'unlock_and_optimize failed: {e}')
+        if os.path.exists(tmp_unlocked):
+            os.remove(tmp_unlocked)
+        raise

@@ -887,3 +887,138 @@ def get_available_engines() -> dict:
         ],
         'supported_positions': list(POSITION_MAP.keys()),
     }
+
+
+# ── Additional Page Number Functions ──────────────────────────────────────────
+
+
+def add_chapter_labels(input_path: str, output_path: str,
+                        labels: list,
+                        password: str = '') -> dict:
+    """
+    Add chapter/section labels to specific page ranges.
+
+    labels should be: [{'start': 1, 'end': 10, 'label': 'Chapter 1: Introduction'}, ...]
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        labels:      List of dicts with start, end, label keys
+        password:    PDF password
+
+    Returns:
+        dict: labels_applied, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        labels_applied = 0
+
+        for label_def in labels:
+            start = int(label_def.get('start', 1)) - 1
+            end = int(label_def.get('end', start + 1))
+            label_text = str(label_def.get('label', ''))[:60]
+
+            if not label_text:
+                continue
+
+            for pg_idx in range(start, min(end, doc.page_count)):
+                pg = doc[pg_idx]
+                pw = pg.rect.width
+
+                pg.insert_text(
+                    fitz.Point(pw / 2, 20),
+                    label_text,
+                    fontsize=8,
+                    fontname='helv',
+                    color=(0.4, 0.4, 0.4),
+                    render_mode=0,
+                )
+                labels_applied += 1
+
+        doc.save(output_path, garbage=3, deflate=True)
+        doc.close()
+
+        return {'labels_applied': labels_applied, 'output_path': output_path}
+
+    except Exception as e:
+        logger.warning(f'add_chapter_labels failed: {e}')
+        raise
+
+
+def preview_page_number_style(format_type: str = 'arabic',
+                               start: int = 1,
+                               prefix: str = '',
+                               count: int = 10) -> list:
+    """
+    Preview page number labels for a given style without creating a PDF.
+
+    Args:
+        format_type: 'arabic' | 'roman' | 'alpha' | 'roman_lower'
+        start:       Starting number
+        prefix:      Prefix text
+        count:       Number of labels to generate
+
+    Returns:
+        List of label strings
+    """
+    labels = []
+    for i in range(count):
+        n = start + i
+        if format_type == 'roman':
+            lbl = to_roman(n)
+        elif format_type == 'roman_lower':
+            lbl = to_roman(n).lower()
+        elif format_type == 'alpha':
+            lbl = to_alpha(n)
+        else:
+            lbl = str(n)
+        labels.append(f'{prefix}{lbl}')
+    return labels
+
+
+def remove_existing_page_numbers(input_path: str, output_path: str,
+                                   header_height: float = 40,
+                                   footer_height: float = 40,
+                                   password: str = '') -> dict:
+    """
+    Remove existing page numbers by cropping/whiting out header/footer bands.
+
+    Creates white rectangles over the header and footer regions to
+    visually remove existing page numbers (does not remove embedded text).
+
+    Args:
+        input_path:    Source PDF
+        output_path:   Output PDF
+        header_height: Pixels to cover at top
+        footer_height: Pixels to cover at bottom
+        password:      PDF password
+
+    Returns:
+        dict: pages_processed, output_path
+    """
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for pg in doc:
+            w, h = pg.rect.width, pg.rect.height
+            # White rectangle over header
+            pg.draw_rect(fitz.Rect(0, 0, w, header_height),
+                         color=(1, 1, 1), fill=(1, 1, 1), width=0)
+            # White rectangle over footer
+            pg.draw_rect(fitz.Rect(0, h - footer_height, w, h),
+                         color=(1, 1, 1), fill=(1, 1, 1), width=0)
+
+        doc.save(output_path, garbage=3, deflate=True)
+        pages_processed = doc.page_count
+        doc.close()
+
+        return {'pages_processed': pages_processed, 'output_path': output_path}
+
+    except Exception as e:
+        logger.warning(f'remove_existing_page_numbers failed: {e}')
+        raise

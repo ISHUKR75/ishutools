@@ -837,3 +837,191 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'im_available': bool(IM_BIN),
     }
+
+
+# ── Additional Image to PDF Functions ─────────────────────────────────────────
+
+
+def create_photo_book(image_paths: list, output_path: str,
+                       title: str = 'Photo Book',
+                       captions: list = None,
+                       layout: str = 'one_per_page',
+                       page_size: str = 'A4',
+                       background_color: str = '#ffffff') -> dict:
+    """
+    Create a styled photo book PDF from a list of images.
+
+    Args:
+        image_paths:       List of image file paths
+        output_path:       Output PDF path
+        title:             Photo book title (shown on cover page)
+        captions:          Optional list of captions (same length as image_paths)
+        layout:            'one_per_page' | 'two_per_page' | 'grid_4'
+        page_size:         'A4' | 'A3' | 'letter'
+        background_color:  Page background hex color
+
+    Returns:
+        dict: page_count, image_count, output_path, layout_used
+    """
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4, A3, letter
+    from reportlab.lib.colors import HexColor
+    from PIL import Image
+    import math, io
+
+    SIZE_MAP = {'A4': A4, 'A3': A3, 'letter': letter}
+    pw, ph = SIZE_MAP.get(page_size, A4)
+
+    def hex2rgb(h):
+        h = h.lstrip('#')
+        return tuple(int(h[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+
+    bg = hex2rgb(background_color)
+    captions = captions or [''] * len(image_paths)
+    while len(captions) < len(image_paths):
+        captions.append('')
+
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=(pw, ph))
+
+    # Cover page
+    c.setFillColorRGB(*bg)
+    c.rect(0, 0, pw, ph, stroke=0, fill=1)
+    c.setFillColorRGB(0.1, 0.1, 0.4)
+    c.setFont('Helvetica-Bold', 28)
+    c.drawCentredString(pw / 2, ph * 0.55, title)
+    c.setFont('Helvetica', 12)
+    c.setFillColorRGB(0.4, 0.4, 0.4)
+    c.drawCentredString(pw / 2, ph * 0.48,
+                        f'{len(image_paths)} Photos — IshuTools.fun')
+    c.showPage()
+
+    pages_rendered = 1
+
+    if layout == 'two_per_page':
+        for i in range(0, len(image_paths), 2):
+            c.setFillColorRGB(*bg)
+            c.rect(0, 0, pw, ph, stroke=0, fill=1)
+            for j, img_path in enumerate(image_paths[i:i+2]):
+                try:
+                    img = Image.open(img_path)
+                    slot_w = pw / 2 - 30
+                    slot_h = ph - 80
+                    ratio = min(slot_w / img.width, slot_h / img.height)
+                    iw, ih = img.width * ratio, img.height * ratio
+                    x = 15 + j * (pw / 2) + (slot_w - iw) / 2
+                    y = 40 + (slot_h - ih) / 2
+                    c.drawImage(img_path, x, y, iw, ih)
+                    cap = captions[i + j] if i + j < len(captions) else ''
+                    if cap:
+                        c.setFont('Helvetica', 9)
+                        c.setFillColorRGB(0.4, 0.4, 0.4)
+                        c.drawCentredString(x + iw / 2, 25, cap[:60])
+                except Exception:
+                    continue
+            c.showPage()
+            pages_rendered += 1
+
+    elif layout == 'grid_4':
+        for i in range(0, len(image_paths), 4):
+            c.setFillColorRGB(*bg)
+            c.rect(0, 0, pw, ph, stroke=0, fill=1)
+            for j, img_path in enumerate(image_paths[i:i+4]):
+                row, col = divmod(j, 2)
+                slot_w = pw / 2 - 20
+                slot_h = ph / 2 - 30
+                try:
+                    img = Image.open(img_path)
+                    ratio = min(slot_w / img.width, slot_h / img.height)
+                    iw, ih = img.width * ratio, img.height * ratio
+                    x = 10 + col * (pw / 2) + (slot_w - iw) / 2
+                    y = ph - (row + 1) * (ph / 2) + (slot_h - ih) / 2 + 10
+                    c.drawImage(img_path, x, y, iw, ih)
+                except Exception:
+                    continue
+            c.showPage()
+            pages_rendered += 1
+
+    else:  # one_per_page
+        for i, img_path in enumerate(image_paths):
+            c.setFillColorRGB(*bg)
+            c.rect(0, 0, pw, ph, stroke=0, fill=1)
+            try:
+                img = Image.open(img_path)
+                margin = 40
+                max_w = pw - 2 * margin
+                max_h = ph - 2 * margin - (30 if captions[i] else 0)
+                ratio = min(max_w / img.width, max_h / img.height)
+                iw, ih = img.width * ratio, img.height * ratio
+                x = margin + (max_w - iw) / 2
+                y = margin + (max_h - ih) / 2 + (25 if captions[i] else 0)
+                c.drawImage(img_path, x, y, iw, ih)
+                if captions[i]:
+                    c.setFont('Helvetica', 11)
+                    c.setFillColorRGB(0.3, 0.3, 0.3)
+                    c.drawCentredString(pw / 2, margin - 12, captions[i][:80])
+            except Exception:
+                pass
+            c.showPage()
+            pages_rendered += 1
+
+    c.save()
+    buf.seek(0)
+    with open(output_path, 'wb') as f:
+        f.write(buf.getvalue())
+
+    return {
+        'page_count': pages_rendered,
+        'image_count': len(image_paths),
+        'output_path': output_path,
+        'layout_used': layout,
+    }
+
+
+def optimize_images_before_pdf(image_paths: list, output_dir: str,
+                                 max_dimension: int = 2048,
+                                 jpeg_quality: int = 85) -> list:
+    """
+    Pre-process and optimize images before converting to PDF.
+
+    Resizes oversized images, converts to RGB, fixes EXIF orientation,
+    and re-encodes for optimal PDF embedding.
+
+    Args:
+        image_paths:    List of source image paths
+        output_dir:     Directory for optimized images
+        max_dimension:  Max width or height in pixels
+        jpeg_quality:   JPEG quality (0-100)
+
+    Returns:
+        List of optimized image paths
+    """
+    import os
+    from PIL import Image, ImageOps
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+
+    for path in image_paths:
+        try:
+            img = Image.open(path)
+            # Fix EXIF orientation
+            img = ImageOps.exif_transpose(img)
+            # Convert to RGB if needed
+            if img.mode not in ('RGB', 'L'):
+                img = img.convert('RGB')
+            # Resize if too large
+            if max(img.size) > max_dimension:
+                ratio = max_dimension / max(img.size)
+                new_size = (int(img.width * ratio), int(img.height * ratio))
+                img = img.resize(new_size, Image.LANCZOS)
+
+            out_name = os.path.splitext(os.path.basename(path))[0] + '_opt.jpg'
+            out_path = os.path.join(output_dir, out_name)
+            img.save(out_path, 'JPEG', quality=jpeg_quality,
+                     optimize=True, progressive=True)
+            results.append(out_path)
+        except Exception as e:
+            logger.warning(f'optimize_images_before_pdf failed for {path}: {e}')
+            results.append(path)  # Use original on failure
+
+    return results

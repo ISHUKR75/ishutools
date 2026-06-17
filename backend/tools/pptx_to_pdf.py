@@ -821,3 +821,171 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional PowerPoint to PDF Functions ────────────────────────────────────
+
+
+def extract_presenter_notes(input_path: str) -> list:
+    """
+    Extract all presenter/speaker notes from a PPTX file.
+
+    Returns list of dicts: slide_number, title, notes_text, has_notes
+    """
+    from pptx import Presentation
+    from pptx.util import Inches
+
+    results = []
+    try:
+        prs = Presentation(input_path)
+        for i, slide in enumerate(prs.slides):
+            title = ''
+            notes_text = ''
+
+            # Get slide title
+            for shape in slide.shapes:
+                if shape.has_text_frame and shape.shape_type == 13:  # TITLE
+                    title = shape.text_frame.text.strip()
+                elif hasattr(shape, 'text') and shape.name and 'title' in shape.name.lower():
+                    title = shape.text[:60] if shape.text else ''
+
+            # Get notes
+            if slide.has_notes_slide:
+                notes_slide = slide.notes_slide
+                for ph in notes_slide.placeholders:
+                    if ph.placeholder_format.idx == 1:  # Notes placeholder
+                        notes_text = ph.text_frame.text.strip()
+
+            results.append({
+                'slide_number': i + 1,
+                'title': title[:80],
+                'notes_text': notes_text,
+                'has_notes': len(notes_text) > 0,
+            })
+
+    except Exception as e:
+        logger.warning(f'extract_presenter_notes failed: {e}')
+
+    return results
+
+
+def pptx_to_pdf_handout(input_path: str, output_path: str,
+                         slides_per_page: int = 4,
+                         include_notes: bool = False) -> dict:
+    """
+    Convert PPTX to a handout-style PDF with multiple slides per page.
+
+    Args:
+        input_path:       Source .pptx
+        output_path:      Output .pdf
+        slides_per_page:  2, 4, or 6 slides per page
+        include_notes:    Include presenter notes below each slide thumbnail
+
+    Returns:
+        dict: output_path, total_slides, pages_in_handout
+    """
+    from pptx import Presentation
+    from PIL import Image
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4, landscape
+    import tempfile, math
+
+    tmp_dir = tempfile.mkdtemp(prefix='ishu_handout_')
+    slide_images = []
+
+    try:
+        # First convert to individual slide images using existing function
+        prs = Presentation(input_path)
+        total_slides = len(prs.slides)
+
+        # Render slides via fitz approach via pptx_to_pdf
+        tmp_pdf = os.path.join(tmp_dir, 'full.pdf')
+        pptx_to_pdf(input_path, tmp_pdf)
+
+        doc = fitz.open(tmp_pdf)
+        for i in range(doc.page_count):
+            pg = doc[i]
+            mat = fitz.Matrix(1.5, 1.5)
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+            img_path = os.path.join(tmp_dir, f'slide_{i:03d}.jpg')
+            pix.save(img_path)
+            slide_images.append(img_path)
+        doc.close()
+
+        if not slide_images:
+            raise ValueError('No slide images generated')
+
+        # Layout config
+        cols = 2
+        rows = max(1, math.ceil(slides_per_page / cols))
+        pw, ph = landscape(A4)
+        margin = 30
+        slot_w = (pw - margin * (cols + 1)) / cols
+        slot_h = (ph - margin * (rows + 1)) / rows
+
+        buf_path = output_path
+        c = rl_canvas.Canvas(buf_path, pagesize=landscape(A4))
+
+        for batch_start in range(0, len(slide_images), slides_per_page):
+            batch = slide_images[batch_start:batch_start + slides_per_page]
+
+            # White background
+            c.setFillColorRGB(1, 1, 1)
+            c.rect(0, 0, pw, ph, stroke=0, fill=1)
+
+            # Page header
+            c.setFont('Helvetica', 7)
+            c.setFillColorRGB(0.5, 0.5, 0.5)
+            c.drawString(margin, ph - 15,
+                         f'IshuTools.fun — Slide Handout — '
+                         f'Slides {batch_start+1}–{min(batch_start+slides_per_page, len(slide_images))} '
+                         f'of {len(slide_images)}')
+
+            for idx, img_path in enumerate(batch):
+                row_i = idx // cols
+                col_i = idx % cols
+                x = margin + col_i * (slot_w + margin)
+                y = ph - margin * 2 - (row_i + 1) * slot_h - row_i * margin
+
+                try:
+                    img = Image.open(img_path)
+                    ratio = min(slot_w / img.width, slot_h / img.height)
+                    iw, ih = img.width * ratio, img.height * ratio
+                    ix = x + (slot_w - iw) / 2
+                    iy = y + (slot_h - ih) / 2
+
+                    # Shadow box
+                    c.setFillColorRGB(0.85, 0.85, 0.85)
+                    c.rect(x + 2, y - 2, slot_w, slot_h, stroke=0, fill=1)
+
+                    c.setStrokeColorRGB(0.7, 0.7, 0.7)
+                    c.setFillColorRGB(1, 1, 1)
+                    c.rect(x, y, slot_w, slot_h, stroke=1, fill=1)
+
+                    c.drawImage(img_path, ix, iy, iw, ih)
+
+                    # Slide number
+                    c.setFont('Helvetica-Bold', 7)
+                    c.setFillColorRGB(0.3, 0.3, 0.3)
+                    c.drawCentredString(x + slot_w / 2, y - 10,
+                                        f'Slide {batch_start + idx + 1}')
+                except Exception:
+                    pass
+
+            c.showPage()
+
+        c.save()
+
+        return {
+            'output_path': output_path,
+            'total_slides': len(slide_images),
+            'pages_in_handout': math.ceil(len(slide_images) / slides_per_page),
+            'slides_per_page': slides_per_page,
+        }
+
+    except Exception as e:
+        logger.warning(f'pptx_to_pdf_handout failed: {e}')
+        raise
+    finally:
+        import shutil as _sh
+        _sh.rmtree(tmp_dir, ignore_errors=True)

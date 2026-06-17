@@ -823,3 +823,140 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional Comparison Functions ──────────────────────────────────────────
+
+
+def highlight_differences(path1: str, path2: str,
+                           output_path: str,
+                           highlight_color: str = '#ff4444',
+                           password1: str = '',
+                           password2: str = '') -> dict:
+    """
+    Create an annotated version of PDF2 with text differences highlighted in color.
+
+    Finds sentences in PDF2 that are new/changed compared to PDF1 and
+    adds highlight annotations.
+
+    Args:
+        path1:           Reference PDF (original)
+        path2:           Modified PDF
+        output_path:     Output annotated PDF
+        highlight_color: Hex color for highlighting changes
+        password1:       Password for PDF1
+        password2:       Password for PDF2
+
+    Returns:
+        dict: differences_found, pages_with_changes, output_path
+    """
+    import re, shutil
+
+    try:
+        # Extract sentences from both
+        doc1 = fitz.open(path1)
+        if doc1.is_encrypted:
+            doc1.authenticate(password1 or '')
+        text1_pages = [doc1[i].get_text() for i in range(doc1.page_count)]
+        doc1.close()
+
+        doc2 = fitz.open(path2)
+        if doc2.is_encrypted:
+            doc2.authenticate(password2 or '')
+
+        r_val = int(highlight_color.lstrip('#')[0:2], 16) / 255.0
+        g_val = int(highlight_color.lstrip('#')[2:4], 16) / 255.0
+        b_val = int(highlight_color.lstrip('#')[4:6], 16) / 255.0
+
+        differences_found = 0
+        pages_with_changes = []
+
+        for pg_idx in range(doc2.page_count):
+            pg = doc2[pg_idx]
+            text2 = pg.get_text()
+
+            # Compare with corresponding page in doc1
+            text1 = text1_pages[pg_idx] if pg_idx < len(text1_pages) else ''
+
+            # Find words in text2 not in text1
+            words1 = set(re.findall(r'\b\w{4,}\b', text1.lower()))
+            words2_list = re.findall(r'\b\w{4,}\b', text2)
+            new_words = [w for w in words2_list if w.lower() not in words1]
+
+            if not new_words:
+                continue
+
+            pages_with_changes.append(pg_idx + 1)
+
+            # Search and highlight each new word
+            for word in new_words[:20]:  # Limit per page
+                found_rects = pg.search_for(word)
+                for rect in found_rects:
+                    annot = pg.add_highlight_annot(rect)
+                    annot.set_colors(stroke=(r_val, g_val, b_val))
+                    annot.update()
+                    differences_found += 1
+
+        doc2.save(output_path, garbage=3)
+        doc2.close()
+
+        return {
+            'differences_found': differences_found,
+            'pages_with_changes': pages_with_changes,
+            'total_changed_pages': len(pages_with_changes),
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'highlight_differences failed: {e}')
+        shutil.copy2(path2, output_path)
+        return {'differences_found': 0, 'error': str(e)}
+
+
+def compare_metadata_only(path1: str, path2: str) -> dict:
+    """
+    Compare metadata between two PDFs (title, author, creation date, etc.)
+
+    Quick comparison without reading page content — useful for version checking.
+
+    Returns:
+        dict: metadata_doc1, metadata_doc2, differences, is_identical
+    """
+    def _get_meta(path):
+        meta = {}
+        try:
+            with pikepdf.open(path) as pdf:
+                docinfo = dict(pdf.docinfo)
+                for k, v in docinfo.items():
+                    key = str(k).lstrip('/')
+                    meta[key] = str(v)
+        except Exception:
+            pass
+        try:
+            doc = fitz.open(path)
+            m = doc.metadata
+            doc.close()
+            meta.update({k: v for k, v in m.items() if v})
+        except Exception:
+            pass
+        return meta
+
+    meta1 = _get_meta(path1)
+    meta2 = _get_meta(path2)
+
+    differences = {}
+    all_keys = set(list(meta1.keys()) + list(meta2.keys()))
+
+    for key in all_keys:
+        v1 = meta1.get(key, '')
+        v2 = meta2.get(key, '')
+        if v1 != v2:
+            differences[key] = {'doc1': v1, 'doc2': v2}
+
+    return {
+        'metadata_doc1': meta1,
+        'metadata_doc2': meta2,
+        'differences': differences,
+        'different_fields': len(differences),
+        'is_identical': len(differences) == 0,
+    }

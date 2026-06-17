@@ -570,3 +570,236 @@ def batch_convert(
         except Exception as e:
             results.append({'source_path': path, 'error': str(e)})
     return results
+
+
+# ── Additional Image Extraction Functions ──────────────────────────────────────
+
+
+def create_contact_sheet(input_path: str, output_path: str,
+                          cols: int = 3, thumb_size: int = 200,
+                          password: str = '',
+                          title: str = '') -> dict:
+    """
+    Create a contact sheet (grid of all pages) as a single image.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output image path (.jpg/.png)
+        cols:        Number of columns in the grid
+        thumb_size:  Thumbnail size in pixels (square)
+        password:    PDF password
+        title:       Optional title text at top
+
+    Returns:
+        dict: page_count, cols, rows, output_path, image_size
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    import math
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        thumbs = []
+        for i in range(doc.page_count):
+            pg = doc[i]
+            mat = fitz.Matrix(thumb_size / max(pg.rect.width, pg.rect.height),
+                              thumb_size / max(pg.rect.width, pg.rect.height))
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+            img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+            # Pad to square
+            sq = Image.new('RGB', (thumb_size, thumb_size), (240, 240, 240))
+            ox = (thumb_size - img.width) // 2
+            oy = (thumb_size - img.height) // 2
+            sq.paste(img, (ox, oy))
+            thumbs.append(sq)
+        doc.close()
+
+        if not thumbs:
+            raise ValueError('No pages to render')
+
+        rows = math.ceil(len(thumbs) / cols)
+        pad = 8
+        header_h = 40 if title else 0
+
+        total_w = cols * thumb_size + (cols + 1) * pad
+        total_h = rows * thumb_size + (rows + 1) * pad + header_h
+
+        sheet = Image.new('RGB', (total_w, total_h), (255, 255, 255))
+        draw = ImageDraw.Draw(sheet)
+
+        if title:
+            draw.text((total_w // 2, 20), title, fill=(50, 50, 50), anchor='mm')
+
+        for idx, thumb in enumerate(thumbs):
+            row, col = divmod(idx, cols)
+            x = col * (thumb_size + pad) + pad
+            y = row * (thumb_size + pad) + pad + header_h
+            sheet.paste(thumb, (x, y))
+            # Page number label
+            draw.text((x + thumb_size // 2, y + thumb_size - 12),
+                      str(idx + 1), fill=(100, 100, 100), anchor='mm')
+
+        ext = os.path.splitext(output_path)[1].lower()
+        fmt = 'JPEG' if ext in ('.jpg', '.jpeg') else 'PNG'
+        sheet.save(output_path, format=fmt, quality=88 if fmt == 'JPEG' else None)
+
+        return {
+            'page_count': len(thumbs),
+            'cols': cols,
+            'rows': rows,
+            'output_path': output_path,
+            'image_size': (total_w, total_h),
+        }
+
+    except Exception as e:
+        logger.warning(f'create_contact_sheet failed: {e}')
+        raise
+
+
+def extract_native_images(input_path: str, output_dir: str,
+                           password: str = '',
+                           min_size_kb: int = 5,
+                           formats: tuple = ('jpeg', 'png', 'tiff')) -> list:
+    """
+    Extract all embedded images from a PDF without re-compression.
+
+    Uses fitz to pull raw image bytes from PDF xref table.
+    Filters by minimum size to skip tiny icons/artifacts.
+
+    Args:
+        input_path:   Source PDF
+        output_dir:   Directory for extracted images
+        password:     PDF password
+        min_size_kb:  Skip images smaller than this (KB)
+        formats:      Allowed image formats to save
+
+    Returns:
+        List of dicts: page, xref, filename, width, height, size_kb, format
+    """
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    seen_xrefs = set()
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for page_idx in range(doc.page_count):
+            pg = doc[page_idx]
+            img_list = pg.get_images(full=True)
+            for img_info in img_list:
+                xref = img_info[0]
+                if xref in seen_xrefs:
+                    continue
+                seen_xrefs.add(xref)
+
+                try:
+                    base = doc.extract_image(xref)
+                    img_bytes = base.get('image', b'')
+                    ext = base.get('ext', 'jpeg').lower()
+                    w, h = base.get('width', 0), base.get('height', 0)
+                    size_kb = len(img_bytes) / 1024
+
+                    if size_kb < min_size_kb:
+                        continue
+                    if ext not in formats:
+                        ext = 'jpeg'
+
+                    fname = f'page{page_idx+1}_img{xref}.{ext}'
+                    out_path = os.path.join(output_dir, fname)
+                    with open(out_path, 'wb') as f:
+                        f.write(img_bytes)
+
+                    results.append({
+                        'page': page_idx + 1,
+                        'xref': xref,
+                        'filename': fname,
+                        'path': out_path,
+                        'width': w,
+                        'height': h,
+                        'size_kb': round(size_kb, 1),
+                        'format': ext,
+                    })
+                except Exception:
+                    continue
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'extract_native_images failed: {e}')
+
+    return results
+
+
+def stitch_pages_vertically(input_path: str, output_path: str,
+                              dpi: int = 150,
+                              page_range: str = 'all',
+                              gap_px: int = 10,
+                              password: str = '') -> dict:
+    """
+    Stitch all PDF pages into one tall vertical image (like a scroll).
+
+    Useful for document preview or sharing without a PDF viewer.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output image (.jpg or .png)
+        dpi:         Rendering DPI
+        page_range:  Page selection (e.g. '1-5')
+        gap_px:      Pixel gap between pages
+        password:    PDF password
+
+    Returns:
+        dict: page_count, total_height, width, output_path
+    """
+    from PIL import Image
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total = doc.page_count
+        pages = parse_pages(page_range, total)
+
+        scale = dpi / 72.0
+        mat = fitz.Matrix(scale, scale)
+
+        imgs = []
+        for pg_num in pages:
+            pg = doc[pg_num - 1]
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+            img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+            imgs.append(img)
+        doc.close()
+
+        if not imgs:
+            raise ValueError('No pages to stitch')
+
+        max_w = max(im.width for im in imgs)
+        total_h = sum(im.height for im in imgs) + gap_px * (len(imgs) - 1)
+
+        canvas = Image.new('RGB', (max_w, total_h), (200, 200, 200))
+        y_offset = 0
+        for im in imgs:
+            ox = (max_w - im.width) // 2
+            canvas.paste(im, (ox, y_offset))
+            y_offset += im.height + gap_px
+
+        ext = os.path.splitext(output_path)[1].lower()
+        fmt = 'JPEG' if ext in ('.jpg', '.jpeg') else 'PNG'
+        canvas.save(output_path, format=fmt, quality=88 if fmt == 'JPEG' else None)
+
+        return {
+            'page_count': len(imgs),
+            'total_height': total_h,
+            'width': max_w,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'stitch_pages_vertically failed: {e}')
+        raise

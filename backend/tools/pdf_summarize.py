@@ -799,3 +799,186 @@ def summarize_multiple_pdfs(
         'total_docs': len(input_paths),
         'total_words': len(combined_text.split()),
     }
+
+
+# ── Additional Summary & Analysis Functions ────────────────────────────────────
+
+
+def extract_action_items(text: str) -> list:
+    """
+    Extract action items, TODOs, and task-like sentences from text.
+
+    Looks for imperative verbs and common action-item patterns.
+    Returns list of dicts: text, priority, keyword.
+    """
+    import re
+
+    ACTION_KEYWORDS = [
+        'must', 'should', 'need to', 'required to', 'action required',
+        'please', 'ensure', 'complete', 'review', 'approve', 'submit',
+        'send', 'confirm', 'verify', 'update', 'check', 'follow up',
+        'deadline', 'due date', 'asap', 'urgent', 'immediately', 'TODO',
+        'action item', 'next step', 'to-do', 'assigned to', 'by ',
+    ]
+    HIGH_PRIORITY = ['must', 'required', 'urgent', 'asap', 'immediately',
+                     'deadline', 'critical', 'mandatory']
+
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    results = []
+
+    for sent in sentences:
+        sent_lower = sent.lower()
+        for kw in ACTION_KEYWORDS:
+            if kw.lower() in sent_lower and len(sent) > 15:
+                priority = 'high' if any(hp in sent_lower for hp in HIGH_PRIORITY) \
+                           else 'medium'
+                results.append({
+                    'text': sent.strip()[:200],
+                    'keyword': kw,
+                    'priority': priority,
+                })
+                break  # Only once per sentence
+
+    # Deduplicate
+    seen = set()
+    unique = []
+    for r in results:
+        k = r['text'][:50]
+        if k not in seen:
+            seen.add(k)
+            unique.append(r)
+
+    return unique[:30]  # Max 30 action items
+
+
+def generate_word_frequency(text: str, top_n: int = 50,
+                              min_len: int = 4) -> list:
+    """
+    Compute word frequency distribution for word cloud or keyword analysis.
+
+    Returns sorted list of dicts: word, count, percentage
+    Uses stopword filtering for meaningful results.
+    """
+    import re
+    from collections import Counter
+
+    STOPWORDS = {
+        'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be',
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+        'could', 'should', 'may', 'might', 'shall', 'can', 'not',
+        'that', 'this', 'these', 'those', 'it', 'its', 'as', 'an',
+        'a', 'i', 'we', 'you', 'he', 'she', 'they', 'them', 'their',
+        'our', 'your', 'his', 'her', 'been', 'being', 'into', 'also',
+        'about', 'which', 'when', 'where', 'what', 'how', 'all', 'any',
+        'each', 'both', 'few', 'more', 'most', 'other', 'than', 'then',
+        'such', 'no', 'up', 'out', 'so', 'said', 'use', 'used', 'using',
+    }
+
+    words = re.findall(r'\b[a-zA-Z]{%d,}\b' % min_len, text.lower())
+    filtered = [w for w in words if w not in STOPWORDS]
+
+    if not filtered:
+        return []
+
+    counter = Counter(filtered)
+    total = sum(counter.values())
+    top = counter.most_common(top_n)
+
+    return [
+        {
+            'word': word,
+            'count': count,
+            'percentage': round(count / total * 100, 2),
+        }
+        for word, count in top
+    ]
+
+
+def extract_key_phrases(text: str, top_n: int = 20) -> list:
+    """
+    Extract key bigram/trigram phrases using TF-IDF-like scoring on n-grams.
+
+    Returns list of key phrases ranked by importance score.
+    """
+    import re
+    from collections import Counter
+
+    def ngrams(words, n):
+        return [' '.join(words[i:i+n]) for i in range(len(words) - n + 1)]
+
+    STOP = {'the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
+            'by', 'from', 'is', 'are', 'was', 'a', 'an', 'this', 'that', 'it'}
+
+    # Clean and tokenize
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+    filtered = [w for w in words if w not in STOP]
+
+    phrases: dict[str, int] = {}
+
+    # Bigrams
+    for phrase in ngrams(filtered, 2):
+        phrases[phrase] = phrases.get(phrase, 0) + 1
+
+    # Trigrams
+    for phrase in ngrams(filtered, 3):
+        phrases[phrase] = phrases.get(phrase, 0) + 2  # Weight trigrams higher
+
+    # Filter by minimum frequency
+    phrases = {k: v for k, v in phrases.items() if v >= 2}
+
+    # Sort by score (frequency * phrase length bonus)
+    ranked = sorted(phrases.items(), key=lambda x: x[1], reverse=True)[:top_n]
+
+    return [{'phrase': phrase, 'score': score} for phrase, score in ranked]
+
+
+def compare_two_pdfs_text(path1: str, path2: str) -> dict:
+    """
+    Compare text content of two PDFs and return similarity metrics.
+
+    Useful for detecting version differences, plagiarism checking,
+    or document comparison without full diff rendering.
+
+    Returns:
+        dict: similarity_score, added_sentences, removed_sentences,
+              common_words, unique_words_doc1, unique_words_doc2,
+              word_count_diff, char_count_diff
+    """
+    try:
+        text1 = _extract_text_all_engines(path1)
+        text2 = _extract_text_all_engines(path2)
+
+        if not text1 and not text2:
+            return {'similarity_score': 1.0, 'error': 'Both PDFs have no text'}
+
+        words1 = set(text1.lower().split())
+        words2 = set(text2.lower().split())
+
+        # Jaccard similarity
+        intersection = words1 & words2
+        union = words1 | words2
+        jaccard = len(intersection) / len(union) if union else 0
+
+        # Sentence-level diff
+        sents1 = set(s.strip()[:100] for s in text1.split('.') if len(s.strip()) > 20)
+        sents2 = set(s.strip()[:100] for s in text2.split('.') if len(s.strip()) > 20)
+
+        added = list(sents2 - sents1)[:10]
+        removed = list(sents1 - sents2)[:10]
+
+        return {
+            'similarity_score': round(jaccard, 3),
+            'similarity_pct': round(jaccard * 100, 1),
+            'added_sentences': added,
+            'removed_sentences': removed,
+            'common_words': len(intersection),
+            'unique_words_doc1': len(words1 - words2),
+            'unique_words_doc2': len(words2 - words1),
+            'word_count_diff': len(text2.split()) - len(text1.split()),
+            'char_count_diff': len(text2) - len(text1),
+        }
+
+    except Exception as e:
+        logger.warning(f'compare_two_pdfs_text failed: {e}')
+        return {'error': str(e), 'similarity_score': 0}

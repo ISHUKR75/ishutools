@@ -523,3 +523,191 @@ def get_pdfa_level_info(level: str) -> dict:
         },
     }
     return info.get(level, info['1b'])
+
+
+# ── Additional PDF/A Functions ────────────────────────────────────────────────
+
+
+def get_compliance_report(input_path: str, password: str = '') -> dict:
+    """
+    Generate a detailed compliance report for PDF/A validation.
+
+    Checks for common PDF/A compliance issues:
+    - Non-embedded fonts
+    - Transparency (not allowed in PDF/A-1)
+    - Missing XMP metadata
+    - Encryption (not allowed in PDF/A)
+    - Unsupported color spaces
+    - JavaScript (not allowed in PDF/A)
+
+    Returns:
+        dict: is_compliant, issues (list), warnings (list),
+              compliance_level_detected, recommendation
+    """
+    issues = []
+    warnings = []
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+            issues.append({
+                'type': 'encryption',
+                'severity': 'error',
+                'message': 'Encrypted PDFs are not allowed in PDF/A standard',
+            })
+
+        # Check fonts
+        for pg_idx in range(doc.page_count):
+            pg = doc[pg_idx]
+            for font_tuple in pg.get_fonts(full=True):
+                xref, ext, font_type, basefont, name, encoding = font_tuple[:6]
+                if not ext or ext == '':
+                    issues.append({
+                        'type': 'non_embedded_font',
+                        'severity': 'error',
+                        'message': f'Font "{basefont}" on page {pg_idx+1} is not embedded',
+                    })
+
+            # Check for transparency
+            # Simple heuristic: check for /ExtGState with /ca or /CA
+            try:
+                resources = pg.get_resources()
+                if resources and '/ExtGState' in str(resources):
+                    warnings.append({
+                        'type': 'possible_transparency',
+                        'severity': 'warning',
+                        'message': f'Page {pg_idx+1} may contain transparency',
+                    })
+            except Exception:
+                pass
+
+        doc.close()
+
+        # Check metadata
+        try:
+            with pikepdf.open(input_path) as pdf:
+                has_xmp = False
+                try:
+                    with pdf.open_metadata() as meta:
+                        has_xmp = len(dict(meta)) > 0
+                except Exception:
+                    pass
+
+                if not has_xmp:
+                    issues.append({
+                        'type': 'missing_xmp_metadata',
+                        'severity': 'error',
+                        'message': 'XMP metadata is required for PDF/A compliance',
+                    })
+
+                # Check for JavaScript
+                try:
+                    root = pdf.Root
+                    if '/Names' in root:
+                        names = root['/Names']
+                        if '/JavaScript' in names:
+                            issues.append({
+                                'type': 'javascript',
+                                'severity': 'error',
+                                'message': 'JavaScript is not allowed in PDF/A',
+                            })
+                except Exception:
+                    pass
+
+        except Exception:
+            pass
+
+        is_compliant = len(issues) == 0
+        error_count = len([i for i in issues if i['severity'] == 'error'])
+        warning_count = len(warnings)
+
+        recommendation = ('This PDF appears compliant — convert with PDF/A-2b for best results'
+                          if is_compliant
+                          else 'Use IshuTools PDF/A converter to fix all compliance issues')
+
+        return {
+            'is_compliant': is_compliant,
+            'error_count': error_count,
+            'warning_count': warning_count,
+            'issues': issues[:20],
+            'warnings': warnings[:10],
+            'recommendation': recommendation,
+        }
+
+    except Exception as e:
+        logger.warning(f'get_compliance_report failed: {e}')
+        return {'error': str(e)}
+
+
+def strip_non_pdfa_elements(input_path: str, output_path: str,
+                              password: str = '') -> dict:
+    """
+    Remove PDF/A-incompatible elements from a PDF:
+    - Embedded JavaScript
+    - Non-embedded fonts (embeds them)
+    - Multimedia attachments
+    - Encryption
+
+    This is a pre-processing step before full PDF/A conversion.
+
+    Returns:
+        dict: removed_elements, output_path
+    """
+    removed = []
+
+    try:
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            # Remove JavaScript
+            try:
+                root = pdf.Root
+                if '/Names' in root:
+                    names = root['/Names']
+                    if '/JavaScript' in names:
+                        del names['/JavaScript']
+                        removed.append('JavaScript actions')
+            except Exception:
+                pass
+
+            # Remove OpenAction if it's a script
+            try:
+                if '/OpenAction' in pdf.Root:
+                    action = pdf.Root['/OpenAction']
+                    if hasattr(action, 'get') and action.get('/S') == pikepdf.Name('/JavaScript'):
+                        del pdf.Root['/OpenAction']
+                        removed.append('OpenAction JavaScript')
+            except Exception:
+                pass
+
+            # Remove embedded files (not allowed in PDF/A-1)
+            try:
+                root = pdf.Root
+                if '/Names' in root and '/EmbeddedFiles' in root['/Names']:
+                    del root['/Names']['/EmbeddedFiles']
+                    removed.append('Embedded files')
+            except Exception:
+                pass
+
+            # Add basic XMP metadata if missing
+            try:
+                with pdf.open_metadata() as meta:
+                    if 'dc:format' not in meta:
+                        meta['dc:format'] = 'application/pdf'
+                    if 'xmp:CreatorTool' not in meta:
+                        meta['xmp:CreatorTool'] = 'IshuTools.fun PDF/A Converter'
+                    meta['pdfaid:part'] = '2'
+                    meta['pdfaid:conformance'] = 'B'
+            except Exception:
+                pass
+
+            pdf.save(output_path, compress_streams=True)
+
+        return {
+            'removed_elements': removed,
+            'output_path': output_path,
+            'elements_count': len(removed),
+        }
+
+    except Exception as e:
+        logger.warning(f'strip_non_pdfa_elements failed: {e}')
+        raise

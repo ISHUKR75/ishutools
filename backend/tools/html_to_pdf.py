@@ -982,3 +982,140 @@ def get_available_engines() -> dict:
         'qpdf_available': bool(QPDF_BIN),
         'page_sizes': list(PAGE_SIZES.keys()),
     }
+
+
+# ── Additional HTML to PDF Functions ─────────────────────────────────────────
+
+
+def convert_markdown_to_pdf(input_path: str, output_path: str,
+                              css_style: str = 'github') -> dict:
+    """
+    Convert a Markdown file to a professionally styled PDF.
+
+    Converts .md → HTML → PDF with GitHub-style or custom CSS styling.
+
+    Args:
+        input_path:  Source .md file
+        output_path: Output .pdf
+        css_style:   'github' | 'minimal' | 'academic'
+
+    Returns:
+        dict: output_path, word_count, headings_count
+    """
+    import os, re
+
+    CSS_STYLES = {
+        'github': '''
+body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+       font-size: 14px; line-height: 1.6; color: #24292e; max-width: 800px;
+       margin: 0 auto; padding: 40px; }
+h1,h2,h3 { font-weight: 600; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code { background: #f6f8fa; border-radius: 3px; padding: 2px 4px; font-family: monospace; }
+pre code { display: block; padding: 12px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th,td { border: 1px solid #dfe2e5; padding: 6px 13px; }
+th { background: #f6f8fa; font-weight: 600; }
+blockquote { border-left: 4px solid #dfe2e5; margin: 0; padding: 0 1em; color: #6a737d; }
+''',
+        'minimal': '''
+body { font-family: Georgia,serif; font-size: 12pt; line-height: 1.7;
+       color: #222; margin: 50px; }
+h1 { font-size: 24pt; } h2 { font-size: 18pt; } h3 { font-size: 14pt; }
+code { font-family: "Courier New",monospace; background: #f5f5f5; padding: 1px 3px; }
+''',
+        'academic': '''
+body { font-family: "Times New Roman",Times,serif; font-size: 12pt;
+       line-height: 2.0; margin: 1in; color: #000; }
+h1 { text-align: center; font-size: 16pt; } h2 { font-size: 14pt; }
+p { text-indent: 0.5in; margin: 0 0 0.5em; }
+''',
+    }
+
+    try:
+        with open(input_path, 'r', encoding='utf-8') as f:
+            md_text = f.read()
+
+        # Basic Markdown to HTML conversion
+        def _md_to_html(text):
+            # Headers
+            text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.M)
+            text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.M)
+            text = re.sub(r'^### (.+)$', r'<h3>\1</h3>', text, flags=re.M)
+            # Bold/italic
+            text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+            text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+            # Code inline
+            text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
+            # Links
+            text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
+            # Unordered lists
+            text = re.sub(r'^- (.+)$', r'<li>\1</li>', text, flags=re.M)
+            text = re.sub(r'(<li>.*</li>\n?)+', r'<ul>\g<0></ul>', text)
+            # Paragraphs
+            parts = text.split('\n\n')
+            html_parts = []
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
+                if part.startswith('<h') or part.startswith('<ul') or part.startswith('<ol'):
+                    html_parts.append(part)
+                else:
+                    html_parts.append(f'<p>{part}</p>')
+            return '\n'.join(html_parts)
+
+        html_body = _md_to_html(md_text)
+        css = CSS_STYLES.get(css_style, CSS_STYLES['github'])
+
+        full_html = f'''<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>{css}</style>
+</head><body>
+{html_body}
+<footer style="text-align:center;font-size:0.7em;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;">
+Converted by IshuTools.fun — Free PDF Tools
+</footer>
+</body></html>'''
+
+        # Convert HTML to PDF using existing html_to_pdf function
+        result = html_to_pdf(full_html, output_path, is_url=False)
+        word_count = len(md_text.split())
+        headings = len(re.findall(r'^#{1,6} ', md_text, re.M))
+
+        return {
+            'output_path': output_path,
+            'word_count': word_count,
+            'headings_count': headings,
+            'css_style_used': css_style,
+        }
+
+    except Exception as e:
+        logger.warning(f'convert_markdown_to_pdf failed: {e}')
+        raise
+
+
+def get_page_dimensions_options() -> list:
+    """
+    Return list of supported page sizes for HTML to PDF conversion.
+
+    Returns:
+        List of dicts: name, width_mm, height_mm, width_pt, height_pt, common_use
+    """
+    return [
+        {'name': 'A4', 'width_mm': 210, 'height_mm': 297, 'width_pt': 595, 'height_pt': 842,
+         'common_use': 'International standard'},
+        {'name': 'A3', 'width_mm': 297, 'height_mm': 420, 'width_pt': 842, 'height_pt': 1191,
+         'common_use': 'Large format printing'},
+        {'name': 'A5', 'width_mm': 148, 'height_mm': 210, 'width_pt': 420, 'height_pt': 595,
+         'common_use': 'Booklets and flyers'},
+        {'name': 'Letter', 'width_mm': 216, 'height_mm': 279, 'width_pt': 612, 'height_pt': 792,
+         'common_use': 'US standard'},
+        {'name': 'Legal', 'width_mm': 216, 'height_mm': 356, 'width_pt': 612, 'height_pt': 1008,
+         'common_use': 'US legal documents'},
+        {'name': 'Tabloid', 'width_mm': 279, 'height_mm': 432, 'width_pt': 792, 'height_pt': 1224,
+         'common_use': 'US newspapers'},
+        {'name': 'B4', 'width_mm': 250, 'height_mm': 353, 'width_pt': 709, 'height_pt': 1001,
+         'common_use': 'Japanese standard'},
+        {'name': 'B5', 'width_mm': 176, 'height_mm': 250, 'width_pt': 499, 'height_pt': 709,
+         'common_use': 'Japanese books'},
+    ]

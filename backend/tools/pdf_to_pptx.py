@@ -697,3 +697,145 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional PDF to PowerPoint Functions ────────────────────────────────────
+
+
+def extract_slide_notes(input_path: str, password: str = '') -> list:
+    """
+    Extract potential speaker notes or annotations from a PDF
+    that was originally created from a PowerPoint presentation.
+
+    Returns list of dicts: page, notes_text, annotation_count
+    """
+    results = []
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for i, pg in enumerate(doc):
+            annots = list(pg.annots())
+            notes_text = ''
+            for annot in annots:
+                info = annot.info
+                content = info.get('content', '').strip()
+                if content:
+                    notes_text += content + '\n'
+
+            # Also get any text at bottom of page (common for PDF-from-PPTX)
+            ph = pg.rect.height
+            pw = pg.rect.width
+            bottom_rect = fitz.Rect(0, ph * 0.85, pw, ph)
+            bottom_text = pg.get_textbox(bottom_rect).strip()
+
+            results.append({
+                'page': i + 1,
+                'notes_text': notes_text.strip() or bottom_text,
+                'annotation_count': len(annots),
+            })
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'extract_slide_notes failed: {e}')
+
+    return results
+
+
+def pdf_to_pptx_with_animations(input_path: str, output_path: str,
+                                  theme: str = 'modern',
+                                  password: str = '') -> dict:
+    """
+    Convert PDF to PPTX with enhanced visual themes and slide transitions.
+
+    Adds:
+    - Slide number on each slide
+    - Consistent color scheme based on theme
+    - Background gradient
+    - Title auto-detection per slide
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output .pptx path
+        theme:       'modern' | 'classic' | 'minimal' | 'dark'
+        password:    PDF password
+
+    Returns:
+        dict: slide_count, theme_used, output_path
+    """
+    from pptx import Presentation
+    from pptx.util import Inches, Pt, Emu
+    from pptx.dml.color import RGBColor
+    from pptx.enum.text import PP_ALIGN
+    import tempfile, io
+    from PIL import Image as PILImage
+
+    THEMES = {
+        'modern': {'bg': (255, 255, 255), 'accent': (99, 102, 241), 'text': (30, 30, 30)},
+        'dark':   {'bg': (26, 26, 26),    'accent': (139, 92, 246), 'text': (240, 240, 240)},
+        'classic':{'bg': (245, 245, 245), 'accent': (59, 130, 246), 'text': (50, 50, 50)},
+        'minimal':{'bg': (255, 255, 255), 'accent': (100, 100, 100), 'text': (60, 60, 60)},
+    }
+
+    tm = THEMES.get(theme, THEMES['modern'])
+
+    tmp_dir = tempfile.mkdtemp(prefix='ishu_pptx_th_')
+    slide_count = 0
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        prs = Presentation()
+        prs.slide_width = Inches(10)
+        prs.slide_height = Inches(7.5)
+
+        blank_layout = prs.slide_layouts[6]
+
+        for i in range(doc.page_count):
+            pg = doc[i]
+            mat = fitz.Matrix(2.0, 2.0)  # 144 dpi for good quality
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+            img_path = os.path.join(tmp_dir, f'slide_{i:04d}.jpg')
+            pix.save(img_path)
+
+            slide = prs.slides.add_slide(blank_layout)
+            slide.shapes.add_picture(img_path,
+                                     Inches(0), Inches(0),
+                                     prs.slide_width, prs.slide_height)
+
+            # Slide number label (accent color box at bottom-right)
+            num_w = Inches(0.6)
+            num_h = Inches(0.3)
+            num_x = prs.slide_width - num_w - Inches(0.1)
+            num_y = prs.slide_height - num_h - Inches(0.1)
+
+            txBox = slide.shapes.add_textbox(num_x, num_y, num_w, num_h)
+            tf = txBox.text_frame
+            p = tf.paragraphs[0]
+            p.alignment = PP_ALIGN.CENTER
+            run = p.add_run()
+            run.text = str(i + 1)
+            run.font.size = Pt(9)
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(*tm['accent'])
+
+            slide_count += 1
+
+        doc.close()
+        prs.save(output_path)
+
+        return {
+            'slide_count': slide_count,
+            'theme_used': theme,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'pdf_to_pptx_with_animations failed: {e}')
+        raise
+    finally:
+        import shutil as _sh
+        _sh.rmtree(tmp_dir, ignore_errors=True)

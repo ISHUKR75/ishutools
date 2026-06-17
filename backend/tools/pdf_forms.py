@@ -575,3 +575,140 @@ def validate_form(input_path: str, data: dict,
         'required_fields': schema['required_fields'],
         'provided_fields': list(data.keys()),
     }
+
+
+# ── Additional Form Functions ─────────────────────────────────────────────────
+
+
+def extract_form_to_csv(input_path: str, output_csv_path: str,
+                         password: str = '') -> dict:
+    """
+    Extract all form field names and values to a CSV file.
+
+    Useful for batch data collection from filled PDF forms.
+
+    Args:
+        input_path:      Source PDF with form data
+        output_csv_path: Output .csv path
+        password:        PDF password
+
+    Returns:
+        dict: field_count, filled_count, output_path
+    """
+    import csv
+
+    try:
+        fields_data = export_form_data(input_path, password=password)
+        all_fields = fields_data.get('fields', [])
+
+        with open(output_csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Field Name', 'Value', 'Type', 'Required', 'Read Only'])
+            for field in all_fields:
+                writer.writerow([
+                    field.get('name', ''),
+                    str(field.get('value', '')),
+                    field.get('type', ''),
+                    field.get('required', False),
+                    field.get('read_only', False),
+                ])
+
+        filled = sum(1 for f in all_fields if f.get('value'))
+
+        return {
+            'field_count': len(all_fields),
+            'filled_count': filled,
+            'output_path': output_csv_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'extract_form_to_csv failed: {e}')
+        raise
+
+
+def fill_form_from_csv(input_path: str, csv_path: str, output_path: str,
+                        password: str = '') -> dict:
+    """
+    Fill PDF form fields using data from a CSV file.
+
+    CSV format: first column = field name, second column = value.
+    Useful for batch form filling.
+
+    Args:
+        input_path:  Source PDF form
+        csv_path:    CSV with field_name, value columns
+        output_path: Output filled PDF
+        password:    PDF password
+
+    Returns:
+        dict: fields_filled, fields_not_found, output_path
+    """
+    import csv
+
+    try:
+        data = {}
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            # Skip header if it looks like a header
+            rows = list(reader)
+            start = 1 if (rows and rows[0][0].lower() in
+                          ('field name', 'name', 'field')) else 0
+            for row in rows[start:]:
+                if len(row) >= 2:
+                    data[row[0].strip()] = row[1].strip()
+
+        result = fill_pdf_form(input_path, output_path, data, password=password)
+        return result
+
+    except Exception as e:
+        logger.warning(f'fill_form_from_csv failed: {e}')
+        raise
+
+
+def get_form_validation_rules(input_path: str, password: str = '') -> list:
+    """
+    Extract validation rules, required fields, and constraints from a PDF form.
+
+    Returns list of dicts: field_name, required, max_length, format_hint,
+    tooltip, validation_script
+    """
+    results = []
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        for pg_num, pg in enumerate(doc):
+            for widget in pg.widgets():
+                if not widget:
+                    continue
+                try:
+                    flags = widget.field_flags or 0
+                    field_name = widget.field_name or ''
+
+                    result = {
+                        'field_name': field_name,
+                        'page': pg_num + 1,
+                        'type': str(widget.field_type_string),
+                        'required': bool(flags & 0x2),
+                        'read_only': bool(flags & 0x1),
+                        'max_length': getattr(widget, 'text_maxlen', None),
+                        'tooltip': getattr(widget, 'field_label', '') or '',
+                        'has_script': bool(getattr(widget, 'script', '')),
+                        'choices': [],
+                    }
+
+                    # Get dropdown choices
+                    if widget.field_type == fitz.PDF_WIDGET_TYPE_LISTBOX or \
+                       widget.field_type == fitz.PDF_WIDGET_TYPE_COMBOBOX:
+                        result['choices'] = widget.choice_values or []
+
+                    results.append(result)
+                except Exception:
+                    continue
+
+        doc.close()
+    except Exception as e:
+        logger.warning(f'get_form_validation_rules failed: {e}')
+
+    return results

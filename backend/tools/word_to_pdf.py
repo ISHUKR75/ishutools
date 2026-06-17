@@ -773,3 +773,187 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional Word to PDF Functions ──────────────────────────────────────────
+
+
+def extract_docx_structure(input_path: str) -> dict:
+    """
+    Analyze DOCX structure: headings, paragraphs, tables, images, styles.
+
+    Returns a structural overview useful for pre-conversion planning.
+    """
+    from docx import Document as DocxDoc
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    try:
+        doc = DocxDoc(input_path)
+        headings = []
+        tables_info = []
+        image_count = 0
+        paragraph_count = 0
+        word_count = 0
+        styles_used: set = set()
+
+        for para in doc.paragraphs:
+            if para.text.strip():
+                paragraph_count += 1
+                word_count += len(para.text.split())
+                styles_used.add(para.style.name)
+                if para.style.name.startswith('Heading'):
+                    level = para.style.name.replace('Heading ', '')
+                    headings.append({
+                        'level': level,
+                        'text': para.text.strip()[:80],
+                    })
+
+        for tbl in doc.tables:
+            rows = len(tbl.rows)
+            cols = len(tbl.columns)
+            tables_info.append({'rows': rows, 'cols': cols})
+
+        for rel in doc.part.rels.values():
+            if 'image' in rel.target_ref.lower():
+                image_count += 1
+
+        return {
+            'paragraph_count': paragraph_count,
+            'word_count': word_count,
+            'heading_count': len(headings),
+            'table_count': len(tables_info),
+            'image_count': image_count,
+            'styles_used': list(styles_used)[:20],
+            'headings': headings[:30],
+            'tables': tables_info[:10],
+            'section_count': len(doc.sections),
+            'page_size': str(doc.sections[0].page_width) if doc.sections else 'unknown',
+        }
+
+    except Exception as e:
+        logger.warning(f'extract_docx_structure failed: {e}')
+        return {'error': str(e)}
+
+
+def docx_to_html(input_path: str, output_path: str) -> dict:
+    """
+    Convert a DOCX file to HTML using mammoth library (if available)
+    or fitz-based text extraction as fallback.
+
+    Args:
+        input_path:  Source .docx path
+        output_path: Output .html path
+
+    Returns:
+        dict: output_path, word_count, image_count, warnings
+    """
+    warnings_list = []
+    word_count = 0
+    image_count = 0
+
+    try:
+        import mammoth  # type: ignore
+        with open(input_path, 'rb') as f:
+            result = mammoth.convert_to_html(f)
+        html = result.value
+        warnings_list = [str(w) for w in result.messages]
+        word_count = len(html.split())
+
+        full_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Converted Document — IshuTools.fun</title>
+<style>
+body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }}
+table {{ border-collapse: collapse; width: 100%; }}
+td, th {{ border: 1px solid #ddd; padding: 8px; }}
+th {{ background: #f0f0f0; }}
+</style>
+</head>
+<body>
+{html}
+</body>
+</html>"""
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(full_html)
+
+    except ImportError:
+        # Fallback: basic HTML from docx
+        from docx import Document as DocxDoc
+        doc = DocxDoc(input_path)
+        parts = ['<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Document</title></head><body>']
+
+        for para in doc.paragraphs:
+            if not para.text.strip():
+                parts.append('<br>')
+                continue
+            style = para.style.name
+            if style.startswith('Heading 1'):
+                parts.append(f'<h1>{para.text}</h1>')
+            elif style.startswith('Heading 2'):
+                parts.append(f'<h2>{para.text}</h2>')
+            elif style.startswith('Heading 3'):
+                parts.append(f'<h3>{para.text}</h3>')
+            else:
+                parts.append(f'<p>{para.text}</p>')
+            word_count += len(para.text.split())
+
+        for tbl in doc.tables:
+            parts.append('<table border="1">')
+            for row in tbl.rows:
+                parts.append('<tr>')
+                for cell in row.cells:
+                    parts.append(f'<td>{cell.text}</td>')
+                parts.append('</tr>')
+            parts.append('</table>')
+
+        parts.append('</body></html>')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(parts))
+
+    return {
+        'output_path': output_path,
+        'word_count': word_count,
+        'image_count': image_count,
+        'warnings': warnings_list[:10],
+    }
+
+
+def batch_docx_to_pdf_parallel(input_paths: list, output_dir: str,
+                                  max_workers: int = 4) -> list:
+    """
+    Convert multiple DOCX files to PDF in parallel using ThreadPoolExecutor.
+
+    Args:
+        input_paths:  List of .docx file paths
+        output_dir:   Output directory for PDFs
+        max_workers:  Number of parallel workers
+
+    Returns:
+        List of result dicts: source, output_path, success, error
+    """
+    import os
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+
+    def _convert_one(src_path):
+        base = os.path.splitext(os.path.basename(src_path))[0]
+        out = os.path.join(output_dir, f'{base}.pdf')
+        try:
+            word_to_pdf(src_path, out)
+            return {'source': src_path, 'output_path': out, 'success': True}
+        except Exception as e:
+            return {'source': src_path, 'output_path': None,
+                    'success': False, 'error': str(e)}
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_convert_one, p): p for p in input_paths}
+        for future in as_completed(futures):
+            results.append(future.result())
+
+    return results

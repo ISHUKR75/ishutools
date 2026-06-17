@@ -779,3 +779,124 @@ def batch_translate(
                 'error': str(e),
             })
     return results
+
+
+# ── Additional Translation Functions ─────────────────────────────────────────
+
+
+def translate_text_snippet(text: str, target_lang: str,
+                             source_lang: str = 'auto') -> dict:
+    """
+    Translate a raw text snippet to target language (no PDF needed).
+    Useful for quick translation previews before committing to full PDF translation.
+
+    Args:
+        text:        Text to translate (max 5000 chars)
+        target_lang: Target language code ('hi', 'es', 'fr', etc.)
+        source_lang: Source language ('auto' for detection)
+
+    Returns:
+        dict: translated_text, detected_source_lang, char_count, target_lang
+    """
+    from deep_translator import GoogleTranslator
+
+    text = text[:5000]  # Limit to avoid API limits
+    detected = source_lang
+
+    try:
+        translator = GoogleTranslator(source=source_lang, target=target_lang)
+        translated = translator.translate(text)
+
+        return {
+            'translated_text': translated,
+            'detected_source_lang': detected,
+            'char_count': len(translated),
+            'target_lang': target_lang,
+        }
+    except Exception as e:
+        logger.warning(f'translate_text_snippet failed: {e}')
+        return {'error': str(e), 'translated_text': text}
+
+
+def get_supported_languages_detailed() -> list:
+    """
+    Return detailed list of all supported translation languages with
+    native names, RTL flag, and popular status.
+
+    Returns:
+        List of dicts: code, name, native_name, is_rtl, is_popular
+    """
+    LANGUAGES = [
+        {'code': 'af', 'name': 'Afrikaans', 'native': 'Afrikaans', 'rtl': False},
+        {'code': 'sq', 'name': 'Albanian', 'native': 'Shqip', 'rtl': False},
+        {'code': 'am', 'name': 'Amharic', 'native': 'አማርኛ', 'rtl': False},
+        {'code': 'ar', 'name': 'Arabic', 'native': 'العربية', 'rtl': True},
+        {'code': 'az', 'name': 'Azerbaijani', 'native': 'Azərbaycan', 'rtl': False},
+        {'code': 'eu', 'name': 'Basque', 'native': 'Euskera', 'rtl': False},
+        {'code': 'be', 'name': 'Belarusian', 'native': 'Беларуская', 'rtl': False},
+        {'code': 'bn', 'name': 'Bengali', 'native': 'বাংলা', 'rtl': False},
+        {'code': 'bs', 'name': 'Bosnian', 'native': 'Bosanski', 'rtl': False},
+        {'code': 'bg', 'name': 'Bulgarian', 'native': 'Български', 'rtl': False},
+        {'code': 'ca', 'name': 'Catalan', 'native': 'Català', 'rtl': False},
+        {'code': 'zh-CN', 'name': 'Chinese Simplified', 'native': '中文 (简体)', 'rtl': False},
+        {'code': 'zh-TW', 'name': 'Chinese Traditional', 'native': '中文 (繁體)', 'rtl': False},
+        {'code': 'hr', 'name': 'Croatian', 'native': 'Hrvatski', 'rtl': False},
+        {'code': 'cs', 'name': 'Czech', 'native': 'Čeština', 'rtl': False},
+        {'code': 'da', 'name': 'Danish', 'native': 'Dansk', 'rtl': False},
+        {'code': 'nl', 'name': 'Dutch', 'native': 'Nederlands', 'rtl': False},
+        {'code': 'en', 'name': 'English', 'native': 'English', 'rtl': False},
+        {'code': 'eo', 'name': 'Esperanto', 'native': 'Esperanto', 'rtl': False},
+        {'code': 'et', 'name': 'Estonian', 'native': 'Eesti', 'rtl': False},
+        {'code': 'fi', 'name': 'Finnish', 'native': 'Suomi', 'rtl': False},
+        {'code': 'fr', 'name': 'French', 'native': 'Français', 'rtl': False},
+        {'code': 'gl', 'name': 'Galician', 'native': 'Galego', 'rtl': False},
+        {'code': 'ka', 'name': 'Georgian', 'native': 'ქართული', 'rtl': False},
+        {'code': 'de', 'name': 'German', 'native': 'Deutsch', 'rtl': False},
+        {'code': 'el', 'name': 'Greek', 'native': 'Ελληνικά', 'rtl': False},
+        {'code': 'gu', 'name': 'Gujarati', 'native': 'ગુજરાતી', 'rtl': False},
+        {'code': 'ht', 'name': 'Haitian Creole', 'native': 'Kreyòl ayisyen', 'rtl': False},
+        {'code': 'he', 'name': 'Hebrew', 'native': 'עברית', 'rtl': True},
+        {'code': 'hi', 'name': 'Hindi', 'native': 'हिन्दी', 'rtl': False},
+        {'code': 'hu', 'name': 'Hungarian', 'native': 'Magyar', 'rtl': False},
+        {'code': 'id', 'name': 'Indonesian', 'native': 'Bahasa Indonesia', 'rtl': False},
+        {'code': 'ga', 'name': 'Irish', 'native': 'Gaeilge', 'rtl': False},
+        {'code': 'it', 'name': 'Italian', 'native': 'Italiano', 'rtl': False},
+        {'code': 'ja', 'name': 'Japanese', 'native': '日本語', 'rtl': False},
+        {'code': 'kn', 'name': 'Kannada', 'native': 'ಕನ್ನಡ', 'rtl': False},
+        {'code': 'ko', 'name': 'Korean', 'native': '한국어', 'rtl': False},
+        {'code': 'lv', 'name': 'Latvian', 'native': 'Latviešu', 'rtl': False},
+        {'code': 'lt', 'name': 'Lithuanian', 'native': 'Lietuvių', 'rtl': False},
+        {'code': 'mk', 'name': 'Macedonian', 'native': 'Македонски', 'rtl': False},
+        {'code': 'ms', 'name': 'Malay', 'native': 'Bahasa Melayu', 'rtl': False},
+        {'code': 'ml', 'name': 'Malayalam', 'native': 'മലയാളം', 'rtl': False},
+        {'code': 'mr', 'name': 'Marathi', 'native': 'मराठी', 'rtl': False},
+        {'code': 'ne', 'name': 'Nepali', 'native': 'नेपाली', 'rtl': False},
+        {'code': 'no', 'name': 'Norwegian', 'native': 'Norsk', 'rtl': False},
+        {'code': 'fa', 'name': 'Persian', 'native': 'فارسی', 'rtl': True},
+        {'code': 'pl', 'name': 'Polish', 'native': 'Polski', 'rtl': False},
+        {'code': 'pt', 'name': 'Portuguese', 'native': 'Português', 'rtl': False},
+        {'code': 'pa', 'name': 'Punjabi', 'native': 'ਪੰਜਾਬੀ', 'rtl': False},
+        {'code': 'ro', 'name': 'Romanian', 'native': 'Română', 'rtl': False},
+        {'code': 'ru', 'name': 'Russian', 'native': 'Русский', 'rtl': False},
+        {'code': 'sr', 'name': 'Serbian', 'native': 'Српски', 'rtl': False},
+        {'code': 'sk', 'name': 'Slovak', 'native': 'Slovenčina', 'rtl': False},
+        {'code': 'sl', 'name': 'Slovenian', 'native': 'Slovenščina', 'rtl': False},
+        {'code': 'es', 'name': 'Spanish', 'native': 'Español', 'rtl': False},
+        {'code': 'sw', 'name': 'Swahili', 'native': 'Kiswahili', 'rtl': False},
+        {'code': 'sv', 'name': 'Swedish', 'native': 'Svenska', 'rtl': False},
+        {'code': 'ta', 'name': 'Tamil', 'native': 'தமிழ்', 'rtl': False},
+        {'code': 'te', 'name': 'Telugu', 'native': 'తెలుగు', 'rtl': False},
+        {'code': 'th', 'name': 'Thai', 'native': 'ไทย', 'rtl': False},
+        {'code': 'tr', 'name': 'Turkish', 'native': 'Türkçe', 'rtl': False},
+        {'code': 'uk', 'name': 'Ukrainian', 'native': 'Українська', 'rtl': False},
+        {'code': 'ur', 'name': 'Urdu', 'native': 'اردو', 'rtl': True},
+        {'code': 'vi', 'name': 'Vietnamese', 'native': 'Tiếng Việt', 'rtl': False},
+        {'code': 'cy', 'name': 'Welsh', 'native': 'Cymraeg', 'rtl': False},
+    ]
+    POPULAR = {'hi', 'es', 'fr', 'de', 'ar', 'zh-CN', 'zh-TW', 'ja', 'ko',
+               'pt', 'ru', 'it', 'tr', 'bn', 'ur', 'ta', 'te', 'mr', 'gu'}
+
+    for lang in LANGUAGES:
+        lang['is_popular'] = lang['code'] in POPULAR
+
+    return LANGUAGES

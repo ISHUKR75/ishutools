@@ -801,3 +801,94 @@ def get_available_engines() -> dict:
         'gs_available': bool(GS_BIN),
         'qpdf_available': bool(QPDF_BIN),
     }
+
+
+# ── Additional Excel to PDF Functions ────────────────────────────────────────
+
+
+def get_workbook_info(input_path: str) -> dict:
+    """
+    Analyze an Excel workbook before conversion.
+
+    Returns sheet count, row/column ranges, chart count, formula count,
+    merged cell count, and recommendations.
+    """
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(input_path, read_only=True, data_only=True)
+        sheets_info = []
+        total_charts = 0
+        total_formulas = 0
+        total_merged = 0
+
+        for ws in wb.worksheets:
+            row_count = ws.max_row or 0
+            col_count = ws.max_column or 0
+
+            # Count merged cells (not available in read_only mode)
+            sheets_info.append({
+                'name': ws.title,
+                'rows': row_count,
+                'cols': col_count,
+                'has_content': row_count > 0 and col_count > 0,
+            })
+
+        wb.close()
+
+        # Re-open with charts access
+        try:
+            wb2 = openpyxl.load_workbook(input_path)
+            for ws in wb2.worksheets:
+                total_charts += len(ws._charts) if hasattr(ws, '_charts') else 0
+                for row in ws.iter_rows():
+                    for cell in row:
+                        if cell.value and isinstance(cell.value, str) and cell.value.startswith('='):
+                            total_formulas += 1
+                total_merged += len(ws.merged_cells.ranges)
+            wb2.close()
+        except Exception:
+            pass
+
+        return {
+            'sheet_count': len(sheets_info),
+            'sheets': sheets_info,
+            'total_charts': total_charts,
+            'total_formulas': total_formulas,
+            'total_merged_cells': total_merged,
+            'recommended_orientation': 'landscape' if any(
+                s['cols'] > 8 for s in sheets_info) else 'portrait',
+        }
+
+    except Exception as e:
+        logger.warning(f'get_workbook_info failed: {e}')
+        return {'error': str(e)}
+
+
+def excel_to_pdf_landscape(input_path: str, output_path: str,
+                             fit_to_width: bool = True) -> dict:
+    """
+    Convert Excel to PDF with landscape orientation (better for wide sheets).
+
+    Args:
+        input_path:   Source .xlsx/.xls/.csv
+        output_path:  Output .pdf
+        fit_to_width: Scale content to fit page width
+
+    Returns:
+        dict: output_path, pages, orientation
+    """
+    import shutil
+    # Try using the main excel_to_pdf with landscape settings
+    try:
+        result = excel_to_pdf(
+            input_path,
+            output_path,
+            orientation='landscape',
+            fit_to_width=fit_to_width,
+            font_size=8,
+        )
+        result['orientation'] = 'landscape'
+        return result
+    except Exception as e:
+        logger.warning(f'excel_to_pdf_landscape failed: {e}')
+        raise

@@ -780,3 +780,142 @@ def get_available_engines() -> dict:
         'qpdf_path': QPDF_BIN or '',
         'total_strategies': 7,
     }
+
+
+# ── Additional Repair & Recovery Functions ────────────────────────────────────
+
+
+def extract_salvageable_pages(input_path: str, output_dir: str) -> dict:
+    """
+    Attempt to extract any pages that can be rendered from a corrupted PDF.
+
+    Tries rendering each page individually and saves those that succeed.
+    Useful when a PDF has isolated corruption affecting only some pages.
+
+    Args:
+        input_path:  Corrupted source PDF
+        output_dir:  Directory for salvaged page PDFs
+
+    Returns:
+        dict: total_attempted, pages_saved, failed_pages, output_dir
+    """
+    import os, tempfile
+    os.makedirs(output_dir, exist_ok=True)
+
+    pages_saved = []
+    failed_pages = []
+
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        doc.close()
+    except Exception:
+        # Try to estimate pages via raw byte scan
+        try:
+            with open(input_path, 'rb') as f:
+                data = f.read()
+            total = data.count(b'/Page ') + data.count(b'/Type /Page')
+        except Exception:
+            total = 0
+        if total == 0:
+            return {'total_attempted': 0, 'pages_saved': 0,
+                    'failed_pages': [], 'error': 'Cannot determine page count'}
+
+    for i in range(max(total, 1)):
+        try:
+            doc = fitz.open(input_path)
+            if i >= doc.page_count:
+                doc.close()
+                break
+
+            pg = doc[i]
+            # Try rendering
+            pix = pg.get_pixmap(matrix=fitz.Matrix(1, 1))
+            if pix.n > 0:
+                # Page rendered OK — save as individual PDF
+                out_doc = fitz.open()
+                out_doc.new_page(width=pg.rect.width, height=pg.rect.height)
+                out_doc[0].show_pdf_page(out_doc[0].rect, doc, i)
+                out_path = os.path.join(output_dir, f'page_{i+1:04d}.pdf')
+                out_doc.save(out_path)
+                out_doc.close()
+                pages_saved.append(i + 1)
+            doc.close()
+        except Exception as e:
+            failed_pages.append({'page': i + 1, 'error': str(e)[:60]})
+            try:
+                doc.close()
+            except Exception:
+                pass
+
+    return {
+        'total_attempted': total,
+        'pages_saved': len(pages_saved),
+        'saved_pages': pages_saved,
+        'failed_pages': failed_pages,
+        'output_dir': output_dir,
+        'recovery_rate': round(len(pages_saved) / max(total, 1) * 100, 1),
+    }
+
+
+def rebuild_pdf_from_images(input_path: str, output_path: str,
+                              dpi: int = 200) -> dict:
+    """
+    Last-resort PDF recovery: render every page as an image and
+    reassemble into a new PDF.
+
+    The result is a rasterized PDF (not text-searchable) but visually
+    identical to the original and structurally valid.
+
+    Args:
+        input_path:  Source PDF (possibly corrupted)
+        output_path: Output rasterized PDF
+        dpi:         Rendering resolution (100-300)
+
+    Returns:
+        dict: pages_recovered, output_path, file_size_kb, method
+    """
+    from PIL import Image
+    import img2pdf, io, tempfile
+
+    tmp_dir = tempfile.mkdtemp(prefix='ishu_rebuild_')
+    img_paths = []
+
+    try:
+        doc = fitz.open(input_path)
+        scale = dpi / 72.0
+        mat = fitz.Matrix(scale, scale)
+
+        for i in range(doc.page_count):
+            try:
+                pg = doc[i]
+                pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+                img_path = os.path.join(tmp_dir, f'page_{i:04d}.jpg')
+                pix.save(img_path)
+                img_paths.append(img_path)
+            except Exception:
+                continue
+
+        doc.close()
+
+        if not img_paths:
+            raise ValueError('Could not render any pages from the PDF')
+
+        # Use img2pdf for best quality
+        with open(output_path, 'wb') as f:
+            f.write(img2pdf.convert(img_paths))
+
+        return {
+            'pages_recovered': len(img_paths),
+            'output_path': output_path,
+            'file_size_kb': round(os.path.getsize(output_path) / 1024, 1),
+            'method': 'rasterize_rebuild',
+            'note': 'Output is image-based PDF. Run OCR to make it searchable.',
+        }
+
+    except Exception as e:
+        logger.warning(f'rebuild_pdf_from_images failed: {e}')
+        raise
+    finally:
+        import shutil as _sh
+        _sh.rmtree(tmp_dir, ignore_errors=True)

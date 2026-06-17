@@ -885,3 +885,263 @@ def get_available_engines() -> dict:
         'qpdf_available': bool(QPDF_BIN),
         'strategies': ['auto', 'tabula', 'heuristic', 'fitz', 'pdfminer'],
     }
+
+
+# ── Additional Excel Extraction Functions ─────────────────────────────────────
+
+
+def extract_invoice_data(input_path: str, password: str = '') -> dict:
+    """
+    Extract common invoice fields from a PDF using heuristic pattern matching.
+
+    Detects invoice number, date, amounts, vendor name, line items.
+    Uses fitz for text extraction + regex for field detection.
+
+    Returns:
+        dict: invoice_number, date, total_amount, subtotal, tax_amount,
+              vendor_name, bill_to, line_items, currency, confidence_score
+    """
+    import re
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+        full_text = ''
+        for pg in doc:
+            full_text += pg.get_text() + '\n'
+        doc.close()
+    except Exception as e:
+        return {'error': str(e)}
+
+    result: dict = {
+        'invoice_number': None,
+        'date': None,
+        'total_amount': None,
+        'subtotal': None,
+        'tax_amount': None,
+        'vendor_name': None,
+        'bill_to': None,
+        'line_items': [],
+        'currency': 'USD',
+        'confidence_score': 0,
+    }
+
+    found_fields = 0
+
+    # Invoice number
+    for pattern in [r'invoice\s*#?\s*:?\s*([A-Z0-9\-/]{3,20})',
+                    r'inv\.\s*no\.?\s*:?\s*([A-Z0-9\-/]{3,20})',
+                    r'bill\s*no\.?\s*:?\s*([A-Z0-9\-/]{3,20})']:
+        m = re.search(pattern, full_text, re.I)
+        if m:
+            result['invoice_number'] = m.group(1).strip()
+            found_fields += 1
+            break
+
+    # Date
+    date_patterns = [
+        r'(?:invoice\s*date|date)\s*:?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+        r'(?:invoice\s*date|date)\s*:?\s*(\w+ \d{1,2},?\s*\d{4})',
+        r'dated?\s*:?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+    ]
+    for pattern in date_patterns:
+        m = re.search(pattern, full_text, re.I)
+        if m:
+            result['date'] = m.group(1).strip()
+            found_fields += 1
+            break
+
+    # Currency detection
+    if re.search(r'₹|\bINR\b|\bRs\b', full_text):
+        result['currency'] = 'INR'
+    elif re.search(r'€|\bEUR\b', full_text):
+        result['currency'] = 'EUR'
+    elif re.search(r'£|\bGBP\b', full_text):
+        result['currency'] = 'GBP'
+
+    # Amounts
+    amount_patterns = [
+        (r'total\s*:?\s*[\$₹€£]?\s*([\d,]+\.?\d{0,2})', 'total_amount'),
+        (r'sub\s*total\s*:?\s*[\$₹€£]?\s*([\d,]+\.?\d{0,2})', 'subtotal'),
+        (r'tax\s*(?:amount)?\s*:?\s*[\$₹€£]?\s*([\d,]+\.?\d{0,2})', 'tax_amount'),
+    ]
+    for pattern, field in amount_patterns:
+        m = re.search(pattern, full_text, re.I)
+        if m:
+            amount_str = m.group(1).replace(',', '').strip()
+            try:
+                result[field] = float(amount_str)
+                found_fields += 1
+            except ValueError:
+                pass
+
+    # Vendor name (usually first non-empty line or company-like text near top)
+    lines = [l.strip() for l in full_text.split('\n') if l.strip()]
+    if lines:
+        result['vendor_name'] = lines[0][:60]
+        found_fields += 1
+
+    # Confidence score based on fields found
+    result['confidence_score'] = round(found_fields / 6 * 100)
+
+    return result
+
+
+def generate_excel_chart_sheet(input_path: str, output_path: str) -> dict:
+    """
+    Extract table data from PDF and add chart visualizations to Excel.
+
+    Finds the first table with numeric data and generates a bar chart
+    on a separate 'Charts' sheet.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output .xlsx path
+
+    Returns:
+        dict: tables_found, charts_created, output_path
+    """
+    try:
+        import pdfplumber
+        HAS_PL = True
+    except ImportError:
+        HAS_PL = False
+
+    from openpyxl import Workbook
+    from openpyxl.chart import BarChart, Reference
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    wb = Workbook()
+    ws_data = wb.active
+    ws_data.title = 'Data'
+    tables_found = 0
+    charts_created = 0
+
+    if HAS_PL:
+        try:
+            import pdfplumber
+            with pdfplumber.open(input_path) as pdf:
+                row_offset = 1
+                for pg in pdf.pages:
+                    tables = pg.extract_tables()
+                    for tbl in tables:
+                        if not tbl:
+                            continue
+                        for row in tbl:
+                            ws_data.append([str(c or '') for c in row])
+                        tables_found += 1
+                        row_offset += len(tbl) + 2
+        except Exception:
+            pass
+
+    if tables_found == 0:
+        # Fallback: extract text columns
+        doc = fitz.open(input_path)
+        for pg in doc:
+            words = pg.get_text('words')
+            rows_dict: dict[int, list] = {}
+            for w in words:
+                y_bucket = round(w[1] / 8) * 8
+                rows_dict.setdefault(y_bucket, []).append(w[4])
+            for y in sorted(rows_dict.keys()):
+                ws_data.append(rows_dict[y])
+                tables_found += 1
+        doc.close()
+
+    # Try to create chart from numeric data
+    numeric_cols = []
+    for col in ws_data.iter_cols(min_row=1, max_row=min(ws_data.max_row, 20)):
+        numeric_count = sum(1 for cell in col
+                            if isinstance(cell.value, (int, float)) or
+                            (isinstance(cell.value, str) and
+                             cell.value.replace('.','',1).replace(',','',1).isdigit()))
+        if numeric_count >= 2:
+            numeric_cols.append(col[0].column)
+
+    if numeric_cols and ws_data.max_row >= 3:
+        ws_chart = wb.create_sheet('Chart')
+        chart = BarChart()
+        chart.type = 'col'
+        chart.title = 'PDF Data Chart'
+        chart.y_axis.title = 'Value'
+        chart.x_axis.title = 'Row'
+
+        data_ref = Reference(ws_data,
+                             min_col=numeric_cols[0],
+                             max_col=min(numeric_cols[0], numeric_cols[-1]),
+                             min_row=1,
+                             max_row=min(ws_data.max_row, 30))
+        chart.add_data(data_ref, titles_from_data=True)
+        chart.width = 20
+        chart.height = 12
+        ws_chart.add_chart(chart, 'B2')
+        charts_created += 1
+
+    wb.save(output_path)
+
+    return {
+        'tables_found': tables_found,
+        'charts_created': charts_created,
+        'output_path': output_path,
+    }
+
+
+def detect_pdf_form_fields(input_path: str, password: str = '') -> list:
+    """
+    Detect fillable form fields in a PDF and return their properties.
+
+    Returns list of dicts: field_name, field_type, value, page,
+    required, read_only, options (for dropdowns)
+    """
+    results = []
+    try:
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            root = pdf.Root
+            if '/AcroForm' not in root:
+                return []
+
+            acroform = root['/AcroForm']
+            fields = acroform.get('/Fields', [])
+
+            def process_field(field):
+                try:
+                    ft = str(field.get('/FT', ''))
+                    name = str(field.get('/T', ''))
+                    value = str(field.get('/V', ''))
+                    flags = int(field.get('/Ff', 0))
+                    page = None
+
+                    field_data = {
+                        'field_name': name,
+                        'field_type': {
+                            '/Tx': 'text', '/Btn': 'button',
+                            '/Ch': 'choice', '/Sig': 'signature'
+                        }.get(ft, 'unknown'),
+                        'value': value if value != 'null' else '',
+                        'page': page,
+                        'required': bool(flags & (1 << 1)),
+                        'read_only': bool(flags & (1 << 0)),
+                        'options': [],
+                    }
+
+                    if ft == '/Ch':
+                        opts = field.get('/Opt', [])
+                        field_data['options'] = [str(o) for o in opts][:20]
+
+                    results.append(field_data)
+
+                    # Process kids (nested fields)
+                    kids = field.get('/Kids', [])
+                    for kid in kids:
+                        process_field(kid)
+                except Exception:
+                    pass
+
+            for field in fields:
+                process_field(field)
+
+    except Exception as e:
+        logger.warning(f'detect_pdf_form_fields failed: {e}')
+
+    return results

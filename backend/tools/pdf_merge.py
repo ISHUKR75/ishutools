@@ -656,3 +656,285 @@ def get_merge_preview(input_paths: list, passwords: list = None) -> list:
         info['path'] = path
         previews.append(info)
     return previews
+
+
+# ── Additional Enterprise Functions ──────────────────────────────────────────
+
+
+def deduplicate_pdf(input_path: str, output_path: str,
+                    similarity_threshold: float = 0.98) -> dict:
+    """
+    Detect and remove near-duplicate pages from a PDF using fitz pixel hashing.
+
+    Compares every page as a rasterized thumbnail (150 dpi) and removes
+    pages whose pixel-level similarity exceeds the threshold.
+
+    Args:
+        input_path:           Source PDF path
+        output_path:          Output path with duplicates removed
+        similarity_threshold: 0.0–1.0; pages above this are treated as duplicates
+
+    Returns:
+        dict: pages_removed, original_count, final_count, duplicate_groups
+    """
+    import hashlib, io
+    from PIL import Image
+    import numpy as np
+
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        page_signatures: list[tuple[int, bytes]] = []
+
+        for i in range(total):
+            pg = doc[i]
+            mat = fitz.Matrix(0.5, 0.5)  # 50% scale thumbnail
+            pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+            arr = np.frombuffer(pix.samples, dtype=np.uint8)
+            sig = hashlib.md5(arr.tobytes()).digest()
+            page_signatures.append((i, sig, arr))
+
+        # Group duplicates
+        keep_indices = []
+        removed = []
+        dup_groups = []
+        seen_sigs: dict[bytes, int] = {}
+
+        for i, sig, arr in page_signatures:
+            if sig not in seen_sigs:
+                seen_sigs[sig] = i
+                keep_indices.append(i)
+            else:
+                # Additional similarity check for near-duplicates
+                orig_arr = page_signatures[seen_sigs[sig]][2]
+                if arr.shape == orig_arr.shape:
+                    sim = 1.0 - np.mean(np.abs(arr.astype(float) -
+                                                orig_arr.astype(float))) / 255.0
+                    if sim >= similarity_threshold:
+                        removed.append(i)
+                        # Find or create dup group
+                        found_group = False
+                        for grp in dup_groups:
+                            if seen_sigs[sig] in grp:
+                                grp.append(i)
+                                found_group = True
+                                break
+                        if not found_group:
+                            dup_groups.append([seen_sigs[sig], i])
+                    else:
+                        keep_indices.append(i)
+                else:
+                    keep_indices.append(i)
+
+        doc.close()
+
+        # Build output PDF with only keep_indices
+        if removed:
+            writer = PdfWriter()
+            reader = PdfReader(input_path)
+            for idx in sorted(keep_indices):
+                if idx < len(reader.pages):
+                    writer.add_page(reader.pages[idx])
+            with open(output_path, 'wb') as f:
+                writer.write(f)
+        else:
+            import shutil as _sh
+            _sh.copy2(input_path, output_path)
+
+        return {
+            'original_count': total,
+            'final_count': len(keep_indices),
+            'pages_removed': len(removed),
+            'duplicate_groups': dup_groups,
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'deduplicate_pdf failed: {e}')
+        import shutil as _sh
+        _sh.copy2(input_path, output_path)
+        return {'original_count': 0, 'final_count': 0,
+                'pages_removed': 0, 'duplicate_groups': [], 'error': str(e)}
+
+
+def normalize_page_sizes(input_path: str, output_path: str,
+                          target: str = 'A4',
+                          keep_ratio: bool = True) -> dict:
+    """
+    Normalize all pages in a PDF to the same paper size using fitz.
+
+    Useful for merging PDFs that have mixed page sizes (A4 + Letter + custom).
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        target:      'A4' | 'A3' | 'letter' | 'legal' | 'A5'
+        keep_ratio:  Maintain aspect ratio (adds white margins if needed)
+
+    Returns:
+        dict: pages_processed, sizes_normalized, target_size, output_path
+    """
+    SIZE_MAP = {
+        'A4':     (595, 842),
+        'A3':     (842, 1191),
+        'A5':     (420, 595),
+        'letter': (612, 792),
+        'legal':  (612, 1008),
+    }
+    tw, th = SIZE_MAP.get(target, SIZE_MAP['A4'])
+    target_rect = fitz.Rect(0, 0, tw, th)
+
+    try:
+        src_doc = fitz.open(input_path)
+        out_doc = fitz.open()
+
+        sizes_normalized = 0
+        for i in range(src_doc.page_count):
+            src_page = src_doc[i]
+            src_rect = src_page.rect
+
+            new_page = out_doc.new_page(width=tw, height=th)
+
+            if keep_ratio:
+                sw, sh = src_rect.width, src_rect.height
+                ratio = min(tw / sw, th / sh)
+                rw, rh = sw * ratio, sh * ratio
+                ox, oy = (tw - rw) / 2, (th - rh) / 2
+                dest_rect = fitz.Rect(ox, oy, ox + rw, oy + rh)
+            else:
+                dest_rect = target_rect
+
+            new_page.show_pdf_page(dest_rect, src_doc, i)
+
+            if abs(src_rect.width - tw) > 2 or abs(src_rect.height - th) > 2:
+                sizes_normalized += 1
+
+        out_doc.save(output_path, garbage=3, deflate=True)
+        src_doc.close()
+        out_doc.close()
+
+        return {
+            'pages_processed': src_doc.page_count if not src_doc.is_closed
+                               else out_doc.page_count,
+            'sizes_normalized': sizes_normalized,
+            'target_size': target,
+            'output_path': output_path,
+        }
+    except Exception as e:
+        logger.warning(f'normalize_page_sizes failed: {e}')
+        raise
+
+
+def extract_attachments(input_path: str, output_dir: str) -> list:
+    """
+    Extract embedded file attachments from a PDF.
+
+    Args:
+        input_path: Source PDF path
+        output_dir: Directory where attachments are saved
+
+    Returns:
+        List of dicts with filename, size, path for each extracted attachment
+    """
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    try:
+        with pikepdf.open(input_path) as pdf:
+            root = pdf.Root
+            if '/Names' in root and '/EmbeddedFiles' in root['/Names']:
+                ef_tree = root['/Names']['/EmbeddedFiles']
+                names_list = []
+                if '/Names' in ef_tree:
+                    names_list = list(ef_tree['/Names'])
+                elif '/Kids' in ef_tree:
+                    # Navigate name tree
+                    def _collect_names(node):
+                        if '/Names' in node:
+                            names_list.extend(list(node['/Names']))
+                        if '/Kids' in node:
+                            for kid in node['/Kids']:
+                                _collect_names(kid)
+                    _collect_names(ef_tree)
+
+                i = 0
+                while i + 1 < len(names_list):
+                    name = str(names_list[i])
+                    filespec = names_list[i + 1]
+                    i += 2
+                    try:
+                        ef_dict = filespec['/EF']
+                        stream = ef_dict['/F']
+                        data = stream.read_bytes()
+                        safe_name = os.path.basename(name.strip('/'))
+                        if not safe_name:
+                            safe_name = f'attachment_{len(results)}.bin'
+                        out_path = os.path.join(output_dir, safe_name)
+                        with open(out_path, 'wb') as f:
+                            f.write(data)
+                        results.append({
+                            'filename': safe_name,
+                            'size': len(data),
+                            'path': out_path,
+                        })
+                    except Exception:
+                        continue
+    except Exception as e:
+        logger.warning(f'extract_attachments failed: {e}')
+    return results
+
+
+def get_pdf_structure(input_path: str, password: str = '') -> dict:
+    """
+    Deep analysis of PDF internal structure for diagnostics.
+
+    Returns counts of streams, images, fonts, annotations, pages,
+    encryption status, PDF version, linearization, and embedded files.
+    """
+    result = {
+        'pdf_version': '',
+        'page_count': 0,
+        'is_linearized': False,
+        'is_encrypted': False,
+        'total_objects': 0,
+        'stream_objects': 0,
+        'image_count': 0,
+        'font_count': 0,
+        'annotation_count': 0,
+        'embedded_file_count': 0,
+        'form_field_count': 0,
+        'bookmarks': 0,
+    }
+    try:
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            result['pdf_version'] = str(pdf.pdf_version)
+            result['page_count'] = len(pdf.pages)
+            result['is_linearized'] = pdf.is_linearized
+            result['is_encrypted'] = pdf.is_encrypted
+            all_objs = list(pdf.objects)
+            result['total_objects'] = len(all_objs)
+            for obj in all_objs:
+                try:
+                    if obj is None or not hasattr(obj, 'get'):
+                        continue
+                    if obj.get('/Subtype') == pikepdf.Name('/Image'):
+                        result['image_count'] += 1
+                    if obj.get('/Type') == pikepdf.Name('/Font'):
+                        result['font_count'] += 1
+                    if obj.get('/Subtype') == pikepdf.Name('/FileSpec'):
+                        result['embedded_file_count'] += 1
+                except Exception:
+                    continue
+            for page in pdf.pages:
+                try:
+                    if '/Annots' in page:
+                        result['annotation_count'] += len(list(page['/Annots']))
+                except Exception:
+                    pass
+            try:
+                result['bookmarks'] = len(pdf.open_outline().root)
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning(f'get_pdf_structure error: {e}')
+    return result

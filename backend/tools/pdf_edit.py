@@ -706,3 +706,157 @@ def get_stamp_types() -> List[dict]:
         {'id': k, 'label': v[0], 'color': v[1], 'bg': v[2]}
         for k, v in STAMP_TEXTS.items()
     ]
+
+
+# ── Additional PDF Edit Functions ─────────────────────────────────────────────
+
+
+def add_header_footer(input_path: str, output_path: str,
+                       header: str = '',
+                       footer: str = '',
+                       header_align: str = 'center',
+                       footer_align: str = 'center',
+                       font_size: float = 9,
+                       color: str = '#555555',
+                       margin: float = 20,
+                       password: str = '') -> dict:
+    """
+    Add consistent header and/or footer text to all pages.
+
+    Supports {page}, {total}, {date}, {filename} placeholders.
+
+    Args:
+        input_path:    Source PDF
+        output_path:   Output PDF
+        header:        Header text (e.g. 'My Company — Confidential')
+        footer:        Footer text (e.g. 'Page {page} of {total}')
+        header_align:  'left' | 'center' | 'right'
+        footer_align:  'left' | 'center' | 'right'
+        font_size:     Text size in points
+        color:         Hex color
+        margin:        Distance from edge in points
+        password:      PDF password
+
+    Returns:
+        dict: pages_processed, output_path
+    """
+    from datetime import datetime
+
+    r, g, b = _hex_to_rgb(color)
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total_pages = doc.page_count
+        today = datetime.now().strftime('%Y-%m-%d')
+        fname = os.path.basename(input_path)
+
+        for i, pg in enumerate(doc):
+            pw, ph = pg.rect.width, pg.rect.height
+
+            def _resolve(text):
+                return (text.replace('{page}', str(i + 1))
+                            .replace('{total}', str(total_pages))
+                            .replace('{date}', today)
+                            .replace('{filename}', fname[:30]))
+
+            if header:
+                h_text = _resolve(header)
+                h_len = len(h_text) * font_size * 0.55
+                if header_align == 'center':
+                    x = pw / 2 - h_len / 2
+                elif header_align == 'right':
+                    x = pw - margin - h_len
+                else:
+                    x = margin
+                pg.insert_text(fitz.Point(x, margin + font_size),
+                               h_text, fontsize=font_size,
+                               fontname='helv', color=(r, g, b))
+
+            if footer:
+                f_text = _resolve(footer)
+                f_len = len(f_text) * font_size * 0.55
+                if footer_align == 'center':
+                    x = pw / 2 - f_len / 2
+                elif footer_align == 'right':
+                    x = pw - margin - f_len
+                else:
+                    x = margin
+                pg.insert_text(fitz.Point(x, ph - margin),
+                               f_text, fontsize=font_size,
+                               fontname='helv', color=(r, g, b))
+
+        doc.save(output_path, garbage=3, deflate=True)
+        doc.close()
+
+        return {'pages_processed': total_pages, 'output_path': output_path}
+
+    except Exception as e:
+        logger.warning(f'add_header_footer failed: {e}')
+        raise
+
+
+def flatten_form_fields(input_path: str, output_path: str,
+                         password: str = '') -> dict:
+    """
+    Flatten fillable form fields into static text (prevents further editing).
+
+    Uses Ghostscript for highest fidelity, falls back to fitz flatten.
+
+    Args:
+        input_path:  Source PDF with form fields
+        output_path: Flattened output PDF
+        password:    PDF password
+
+    Returns:
+        dict: fields_flattened, method_used, output_path
+    """
+    import shutil, subprocess
+
+    # Try Ghostscript flatten
+    GS_BIN = shutil.which('gs') or shutil.which('ghostscript')
+    if GS_BIN:
+        try:
+            cmd = [
+                GS_BIN, '-dBATCH', '-dNOPAUSE', '-sDEVICE=pdfwrite',
+                '-dFlattenAnnotations', '-dFlattenFormFields',
+                f'-sOutputFile={output_path}',
+                '-dCompressPages=true',
+                input_path,
+            ]
+            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            if result.returncode == 0 and os.path.exists(output_path):
+                return {
+                    'fields_flattened': True,
+                    'method_used': 'ghostscript',
+                    'output_path': output_path,
+                }
+        except Exception:
+            pass
+
+    # Fallback: fitz
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        count = 0
+        for pg in doc:
+            for widget in list(pg.widgets()):
+                count += 1
+                widget.update()  # Force paint to page
+                pg.delete_widget(widget)
+
+        doc.save(output_path, garbage=3, deflate=True)
+        doc.close()
+
+        return {
+            'fields_flattened': count,
+            'method_used': 'fitz',
+            'output_path': output_path,
+        }
+    except Exception as e:
+        logger.warning(f'flatten_form_fields failed: {e}')
+        raise

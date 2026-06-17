@@ -754,3 +754,200 @@ def batch_compress(input_paths: list, output_dir: str,
                 'error': str(e),
             })
     return results
+
+
+# ── Additional Compression Functions ─────────────────────────────────────────
+
+
+def compress_images_only(input_path: str, output_path: str,
+                          quality: int = 60,
+                          min_size_kb: int = 20,
+                          password: str = '') -> dict:
+    """
+    Compress only embedded images in a PDF, preserving all text and vectors.
+
+    This is safer than full compression as it never touches text streams,
+    resulting in crisp text with smaller file size from image reduction.
+
+    Args:
+        input_path:   Source PDF
+        output_path:  Output PDF
+        quality:      JPEG quality (0-100, lower = smaller)
+        min_size_kb:  Skip images smaller than this (avoid compressing tiny images)
+        password:     PDF password
+
+    Returns:
+        dict: images_processed, images_compressed, images_skipped,
+              original_size_kb, final_size_kb, reduction_pct
+    """
+    from PIL import Image
+    import io
+
+    orig_size = os.path.getsize(input_path) / 1024
+    images_processed = 0
+    images_compressed = 0
+    images_skipped = 0
+
+    try:
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            for obj in pdf.objects:
+                try:
+                    if (hasattr(obj, 'get') and
+                            obj.get('/Subtype') == pikepdf.Name('/Image') and
+                            obj.get('/Filter') != pikepdf.Name('/JPXDecode')):
+
+                        images_processed += 1
+                        img_bytes = obj.get_raw_stream_buffer()
+
+                        if len(img_bytes) < min_size_kb * 1024:
+                            images_skipped += 1
+                            continue
+
+                        # Decode and re-encode
+                        try:
+                            width = int(obj['/Width'])
+                            height = int(obj['/Height'])
+                            cs = obj.get('/ColorSpace', '/DeviceRGB')
+                            mode = 'RGB'
+                            if '/DeviceGray' in str(cs):
+                                mode = 'L'
+
+                            img_buf = io.BytesIO(bytes(img_bytes))
+                            img = Image.open(img_buf)
+                            if img.mode not in ('RGB', 'L', 'RGBA'):
+                                img = img.convert('RGB')
+                            if img.mode == 'RGBA':
+                                img = img.convert('RGB')
+
+                            out_buf = io.BytesIO()
+                            img.save(out_buf, 'JPEG', quality=quality,
+                                     optimize=True)
+                            new_bytes = out_buf.getvalue()
+
+                            if len(new_bytes) < len(img_bytes) * 0.95:
+                                obj.write(new_bytes,
+                                         filter=pikepdf.Name('/DCTDecode'))
+                                obj['/Filter'] = pikepdf.Name('/DCTDecode')
+                                if '/DecodeParms' in obj:
+                                    del obj['/DecodeParms']
+                                images_compressed += 1
+                            else:
+                                images_skipped += 1
+
+                        except Exception:
+                            images_skipped += 1
+
+                except Exception:
+                    continue
+
+            pdf.save(output_path, compress_streams=True)
+
+        final_size = os.path.getsize(output_path) / 1024
+        reduction = (1 - final_size / orig_size) * 100 if orig_size > 0 else 0
+
+        return {
+            'images_processed': images_processed,
+            'images_compressed': images_compressed,
+            'images_skipped': images_skipped,
+            'original_size_kb': round(orig_size, 1),
+            'final_size_kb': round(final_size, 1),
+            'reduction_pct': round(reduction, 1),
+            'output_path': output_path,
+        }
+
+    except Exception as e:
+        logger.warning(f'compress_images_only failed: {e}')
+        raise
+
+
+def get_compression_potential(input_path: str, password: str = '') -> dict:
+    """
+    Analyze a PDF and estimate how much each compression technique could reduce it.
+
+    Returns estimated reduction percentages for different strategies
+    without actually compressing, helping users pick the best approach.
+
+    Args:
+        input_path: Source PDF
+        password:   PDF password
+
+    Returns:
+        dict: current_size_kb, estimates dict per strategy, recommended_strategy
+    """
+    current_size = os.path.getsize(input_path) / 1024
+    estimates: dict = {}
+
+    try:
+        # Analyze image content
+        total_image_bytes = 0
+        total_stream_bytes = 0
+        has_uncompressed = False
+        image_count = 0
+
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            for obj in pdf.objects:
+                try:
+                    if not hasattr(obj, 'get'):
+                        continue
+                    if obj.get('/Subtype') == pikepdf.Name('/Image'):
+                        total_image_bytes += len(obj.get_raw_stream_buffer())
+                        image_count += 1
+                    try:
+                        raw = obj.get_raw_stream_buffer()
+                        total_stream_bytes += len(raw)
+                        flt = obj.get('/Filter')
+                        if flt is None:
+                            has_uncompressed = True
+                    except Exception:
+                        pass
+                except Exception:
+                    continue
+
+        # Estimate reductions
+        image_fraction = total_image_bytes / (current_size * 1024) if current_size > 0 else 0
+
+        estimates['screen_quality'] = {
+            'strategy': 'Screen quality (72 dpi images)',
+            'estimated_reduction_pct': round(min(85, image_fraction * 80 + 5), 1),
+            'quality_impact': 'high',
+        }
+        estimates['ebook_quality'] = {
+            'strategy': 'eBook quality (150 dpi images)',
+            'estimated_reduction_pct': round(min(70, image_fraction * 65 + 3), 1),
+            'quality_impact': 'medium',
+        }
+        estimates['printer_quality'] = {
+            'strategy': 'Printer quality (300 dpi)',
+            'estimated_reduction_pct': round(min(50, image_fraction * 40 + 2), 1),
+            'quality_impact': 'low',
+        }
+        estimates['lossless_only'] = {
+            'strategy': 'Lossless stream compression only',
+            'estimated_reduction_pct': round(15 if has_uncompressed else 5, 1),
+            'quality_impact': 'none',
+        }
+        estimates['images_only'] = {
+            'strategy': 'Re-compress images only (JPEG 75)',
+            'estimated_reduction_pct': round(min(60, image_fraction * 55), 1),
+            'quality_impact': 'low',
+        }
+
+        # Recommend strategy
+        if image_fraction > 0.6:
+            recommended = 'ebook_quality'
+        elif image_fraction > 0.3:
+            recommended = 'images_only'
+        else:
+            recommended = 'lossless_only'
+
+        return {
+            'current_size_kb': round(current_size, 1),
+            'image_count': image_count,
+            'image_fraction_pct': round(image_fraction * 100, 1),
+            'estimates': estimates,
+            'recommended_strategy': recommended,
+        }
+
+    except Exception as e:
+        logger.warning(f'get_compression_potential failed: {e}')
+        return {'current_size_kb': round(current_size, 1), 'error': str(e)}
