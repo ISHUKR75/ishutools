@@ -116,10 +116,18 @@ def index():
     """Serve the main homepage."""
     return send_from_directory(FRONTEND_DIR, 'index.html')
 
+TOOL_REDIRECTS = {
+    'ai-summarizer': 'summarize-pdf',
+}
+
 @app.route('/tools/<tool_name>/')
 @app.route('/tools/<tool_name>')
 def tool_page(tool_name):
     """Serve individual tool pages (each tool has its own folder)."""
+    # Permanent redirects for renamed tools
+    if tool_name in TOOL_REDIRECTS:
+        from flask import redirect
+        return redirect(f'/tools/{TOOL_REDIRECTS[tool_name]}/', code=301)
     tool_folder = os.path.join(TOOLS_DIR, tool_name)
     index_file  = os.path.join(tool_folder, 'index.html')
     if os.path.exists(index_file):

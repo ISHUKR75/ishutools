@@ -59,25 +59,31 @@
     const h = document.createElement('header');
     h.className = 'site-header';
     h.innerHTML = `
-      <a href="/" class="header-logo">
-        <div class="logo-icon">📄</div>
+      <a href="/" class="header-logo" aria-label="IshuTools Home">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+            <rect width="34" height="34" rx="9" fill="url(#hLg)"/>
+            <path d="M8 17L13 12L18 17L23 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 22L13 17L18 22L23 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+            <defs><linearGradient id="hLg" x1="0" y1="0" x2="34" y2="34"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient></defs>
+          </svg>
+        </div>
         <span>IshuTools<span class="fun">.fun</span></span>
       </a>
       <nav class="header-nav" aria-label="Main navigation">
-        <a href="/#organize">Organize</a>
-        <a href="/#convert-to">Convert</a>
-        <a href="/#edit">Edit</a>
-        <a href="/#security">Security</a>
-        <a href="/#ai-tools">Intelligence</a>
+        <a href="/#organize"><i class="fas fa-layer-group"></i> Organize</a>
+        <a href="/#convert"><i class="fas fa-exchange-alt"></i> Convert</a>
+        <a href="/#edit"><i class="fas fa-edit"></i> Edit</a>
+        <a href="/#security"><i class="fas fa-shield-alt"></i> Security</a>
+        <a href="/#ai"><i class="fas fa-brain"></i> <span class="ai-nav-pill">AI</span></a>
       </nav>
       <div class="header-actions">
-        <button class="header-search-btn" onclick="window.location='/'">
-          <i class="fa-solid fa-search"></i>
-          <span>Search tools…</span>
-          <kbd style="opacity:.5;font-size:.7rem;border:1px solid var(--border);padding:2px 5px;border-radius:4px;">Ctrl K</kbd>
-        </button>
+        <a href="/" class="header-search-btn">
+          <i class="fas fa-search"></i>
+          <span>All PDF Tools</span>
+        </a>
         <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">
-          ${getTheme()==='dark' ? '☀️' : '🌙'}
+          <i class="fas ${getTheme()==='dark' ? 'fa-sun' : 'fa-moon'}"></i>
         </button>
       </div>
     `;
@@ -86,7 +92,7 @@
     q('#themeBtn').addEventListener('click', () => {
       const next = getTheme() === 'dark' ? 'light' : 'dark';
       applyTheme(next);
-      q('#themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+      q('#themeBtn').innerHTML = `<i class="fas ${next === 'dark' ? 'fa-sun' : 'fa-moon'}"></i>`;
     });
   }
 
@@ -97,16 +103,27 @@
     f.innerHTML = `
       <div class="footer-inner">
         <div class="footer-brand">
-          © 2025 <a href="/">IshuTools.fun</a> — Free PDF Tools by
-          <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">Ishu Kumar</a>
+          <a href="/" class="footer-logo-link">
+            <svg width="22" height="22" viewBox="0 0 34 34" fill="none">
+              <rect width="34" height="34" rx="9" fill="url(#ftLg)"/>
+              <path d="M8 17L13 12L18 17L23 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 22L13 17L18 22L23 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+              <defs><linearGradient id="ftLg" x1="0" y1="0" x2="34" y2="34"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient></defs>
+            </svg>
+            <strong>IshuTools<span style="color:#818cf8">.fun</span></strong>
+          </a>
+          <span style="color:var(--txt3);font-size:.78rem;margin-top:4px;display:block;">© 2026 by <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">Ishu Kumar</a></span>
         </div>
         <div class="footer-links">
-          <a href="/">All Tools</a>
-          <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">GitHub</a>
-          <a href="/#ai-tools">AI Tools</a>
-          <a href="/sitemap.xml">Sitemap</a>
+          <a href="/">🏠 All Tools</a>
+          <a href="/#organize">📁 Organize</a>
+          <a href="/#convert">🔄 Convert</a>
+          <a href="/#edit">✏️ Edit</a>
+          <a href="/#security">🔒 Security</a>
+          <a href="/#ai">🤖 AI Tools</a>
+          <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">⭐ GitHub</a>
         </div>
-        <div class="footer-copy">100% Free · No Signup · No Watermark · 1GB Upload</div>
+        <div class="footer-copy">✅ 100% Free · No Signup · No Watermark · 1GB Upload Limit</div>
       </div>`;
     document.body.appendChild(f);
   }
@@ -602,7 +619,7 @@
       if (C.resultType === 'json') {
         const data = await resp.json();
         if (!data.success) throw new Error(data.error || 'Processing failed.');
-        showTextResult(JSON.stringify(data, null, 2));
+        showJSONResult(data);
       } else if (C.resultType === 'text') {
         if (!resp.ok) { const d = await resp.json(); throw new Error(d.error || `Server error ${resp.status}`); }
         const blob = await resp.blob();
@@ -647,6 +664,42 @@
     body.textContent = text;
     card.classList.add('visible');
     window._resultText = text;
+  }
+
+  /* ─── SHOW JSON RESULT (smart formatter) ────────────────────────────────── */
+  function showJSONResult(data) {
+    const card = q('#textResultCard');
+    const body = q('#textResultBody');
+    if (!card || !body) return;
+    let html = '';
+
+    if (data.summary !== undefined) {
+      const { summary='', word_count=0, page_count=0, reading_time_min=0, key_topics=[] } = data;
+      html += `<div style="margin-bottom:14px;padding:12px 16px;background:var(--bg);border-radius:10px;font-size:.8rem;color:var(--txt3);display:flex;gap:20px;flex-wrap:wrap;border:1px solid var(--border);">
+        <span>📄 <strong style="color:var(--txt1)">${page_count}</strong> pages</span>
+        <span>📝 <strong style="color:var(--txt1)">${Number(word_count).toLocaleString()}</strong> words</span>
+        <span>⏱️ ~<strong style="color:var(--txt1)">${reading_time_min}</strong> min read</span>
+      </div>`;
+      if (key_topics && key_topics.length) {
+        html += `<div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap;">
+          ${key_topics.map(t => `<span style="padding:4px 12px;background:var(--accent-glow);color:var(--accent-light);border-radius:20px;font-size:.72rem;font-weight:600;border:1px solid rgba(99,102,241,.25);">${esc(t)}</span>`).join('')}
+        </div>`;
+      }
+      html += `<div style="font-size:.9rem;line-height:1.85;color:var(--txt1);white-space:pre-wrap;">${esc(summary)}</div>`;
+      window._resultText = summary;
+    } else if (data.differences !== undefined) {
+      const diff = data.differences;
+      const text = typeof diff === 'string' ? diff : JSON.stringify(diff, null, 2);
+      html += `<pre style="font-size:.8rem;line-height:1.7;color:var(--txt2);white-space:pre-wrap;word-break:break-word;">${esc(text)}</pre>`;
+      window._resultText = text;
+    } else {
+      const text = JSON.stringify(data, null, 2);
+      html += `<pre style="font-size:.8rem;line-height:1.7;color:var(--txt2);white-space:pre-wrap;">${esc(text)}</pre>`;
+      window._resultText = text;
+    }
+
+    body.innerHTML = html;
+    card.classList.add('visible');
   }
 
   /* ─── COPY RESULT ───────────────────────────────────────────────────────── */

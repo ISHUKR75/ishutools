@@ -49,7 +49,7 @@ const TOOLS = [
     desc:'Fix corrupted or damaged PDF files',   endpoint:'/api/repair-pdf', multiFile:false, accept:'.pdf', fields:[]},
 
   /* ── CONVERT TO PDF ───────────────────────────────────── */
-  { id:'img-to-pdf',      name:'JPG to PDF',          category:'convert-to',  icon:'fas fa-image',                accent:'#10B981', accent2:'#059669', badge:'hot',
+  { id:'img-to-pdf',      path:'jpg-to-pdf',   name:'JPG to PDF',          category:'convert-to',  icon:'fas fa-image',                accent:'#10B981', accent2:'#059669', badge:'hot',
     desc:'Convert JPG, PNG, WebP images to PDF', endpoint:'/api/img-to-pdf', multiFile:true, accept:'image/*',
     fields:[
       {type:'select',name:'page_size',label:'Page Size',options:[{value:'A4',label:'A4'},{value:'Letter',label:'Letter'},{value:'fit',label:'Fit to Image'}]},
@@ -74,7 +74,7 @@ const TOOLS = [
     fields:[{type:'select',name:'lang',label:'OCR Language',options:[{value:'eng',label:'English'},{value:'hin',label:'Hindi'},{value:'fra',label:'French'}]}]},
 
   /* ── CONVERT FROM PDF ─────────────────────────────────── */
-  { id:'pdf-to-img',      name:'PDF to JPG',          category:'convert-from', icon:'fas fa-file-image',           accent:'#F59E0B', accent2:'#D97706', badge:'hot',
+  { id:'pdf-to-img',      path:'pdf-to-jpg',   name:'PDF to JPG',          category:'convert-from', icon:'fas fa-file-image',           accent:'#F59E0B', accent2:'#D97706', badge:'hot',
     desc:'Convert PDF pages to high-quality images', endpoint:'/api/pdf-to-img', multiFile:false, accept:'.pdf', resultIsZip:true,
     fields:[
       {type:'select',name:'format',label:'Image Format',options:[{value:'jpg',label:'JPEG (Smaller)'},{value:'png',label:'PNG (Better Quality)'}]},
@@ -157,7 +157,7 @@ const TOOLS = [
     desc:'Compare two PDF documents for differences', endpoint:'/api/compare-pdf', multiFile:true, accept:'.pdf', resultIsText:true, fields:[]},
 
   /* ── AI TOOLS ─────────────────────────────────────────── */
-  { id:'summarize-pdf',   name:'AI Summarizer',       category:'ai',           icon:'fas fa-robot',                accent:'#7C3AED', accent2:'#6D28D9', badge:'hot',
+  { id:'summarize-pdf',   path:'summarize-pdf', name:'AI Summarizer',       category:'ai',           icon:'fas fa-robot',                accent:'#7C3AED', accent2:'#6D28D9', badge:'hot',
     desc:'Instantly summarize any PDF with AI',    endpoint:'/api/summarize-pdf', multiFile:false, accept:'.pdf', resultIsText:true,
     fields:[{type:'select',name:'length',label:'Summary Length',options:[{value:'short',label:'Short (3 sentences)'},{value:'medium',label:'Medium (5 sentences)'},{value:'long',label:'Long (10 sentences)'}]}]},
 
@@ -349,13 +349,7 @@ function renderTools(filter, query) {
     grid.innerHTML = tools.map(t => buildCardHTML(t)).join('');
     visible += tools.length;
 
-    grid.querySelectorAll('.tool-card').forEach(card => {
-      const tid  = card.dataset.id;
-      const tool = TOOLS.find(t => t.id === tid);
-      if (!tool) return;
-      card.addEventListener('click',   () => openModal(tool));
-      card.addEventListener('keydown', e => (e.key === 'Enter' || e.key === ' ') && openModal(tool));
-    });
+    /* Cards are now <a> links — no click listeners needed */
   });
 
   const noRes = document.getElementById('noResults');
@@ -365,8 +359,9 @@ function renderTools(filter, query) {
 function buildCardHTML(t) {
   const badge = t.badge
     ? `<div class="tool-badge ${t.badge}">${t.badge === 'hot' ? '🔥 HOT' : '✨ NEW'}</div>` : '';
+  const url = '/tools/' + (t.path || t.id) + '/';
   return `
-<div class="tool-card" data-id="${t.id}" tabindex="0" role="button" aria-label="Open ${t.name}">
+<a class="tool-card" data-id="${t.id}" href="${url}" aria-label="${t.name}">
   ${badge}
   <div class="tool-icon-wrap" style="background:${t.accent}1A">
     <i class="${t.icon}" style="color:${t.accent}"></i>
@@ -378,7 +373,7 @@ function buildCardHTML(t) {
   <div class="tool-arrow" style="color:${t.accent}">
     Use Tool <i class="fas fa-arrow-right"></i>
   </div>
-</div>`;
+</a>`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -418,7 +413,10 @@ function initSearch() {
     suggs.querySelectorAll('.sugg-item').forEach(item => {
       item.addEventListener('click', () => {
         const tool = TOOLS.find(t => t.id === item.dataset.id);
-        if (tool) { suggs.classList.remove('active'); openModal(tool); }
+        if (tool) {
+          suggs.classList.remove('active');
+          window.location.href = '/tools/' + (tool.path || tool.id) + '/';
+        }
       });
     });
   }

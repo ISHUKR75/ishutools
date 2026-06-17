@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI PDF Summarizer Free — Summarize PDF Online | IshuTools</title>
+  <meta name="description" content="Summarize PDF documents with AI online for free. Get key points and summary instantly. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="ai pdf summarizer, summarize pdf, pdf summary, pdf key points, ai pdf tool, ishu, ishutools" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://ishutools.fun/tools/summarize-pdf/" />
+  <meta property="og:title" content="AI PDF Summarizer — IshuTools" />
+  <meta property="og:description" content="Summarize any PDF with AI. 100% free, no signup." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E🤖%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"AI PDF Summarizer","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"}}</script>
+  <script>
+  window.TOOL_CONFIG = {
+    id:'summarize-pdf', name:'AI Summarizer', emoji:'🤖',
+    category:'AI Intelligence', categorySlug:'',
+    description:'Automatically summarize PDF documents using AI-powered extractive summarization. Get key points, main topics, and a concise summary in seconds.',
+    apiEndpoint:'/api/summarize-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'json', outputFilename:'summary.json',
+    options:[
+      { type:'select', id:'length', label:'Summary Length',
+        choices:[
+          {v:'short',l:'Short — 3-5 key sentences'},
+          {v:'medium',l:'Medium — Balanced summary (recommended)'},
+          {v:'long',l:'Long — Detailed comprehensive summary'}
+        ], default:'medium' }
+    ],
+    steps:['Upload your PDF document.','Choose summary length.','Read the AI-generated summary instantly.'],
+    features:['Extractive AI summarization','Short, medium, or long summaries','Key points extraction','No API key required — 100% free'],
+    related:[
+      {name:'Translate PDF',url:'/tools/translate-pdf/',emoji:'🌍',c1:'#10b981',c2:'#06b6d4',desc:'Translate PDF'},
+      {name:'OCR PDF',url:'/tools/ocr-pdf/',emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make searchable'},
+      {name:'Compare PDF',url:'/tools/compare-pdf/',emoji:'⚖️',c1:'#6366f1',c2:'#8b5cf6',desc:'Compare PDFs'},
+      {name:'PDF to Word',url:'/tools/pdf-to-word/',emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

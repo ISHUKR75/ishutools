@@ -2,3 +2,5 @@
 - [Drop zone click fix](dropzone-fix.md) — Always add explicit click handler on drop zone div; CSS overlay alone unreliable across browsers
 - [Hero layout fix](layout-fix.md) — Never use min-height:100vh on hero; hides tools below fold. Use padding only.
 - [GSAP opacity danger](gsap-opacity.md) — Never use opacity:0 in gsap.from() for above-fold elements; use y-only animations so content is always visible
+- [Tool card navigation](tool-card-nav.md) — Cards are <a> links; add path field to TOOLS for mismatched folder names; all tool folders need empty style.css+script.js to avoid 404s
+- [Tool path redirects](tool-redirects.md) — app.py TOOL_REDIRECTS dict handles renamed tool URLs with 301 redirects; summarize-pdf canonical, ai-summarizer 301 → summarize-pdf
