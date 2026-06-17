@@ -326,29 +326,32 @@ function initCounters() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   SCROLL REVEAL for tool cards
+   TYPED.JS HERO ANIMATION
    ══════════════════════════════════════════════════════════════════════ */
-function initScrollReveal() {
-  if (!('IntersectionObserver' in window)) return;
-  const cards = document.querySelectorAll('.tool-card:not([data-revealed])');
-  if (!cards.length) return;
-  const vH = window.innerHeight;
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.remove('reveal-hidden');
-        e.target.classList.add('reveal-visible');
-        io.unobserve(e.target);
-      }
-    });
-  }, { threshold: .05, rootMargin: '0px 0px -20px 0px' });
-  cards.forEach((el, i) => {
-    el.dataset.revealed = '1';
-    const rect = el.getBoundingClientRect();
-    if (rect.top < vH) return; /* already in view — show immediately */
-    el.style.transitionDelay = (i % 12 * 35) + 'ms';
-    el.classList.add('reveal-hidden');
-    io.observe(el);
+function initTyped() {
+  if (typeof Typed === 'undefined' || !document.getElementById('heroTyped')) return;
+  new Typed('#heroTyped', {
+    strings: [
+      'Merge PDF files online',
+      'Split PDF into pages',
+      'Compress PDF — no quality loss',
+      'Convert PDF to Word free',
+      'JPG to PDF in seconds',
+      'OCR — make scanned PDFs searchable',
+      'AI Summarize any PDF instantly',
+      'Translate PDF to 100+ languages',
+      'Sign PDF online for free',
+      'Protect PDF with password',
+      'Unlock PDF password free',
+      'Rotate &amp; crop PDF pages',
+    ],
+    typeSpeed: 52,
+    backSpeed: 22,
+    loop: true,
+    backDelay: 1600,
+    startDelay: 500,
+    cursorChar: '|',
+    smartBackspace: true,
   });
 }
 
@@ -386,24 +389,22 @@ function renderTools(filter, query) {
       return;
     }
     section && (section.style.display = '');
-    grid.innerHTML = tools.map(t => buildCardHTML(t)).join('');
+    grid.innerHTML = tools.map((t, i) => buildCardHTML(t, i)).join('');
     visible += tools.length;
   });
 
   const noRes = document.getElementById('noResults');
   noRes && (noRes.style.display = visible === 0 ? 'block' : 'none');
-
-  /* Trigger scroll-reveal on newly rendered cards */
-  setTimeout(initScrollReveal, 60);
 }
 
-function buildCardHTML(t) {
+function buildCardHTML(t, idx) {
   const badge = t.badge
     ? `<div class="tool-badge ${t.badge}">${t.badge === 'hot' ? '🔥 HOT' : '✨ NEW'}</div>` : '';
   const url = '/tools/' + (t.path || t.id) + '/';
+  const delay = typeof idx === 'number' ? Math.min(idx, 18) * 45 : 0;
   return `
 <a class="tool-card" data-id="${t.id}" href="${url}" aria-label="${t.name}"
-   style="--card-accent:${t.accent};--card-accent2:${t.accent2||t.accent}">
+   style="--card-accent:${t.accent};--card-accent2:${t.accent2||t.accent};animation-delay:${delay}ms">
   ${badge}
   <div class="tool-icon-wrap" style="background:${t.accent}18">
     <i class="${t.icon}" style="color:${t.accent}; font-size:1.4rem"></i>
@@ -950,4 +951,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboard();
   initBackToTop();
   setTimeout(initAnimations, 200);
+  setTimeout(initTyped, 900);
 });

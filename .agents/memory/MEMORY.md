@@ -5,6 +5,8 @@
 - [Tool card navigation](tool-card-nav.md) — Cards are <a> links; add path field to TOOLS for mismatched folder names; all tool folders need empty style.css+script.js to avoid 404s
 - [Tool path redirects](tool-redirects.md) — app.py TOOL_REDIRECTS dict handles renamed tool URLs with 301 redirects; summarize-pdf canonical, ai-summarizer 301 → summarize-pdf
 - [CSS edit exact match](css-edit-exact.md) — main.css section headers use em-dashes with varying dash counts; always grep exact line before edit() to avoid mismatch
+- [Card visibility fix](card-visibility.md) — NEVER use IO-based opacity:0 reveal on tool cards; use CSS animation with stagger delay instead (animation-delay inline style set in buildCardHTML by idx)
+- [Typed.js defer loading](typed-js.md) — Typed.js loaded with defer is safe; call initTyped via setTimeout(900ms) inside DOMContentLoaded so defer scripts are guaranteed loaded
 - [Marquee strip pattern](marquee-strip.md) — Duplicate marquee-row with aria-hidden="true" for seamless loop; use min-width:100% + animation-delay:-halfDuration for the duplicate
 - [Counter IntersectionObserver](counter-io.md) — initCounters uses IO with threshold:.5; counters appear mid-animation in screenshots (correct — they animate on scroll-into-view)
 - [redact-pdf accent color](redact-color.md) — redact-pdf originally used #1F2937 (near-black); changed to #64748B/#475569 for visible gradient on dark background
