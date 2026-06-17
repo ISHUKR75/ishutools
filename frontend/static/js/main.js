@@ -962,8 +962,24 @@ function initBackToTop() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   INIT — DOMContentLoaded
+   SCROLL REVEAL (reveal-up elements)
    ══════════════════════════════════════════════════════════════════════ */
+function initRevealUp() {
+  document.body.classList.add('js-ready');
+  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('.reveal-up').forEach(el => el.classList.add('in-view'));
+    return;
+  }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in-view'); io.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal-up').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight) { el.classList.add('in-view'); }
+    else { io.observe(el); }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initParticles();
@@ -977,6 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initModalEvents();
   initKeyboard();
   initBackToTop();
+  initRevealUp();
   setTimeout(initAnimations, 200);
   setTimeout(initTyped, 900);
 });

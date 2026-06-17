@@ -988,7 +988,7 @@ def compare_two_pdfs_text(path1: str, path2: str) -> dict:
 # ── ENTERPRISE ADDITIONS - Advanced NLP, TF-IDF, Named Entity Recognition ────
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def extract_named_entities(input_path: str, password: str = '') -> dict:
+def extract_named_entities_from_pdf_file(input_path: str, password: str = '') -> dict:
     """
     Extract named entities from a PDF:
     - People names (PERSON)

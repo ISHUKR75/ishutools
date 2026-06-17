@@ -11,3 +11,5 @@
 - [Counter IntersectionObserver](counter-io.md) — initCounters uses IO with threshold:.5; counters appear mid-animation in screenshots (correct — they animate on scroll-into-view)
 - [redact-pdf accent color](redact-color.md) — redact-pdf originally used #1F2937 (near-black); changed to #64748B/#475569 for visible gradient on dark background
 - [TOOLS array completeness](tools-array.md) — JS TOOLS array (main.js) must have entry for EVERY tool; counter data-count in index.html set to 36; as of 2026-06-17 array has 35 entries (edit-pdf, pdf-forms, jpg-to-pdf, pdf-to-jpg added)
+- [Scroll reveal opacity danger](scroll-reveal.md) — NEVER use opacity:0 in reveal-up/IO patterns; use CSS @keyframes y-only animation so content is always readable during transitions
+- [SEO hidden div penalty](seo-hidden.md) — Replaced position:absolute opacity:0 hidden SEO div with visible seo-tools-dir section; cloaking is penalized by Google; visible structured dirs are canonical
