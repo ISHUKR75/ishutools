@@ -1,20 +1,20 @@
 """
-pdf_page_numbers.py — Add page numbers and headers/footers (Ultra-Mega Enhanced)
+pdf_page_numbers.py — Add page numbers and headers/footers (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
-Libraries: pypdf, reportlab, fitz (PyMuPDF), pikepdf, Pillow
+Engines: pypdf + reportlab · pikepdf · fitz (PyMuPDF) · Ghostscript CLI · qpdf CLI
 Features:
   - 6 position presets: top/bottom × left/center/right
-  - 7 number formats: arabic, roman, roman_lower, alpha, of_total, fraction, page_of
+  - 8 number formats: arabic, roman, roman_lower, alpha, of_total, fraction, page_of, chapter_page
   - Custom prefix/suffix (e.g. 'Page ', '.')
-  - Font name and size customization
+  - Font name and size customization (all standard PDF fonts)
   - RGBA color selection via hex string
   - Rounded background box with padding and opacity
-  - Border/stroke on background box
+  - Border/stroke on background box with custom radius
   - Per-page custom override (e.g. first page roman, rest arabic)
   - Skip pages by index list or count
-  - Only number specific pages (subset selector)
+  - Only number specific pages (subset selector: all, even, odd, ranges)
   - Running header and footer with {page}, {total}, {title}, {date}
   - Section-aware page numbering (reset counter per chapter)
   - Mirror mode: alternating left/right for double-sided printing
@@ -23,19 +23,34 @@ Features:
   - Background image watermark (faint logo behind numbers)
   - Batch apply: apply page numbers to multiple PDFs
   - pikepdf compression pass after numbering
+  - Ghostscript flatten pass for permanent overlay embedding
+  - qpdf linearize pass for web-optimized output
+  - fitz-based alternative overlay path
+  - Progress tracking via per_page_labels dict
+  - Page label dictionary injection (PDF /PageLabels structure)
+  - Pre-flight validation and page count checks
+  - Size stats (original vs output)
+  - CLI detection with graceful fallback
 """
 
 import io
 import os
+import shutil
+import subprocess
+import tempfile
 from datetime import datetime
 from typing import Optional
 
-import fitz                               # PyMuPDF
+import fitz
 import pikepdf
 from pypdf import PdfWriter, PdfReader
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.utils import ImageReader
+
+# ── CLI binary detection ─────────────────────────────────────────────────────
+GS_BIN = shutil.which('gs') or shutil.which('ghostscript')
+QPDF_BIN = shutil.which('qpdf')
 
 
 # ─────────────────────────── Number formatters ───────────────────────────────
@@ -61,9 +76,9 @@ def to_alpha(num: int) -> str:
 
 
 def format_page_label(
-    sequential_idx: int,    # 0-based sequential counter among numbered pages
-    total_pages: int,       # total pages in the PDF
-    numbered_count: int,    # how many pages are actually being numbered
+    sequential_idx: int,
+    total_pages: int,
+    numbered_count: int,
     start_num: int,
     number_format: str,
     prefix: str,
@@ -89,11 +104,10 @@ def format_page_label(
         num_str = f'Page {n} of {numbered_count}'
     elif number_format == 'chapter_page':
         num_str = f'{chapter}-{n}' if chapter else str(n)
-    else:  # arabic
+    else:
         num_str = str(n)
 
     label = f'{prefix}{num_str}{suffix}'
-    # Template substitutions
     label = label.replace('{page}', str(n))
     label = label.replace('{total}', str(total_pages))
     label = label.replace('{numbered}', str(numbered_count))
@@ -109,7 +123,10 @@ def _hex_to_rgb(hex_color: str) -> tuple:
     h = hex_color.lstrip('#')
     if len(h) == 3:
         h = ''.join(c * 2 for c in h)
-    return int(h[0:2], 16) / 255, int(h[2:4], 16) / 255, int(h[4:6], 16) / 255
+    try:
+        return int(h[0:2], 16) / 255, int(h[2:4], 16) / 255, int(h[4:6], 16) / 255
+    except Exception:
+        return (0.0, 0.0, 0.0)
 
 
 # ─────────────────────────── Position map ────────────────────────────────────
@@ -121,11 +138,6 @@ POSITION_MAP = {
     'top-center':    lambda w, h, m: (w / 2, h - m, 'center'),
     'top-left':      lambda w, h, m: (m, h - m, 'left'),
     'top-right':     lambda w, h, m: (w - m, h - m, 'right'),
-}
-
-MIRROR_MAP = {
-    'inner': {0: 'bottom-left', 1: 'bottom-right'},   # even=left, odd=right
-    'outer': {0: 'bottom-right', 1: 'bottom-left'},
 }
 
 
@@ -156,12 +168,10 @@ def make_number_overlay(
     x, y, align = fn(width, height, margin)
     r, g, b = _hex_to_rgb(color)
 
-    # Measure text
     c.setFont(font_name, font_size)
     text_w = c.stringWidth(label, font_name, font_size)
     text_h = font_size + 2
 
-    # Background box
     if bg_color:
         bg_r, bg_g, bg_b = _hex_to_rgb(bg_color)
         c.saveState()
@@ -185,7 +195,6 @@ def make_number_overlay(
                     fill=1, stroke=1 if (bg_color or bg_border_color) else 0)
         c.restoreState()
 
-    # Decorative rule line
     if draw_rule:
         rr, rg, rb = _hex_to_rgb(rule_color)
         c.setStrokeColorRGB(rr, rg, rb)
@@ -197,7 +206,6 @@ def make_number_overlay(
             line_y = height - margin - font_size - 6
             c.line(margin, line_y, width - margin, line_y)
 
-    # Text
     c.setFont(font_name, font_size)
     c.setFillColorRGB(r, g, b)
     if align == 'center':
@@ -212,7 +220,7 @@ def make_number_overlay(
     return packet.read()
 
 
-def _parse_page_selector(selector: str, total: int) -> set[int]:
+def _parse_page_selector(selector: str, total: int) -> set:
     """Parse page selector string to 0-based index set."""
     sel = selector.strip().lower()
     if sel in ('all', ''):
@@ -241,12 +249,52 @@ def _parse_page_selector(selector: str, total: int) -> set[int]:
     return indices
 
 
-def _compress_output(src: str, dst: str) -> bool:
+def _compress_output(src: str, dst: str, linearize: bool = False) -> bool:
     try:
         with pikepdf.open(src, suppress_warnings=True) as pdf:
-            pdf.save(dst, compress_streams=True,
-                     object_stream_mode=pikepdf.ObjectStreamMode.generate)
+            pdf.save(
+                dst,
+                compress_streams=True,
+                object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                linearize=linearize,
+            )
         return True
+    except Exception:
+        return False
+
+
+def _gs_flatten(src: str, dst: str) -> bool:
+    """
+    Ghostscript flatten pass — permanently embeds overlay content into page
+    streams, making page numbers un-removable via annotation tools.
+    """
+    if not GS_BIN:
+        return False
+    cmd = [
+        GS_BIN,
+        '-dNOPAUSE', '-dBATCH', '-dQUIET',
+        '-sDEVICE=pdfwrite',
+        '-dCompatibilityLevel=1.7',
+        '-dFastWebView=false',
+        f'-sOutputFile={dst}',
+        src,
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        return (proc.returncode == 0 and os.path.exists(dst)
+                and os.path.getsize(dst) > 200)
+    except Exception:
+        return False
+
+
+def _qpdf_linearize(src: str, dst: str) -> bool:
+    """qpdf linearize for fast web view."""
+    if not QPDF_BIN:
+        return False
+    cmd = [QPDF_BIN, '--linearize', src, dst]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        return proc.returncode == 0 and os.path.exists(dst)
     except Exception:
         return False
 
@@ -278,6 +326,8 @@ def add_page_numbers(
     title: str = '',
     password: str = '',
     compress: bool = True,
+    gs_flatten: bool = False,
+    linearize: bool = False,
 ) -> dict:
     """
     Add page numbers to a PDF with extensive customization.
@@ -301,8 +351,8 @@ def add_page_numbers(
         font_name:        'Helvetica' | 'Helvetica-Bold' | 'Helvetica-Oblique' |
                           'Courier' | 'Times-Roman' | 'Times-Bold'
         margin:           Distance from page edge in points
-        skip_first_n:     Skip first N pages
-        only_pages:       'all' or selector e.g. '2-10'
+        skip_first_n:     Skip first N pages (e.g. skip cover page)
+        only_pages:       'all', 'even', 'odd', or range '2-10'
         mirror_mode:      Alternate left/right placement for double-sided
         draw_rule:        Draw a decorative line above/below the number
         rule_color:       Rule line color
@@ -310,9 +360,14 @@ def add_page_numbers(
         title:            Document title for {title} template
         password:         PDF password
         compress:         Apply pikepdf compression
+        gs_flatten:       Permanently embed via Ghostscript flatten (absolute)
+        linearize:        Linearize output for fast web view
     Returns:
-        dict with output_path, pages_numbered, total_pages, per_page_labels
+        dict with output_path, pages_numbered, total_pages, per_page_labels, sizes
     """
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f'Input file not found: {input_path}')
+
     reader = PdfReader(input_path, strict=False)
     if reader.is_encrypted:
         if not reader.decrypt(password or ''):
@@ -321,15 +376,12 @@ def add_page_numbers(
     total = len(reader.pages)
     writer = PdfWriter()
 
-    # Parse which pages to number
     number_indices = _parse_page_selector(only_pages, total)
     for i in range(min(skip_first_n, total)):
         number_indices.discard(i)
 
-    # Sort for sequential counter assignment
     sorted_indices = sorted(number_indices)
     numbered_count = len(sorted_indices)
-    # Reverse lookup: page_index → sequential counter
     seq_map = {idx: seq for seq, idx in enumerate(sorted_indices)}
 
     date_str = datetime.utcnow().strftime('%Y-%m-%d')
@@ -348,9 +400,8 @@ def add_page_numbers(
             w = float(box.width)
             h = float(box.height)
 
-            # Mirror mode: alternate position
             if mirror_mode:
-                side = i % 2   # 0 = even page, 1 = odd page
+                side = i % 2
                 if 'top' in position:
                     pos_key = f"top-{'left' if side else 'right'}"
                 else:
@@ -380,7 +431,6 @@ def add_page_numbers(
 
         writer.add_page(page)
 
-    # Preserve metadata
     try:
         if reader.metadata:
             meta = dict(reader.metadata)
@@ -397,10 +447,40 @@ def add_page_numbers(
     with open(output_path, 'wb') as f:
         writer.write(f)
 
+    # Compression pass
     if compress:
         tmp = output_path + '.comp.tmp'
-        if _compress_output(output_path, tmp):
+        if _compress_output(output_path, tmp, linearize=linearize):
             os.replace(tmp, output_path)
+        elif os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
+
+    # GS flatten pass (permanent embed)
+    gs_applied = False
+    if gs_flatten and GS_BIN:
+        tmp_gs = output_path + '.gs.tmp'
+        if _gs_flatten(output_path, tmp_gs):
+            os.replace(tmp_gs, output_path)
+            gs_applied = True
+        elif os.path.exists(tmp_gs):
+            try:
+                os.unlink(tmp_gs)
+            except Exception:
+                pass
+
+    # qpdf linearize pass (if not already done by pikepdf)
+    if linearize and not compress and QPDF_BIN:
+        tmp_qp = output_path + '.qpdf.tmp'
+        if _qpdf_linearize(output_path, tmp_qp):
+            os.replace(tmp_qp, output_path)
+        elif os.path.exists(tmp_qp):
+            try:
+                os.unlink(tmp_qp)
+            except Exception:
+                pass
 
     out_size = os.path.getsize(output_path)
 
@@ -412,11 +492,17 @@ def add_page_numbers(
         'position': position,
         'mirror_mode': mirror_mode,
         'start_num': start_num,
+        'gs_flatten_applied': gs_applied,
+        'linearized': linearize,
         'original_size_kb': round(orig_size / 1024, 1),
         'output_size_kb': round(out_size / 1024, 1),
+        'size_change_kb': round((out_size - orig_size) / 1024, 1),
         'per_page_labels': per_page_labels,
+        'numbered_at': datetime.utcnow().isoformat(),
     }
 
+
+# ─────────────────────────── Running header/footer ───────────────────────────
 
 def add_running_header(
     input_path: str,
@@ -433,6 +519,7 @@ def add_running_header(
     password: str = '',
     compress: bool = True,
     title: str = '',
+    gs_flatten: bool = False,
 ) -> dict:
     """
     Add running header and/or footer text to all pages.
@@ -443,7 +530,11 @@ def add_running_header(
         footer_text:   Text for bottom of each page
         skip_first:    Skip first page (title page)
         draw_rule:     Draw a horizontal line under header / above footer
+        gs_flatten:    Permanently embed via GS flatten
     """
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f'Input file not found: {input_path}')
+
     reader = PdfReader(input_path, strict=False)
     if reader.is_encrypted:
         reader.decrypt(password or '')
@@ -515,16 +606,36 @@ def add_running_header(
         tmp = output_path + '.comp.tmp'
         if _compress_output(output_path, tmp):
             os.replace(tmp, output_path)
+        elif os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
+
+    gs_applied = False
+    if gs_flatten and GS_BIN:
+        tmp_gs = output_path + '.gs.tmp'
+        if _gs_flatten(output_path, tmp_gs):
+            os.replace(tmp_gs, output_path)
+            gs_applied = True
+        elif os.path.exists(tmp_gs):
+            try:
+                os.unlink(tmp_gs)
+            except Exception:
+                pass
 
     out_size = os.path.getsize(output_path)
     return {
         'output_path': output_path,
         'pages_modified': pages_modified,
         'total_pages': total,
+        'gs_flatten_applied': gs_applied,
         'original_size_kb': round(orig_size / 1024, 1),
         'output_size_kb': round(out_size / 1024, 1),
     }
 
+
+# ─────────────────────────── Section-aware numbering ─────────────────────────
 
 def add_section_numbers(
     input_path: str,
@@ -532,6 +643,7 @@ def add_section_numbers(
     sections: list,
     password: str = '',
     compress: bool = True,
+    gs_flatten: bool = False,
 ) -> dict:
     """
     Add page numbers with section awareness — reset counter per section.
@@ -541,8 +653,13 @@ def add_section_numbers(
         output_path: Output PDF
         sections:    List of section dicts:
                      [{'start_page': 1, 'end_page': 5, 'prefix': 'I-',
-                       'format': 'roman', 'start_num': 1}, ...]
+                       'format': 'roman', 'start_num': 1,
+                       'position': 'bottom-center', 'color': '#111111'}, ...]
+        gs_flatten:  Apply GS flatten for permanent embedding
     """
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f'Input file not found: {input_path}')
+
     reader = PdfReader(input_path, strict=False)
     if reader.is_encrypted:
         reader.decrypt(password or '')
@@ -550,7 +667,6 @@ def add_section_numbers(
     total = len(reader.pages)
     writer = PdfWriter()
 
-    # Build per-page config from sections
     page_config = {}
     for section in sections:
         sp = section.get('start_page', 1) - 1
@@ -560,6 +676,8 @@ def add_section_numbers(
         start = section.get('start_num', 1)
         pos = section.get('position', 'bottom-center')
         color = section.get('color', '#111111')
+        bg_color = section.get('bg_color', '')
+        font_size = section.get('font_size', 11)
         for i in range(sp, min(ep + 1, total)):
             page_config[i] = {
                 'seq': i - sp,
@@ -569,6 +687,8 @@ def add_section_numbers(
                 'start': start,
                 'position': pos,
                 'color': color,
+                'bg_color': bg_color,
+                'font_size': font_size,
             }
 
     pages_numbered = 0
@@ -583,8 +703,9 @@ def add_section_numbers(
             w, h = float(box.width), float(box.height)
             try:
                 overlay_bytes = make_number_overlay(
-                    w, h, label, cfg['position'], 11,
-                    color=cfg['color'])
+                    w, h, label, cfg['position'], cfg['font_size'],
+                    color=cfg['color'],
+                    bg_color=cfg.get('bg_color', ''))
                 overlay_reader = PdfReader(io.BytesIO(overlay_bytes))
                 page.merge_page(overlay_reader.pages[0])
                 pages_numbered += 1
@@ -600,10 +721,169 @@ def add_section_numbers(
         tmp = output_path + '.comp.tmp'
         if _compress_output(output_path, tmp):
             os.replace(tmp, output_path)
+        elif os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
+
+    gs_applied = False
+    if gs_flatten and GS_BIN:
+        tmp_gs = output_path + '.gs.tmp'
+        if _gs_flatten(output_path, tmp_gs):
+            os.replace(tmp_gs, output_path)
+            gs_applied = True
+        elif os.path.exists(tmp_gs):
+            try:
+                os.unlink(tmp_gs)
+            except Exception:
+                pass
 
     return {
         'output_path': output_path,
         'total_pages': total,
         'pages_numbered': pages_numbered,
         'sections': len(sections),
+        'gs_flatten_applied': gs_applied,
+    }
+
+
+# ─────────────────────────── Batch page numbers ──────────────────────────────
+
+def batch_add_page_numbers(
+    input_paths: list,
+    output_dir: str,
+    position: str = 'bottom-center',
+    number_format: str = 'arabic',
+    color: str = '#111111',
+    font_size: int = 11,
+    prefix: str = '',
+    suffix: str = '',
+    start_num: int = 1,
+    password: str = '',
+) -> dict:
+    """
+    Add page numbers to multiple PDFs with the same settings.
+
+    Args:
+        input_paths:  List of source PDF paths
+        output_dir:   Directory for output files
+        position:     Number position preset
+        number_format: Number format name
+        color:        Hex text color
+        font_size:    Font size in points
+        prefix:       Text before number
+        suffix:       Text after number
+        start_num:    Starting number
+        password:     PDF password (if all share one)
+    Returns:
+        Summary dict with per-file results
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    success_count = 0
+    fail_count = 0
+
+    for src in input_paths:
+        base = os.path.splitext(os.path.basename(src))[0]
+        dst = os.path.join(output_dir, f'{base}_numbered.pdf')
+        try:
+            r = add_page_numbers(
+                src, dst,
+                position=position,
+                number_format=number_format,
+                color=color,
+                font_size=font_size,
+                prefix=prefix,
+                suffix=suffix,
+                start_num=start_num,
+                password=password,
+            )
+            r['source'] = src
+            results.append(r)
+            success_count += 1
+        except Exception as e:
+            results.append({'source': src, 'error': str(e), 'success': False})
+            fail_count += 1
+
+    return {
+        'total': len(input_paths),
+        'success': success_count,
+        'failed': fail_count,
+        'output_dir': output_dir,
+        'results': results,
+    }
+
+
+# ─────────────────────────── PDF PageLabels injection ────────────────────────
+
+def inject_page_labels(
+    input_path: str,
+    output_path: str,
+    sections: list,
+    password: str = '',
+) -> dict:
+    """
+    Inject PDF /PageLabels structure (native page labels).
+    These are used by PDF viewers to display page numbers in the navigation bar.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF with native page labels
+        sections:    List of label section dicts:
+                     [{'start': 1, 'style': 'D', 'prefix': '', 'first': 1}, ...]
+                     style: 'D'=arabic, 'R'=Roman upper, 'r'=roman lower,
+                            'A'=Alpha upper, 'a'=alpha lower, ''=no number
+    Returns:
+        dict with output_path and label_count
+    """
+    try:
+        with pikepdf.open(input_path, password=password or '',
+                          suppress_warnings=True) as pdf:
+            # Build /PageLabels nums array
+            nums = pikepdf.Array()
+            for sec in sections:
+                start_0based = (sec.get('start', 1) - 1)
+                label_dict = pikepdf.Dictionary()
+                style = sec.get('style', 'D')
+                if style:
+                    label_dict['/S'] = pikepdf.Name(f'/{style}')
+                prefix = sec.get('prefix', '')
+                if prefix:
+                    label_dict['/P'] = pikepdf.String(prefix)
+                first = sec.get('first', 1)
+                if first != 1:
+                    label_dict['/St'] = first
+                nums.append(start_0based)
+                nums.append(label_dict)
+
+            pdf.Root['/PageLabels'] = pikepdf.Dictionary(
+                Nums=nums)
+            pdf.save(output_path, compress_streams=True)
+
+        return {
+            'output_path': output_path,
+            'label_sections': len(sections),
+            'success': True,
+        }
+    except Exception as e:
+        raise RuntimeError(f'PageLabels injection failed: {e}')
+
+
+# ─────────────────────────── Engine availability ─────────────────────────────
+
+def get_available_engines() -> dict:
+    return {
+        'pypdf_reportlab': True,
+        'pikepdf': True,
+        'fitz': True,
+        'ghostscript': bool(GS_BIN),
+        'qpdf': bool(QPDF_BIN),
+        'gs_path': GS_BIN or '',
+        'qpdf_path': QPDF_BIN or '',
+        'supported_formats': [
+            'arabic', 'roman', 'roman_lower', 'alpha',
+            'of_total', 'fraction', 'page_of', 'chapter_page',
+        ],
+        'supported_positions': list(POSITION_MAP.keys()),
     }

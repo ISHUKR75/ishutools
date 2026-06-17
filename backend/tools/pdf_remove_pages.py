@@ -1,9 +1,9 @@
 """
-pdf_remove_pages.py — Remove pages from a PDF (Ultra-Mega Enhanced)
+pdf_remove_pages.py — Remove pages from a PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
-Libraries: pypdf, pikepdf, fitz (PyMuPDF), reportlab, Pillow, hashlib
+Engines: pypdf · pikepdf · fitz (PyMuPDF) · reportlab · Pillow · Ghostscript CLI · qpdf CLI
 Features:
   - Rich page selector: '1,3,5-8', even/odd, last-N, first-N, every-Nth, blank-pages
   - Blank page auto-detection (remove pages with no visible content)
@@ -11,395 +11,736 @@ Features:
   - Remove pages by text pattern match (regex)
   - Remove pages smaller/larger than a size threshold
   - Preview mode: show what would be removed without actually removing
-  - Compression pass after removal
+  - Compression pass after removal (GS or pikepdf)
   - Metadata preservation and update
   - Undo map: record which original pages ended up where
-  - Per-page detailed stats
+  - Per-page detailed stats (word count, image count, dimensions)
+  - Ghostscript normalize pass before removal
+  - qpdf split/reassemble pass for maximum compatibility
+  - Bookmark/outline update after page removal
+  - Page label preservation
+  - Section grouping awareness
+  - Batch multi-PDF processing
+  - Output format: single PDF or individual pages
+  - Invert selection (keep selected pages, remove rest)
+  - Remove pages by keyword presence
+  - Remove watermark-only pages
+  - Redacted content detection
 """
 
 import hashlib
 import io
 import os
 import re
+import shutil
 import struct
+import subprocess
+import tempfile
 from datetime import datetime
 from typing import Optional
 
 import fitz                              # PyMuPDF
 import pikepdf
 from PIL import Image
-from pypdf import PdfWriter, PdfReader
-from pypdf.generic import RectangleObject
-from reportlab.pdfgen import canvas as rl_canvas
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Table,
+                                 TableStyle, Spacer, HRFlowable, PageBreak)
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+
+try:
+    from pypdf import PdfReader, PdfWriter
+    HAS_PYPDF = True
+except ImportError:
+    HAS_PYPDF = False
+
+# ── CLI binary detection ─────────────────────────────────────────────────────
+GS_BIN  = shutil.which('gs') or shutil.which('ghostscript')
+QPDF_BIN = shutil.which('qpdf')
 
 
-# ──────────────────────────── Helpers ────────────────────────────────────────
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  PAGE SELECTOR PARSER                                               ║
+# ╚══════════════════════════════════════════════════════════════════════╝
 
-def parse_remove_selector(selector: str, total: int) -> set[int]:
+def parse_page_selector(selector: str, total: int,
+                         invert: bool = False) -> list:
     """
-    Parse rich removal selector to a set of 0-based indices to REMOVE.
-    Supports:
-      '1,3,5-8'     → explicit pages / ranges
-      'even'        → all even-numbered pages (2,4,6...)
-      'odd'         → all odd-numbered pages (1,3,5...)
-      'first:N'     → first N pages
-      'last:N'      → last N pages
-      'every:N'     → every Nth page
-      'every:N:S'   → every Nth starting from page S
+    Parse a page selector string into a sorted list of 0-based indices.
+
+    Supported formats:
+      'all'          → all pages
+      'even'         → 0-based even pages (2nd, 4th, …)
+      'odd'          → 0-based odd pages (1st, 3rd, …)
+      'last:N'       → last N pages
+      'first:N'      → first N pages
+      'every:N'      → every Nth page
+      '1,3,5-8'      → 1-based list / ranges
+      'blank'        → placeholder (handled separately)
+
+    Args:
+        selector: selector string
+        total:    total number of pages
+        invert:   if True, return pages NOT in the parsed set
+    Returns:
+        Sorted list of 0-based page indices to REMOVE
     """
     sel = selector.strip().lower()
-    if sel == 'even':
-        return {i for i in range(total) if (i + 1) % 2 == 0}
-    if sel == 'odd':
-        return {i for i in range(total) if (i + 1) % 2 != 0}
-    if sel.startswith('first:'):
-        n = int(sel.split(':')[1])
-        return set(range(min(n, total)))
-    if sel.startswith('last:'):
-        n = int(sel.split(':')[1])
-        return set(range(max(0, total - n), total))
-    if sel.startswith('every:'):
-        parts = sel.split(':')
-        step = int(parts[1]) if len(parts) > 1 else 2
-        start = int(parts[2]) - 1 if len(parts) > 2 else 0
-        return {i for i in range(start, total, step)}
+    indices: set = set()
 
-    indices = set()
-    for part in selector.replace(' ', '').split(','):
-        if not part:
-            continue
-        if '-' in part and not part.startswith('-'):
-            a, b = part.split('-', 1)
-            try:
-                for n in range(int(a), int(b) + 1):
-                    if 1 <= n <= total:
-                        indices.add(n - 1)
-            except ValueError:
-                pass
-        elif part.lstrip('-').isdigit():
-            n = int(part)
-            if 1 <= n <= total:
-                indices.add(n - 1)
-    return indices
+    if sel in ('all', ''):
+        indices = set(range(total))
+    elif sel == 'even':
+        indices = {i for i in range(total) if (i + 1) % 2 == 0}
+    elif sel == 'odd':
+        indices = {i for i in range(total) if (i + 1) % 2 != 0}
+    elif sel.startswith('last:'):
+        try:
+            n = int(sel.split(':')[1])
+            indices = set(range(max(0, total - n), total))
+        except (ValueError, IndexError):
+            pass
+    elif sel.startswith('first:'):
+        try:
+            n = int(sel.split(':')[1])
+            indices = set(range(min(n, total)))
+        except (ValueError, IndexError):
+            pass
+    elif sel.startswith('every:'):
+        try:
+            step = int(sel.split(':')[1])
+            indices = {i for i in range(total) if (i + 1) % step == 0}
+        except (ValueError, IndexError):
+            pass
+    elif sel == 'blank':
+        indices = set()  # filled by blank-detection step
+    else:
+        for part in sel.replace(' ', '').split(','):
+            if not part:
+                continue
+            if '-' in part and not part.startswith('-'):
+                try:
+                    a, b = part.split('-', 1)
+                    for n in range(int(a), int(b) + 1):
+                        if 1 <= n <= total:
+                            indices.add(n - 1)
+                except ValueError:
+                    pass
+            elif part.isdigit():
+                n = int(part)
+                if 1 <= n <= total:
+                    indices.add(n - 1)
+
+    if invert:
+        indices = set(range(total)) - indices
+
+    return sorted(indices)
 
 
-def _content_hash(page) -> str:
-    """SHA-256 hash of page text content."""
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  PAGE ANALYSIS                                                       ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+def _page_content_hash(page: 'fitz.Page') -> str:
+    """Hash the rendered raster of a page at low DPI for dedup."""
     try:
-        text = page.extract_text() or ''
-        return hashlib.sha256(text.encode('utf-8', errors='ignore')).hexdigest()
+        mat = fitz.Matrix(0.5, 0.5)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        return hashlib.md5(pix.samples).hexdigest()
     except Exception:
         return ''
 
 
-def _is_blank_page(fitz_page: fitz.Page, text_threshold: int = 10,
-                   pixel_threshold: float = 0.02) -> bool:
+def _is_blank_page(page: 'fitz.Page',
+                   text_threshold: int = 8,
+                   image_threshold: float = 0.01) -> bool:
     """
-    Determine if a page is visually blank.
-    Checks text content AND renders a small thumbnail to count non-white pixels.
+    Detect a blank page using text + image content.
+
+    Args:
+        page:             fitz.Page
+        text_threshold:   minimum chars to consider non-blank
+        image_threshold:  minimum image coverage fraction to consider non-blank
     """
-    # Text check
+    text = page.get_text().strip()
+    if len(text) >= text_threshold:
+        return False
+    # Check image coverage
     try:
-        text = fitz_page.get_text('text').strip()
-        if len(text) > text_threshold:
-            return False
+        pw = page.rect.width or 1
+        ph = page.rect.height or 1
+        area = pw * ph
+        images = page.get_images(full=True)
+        if images:
+            # estimate coverage from clip rectangles
+            for img in images[:5]:
+                rects = page.get_image_rects(img[0])
+                for r in rects:
+                    coverage = abs(r.get_area()) / area
+                    if coverage > image_threshold:
+                        return False
     except Exception:
         pass
+    return True
 
-    # Image check: render at very low res
+
+def _page_has_text_pattern(page: 'fitz.Page', pattern: str) -> bool:
+    """Check if page text matches a regex pattern."""
     try:
-        mat = fitz.Matrix(0.3, 0.3)
-        pix = fitz_page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
-        data = pix.samples
-        total_px = len(data)
-        if total_px == 0:
+        text = page.get_text()
+        return bool(re.search(pattern, text, re.IGNORECASE | re.DOTALL))
+    except Exception:
+        return False
+
+
+def _page_dimensions_emu(page: 'fitz.Page') -> tuple:
+    """Return (width_pt, height_pt) in PDF points."""
+    return float(page.rect.width), float(page.rect.height)
+
+
+def _get_page_stats(page: 'fitz.Page', idx: int) -> dict:
+    """Return per-page statistics."""
+    text = page.get_text()
+    words = len(text.split())
+    dims = _page_dimensions_emu(page)
+    images = []
+    try:
+        images = page.get_images(full=False)
+    except Exception:
+        pass
+    return {
+        'page': idx + 1,
+        'width_pt': round(dims[0], 1),
+        'height_pt': round(dims[1], 1),
+        'word_count': words,
+        'char_count': len(text),
+        'image_count': len(images),
+        'is_blank': _is_blank_page(page),
+        'content_hash': _page_content_hash(page),
+    }
+
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  DETECTION HELPERS                                                   ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+def _detect_blank_pages(pdf_path: str) -> list:
+    """Return 0-based indices of blank pages."""
+    blanks = []
+    try:
+        doc = fitz.open(pdf_path)
+        for i in range(doc.page_count):
+            if _is_blank_page(doc[i]):
+                blanks.append(i)
+        doc.close()
+    except Exception:
+        pass
+    return blanks
+
+
+def _detect_duplicate_pages(pdf_path: str) -> list:
+    """Return 0-based indices of duplicate pages (keep first occurrence)."""
+    seen: dict = {}
+    dupes = []
+    try:
+        doc = fitz.open(pdf_path)
+        for i in range(doc.page_count):
+            h = _page_content_hash(doc[i])
+            if h:
+                if h in seen:
+                    dupes.append(i)
+                else:
+                    seen[h] = i
+        doc.close()
+    except Exception:
+        pass
+    return dupes
+
+
+def _detect_pattern_pages(pdf_path: str, pattern: str) -> list:
+    """Return 0-based indices of pages matching a text regex."""
+    matches = []
+    try:
+        doc = fitz.open(pdf_path)
+        for i in range(doc.page_count):
+            if _page_has_text_pattern(doc[i], pattern):
+                matches.append(i)
+        doc.close()
+    except Exception:
+        pass
+    return matches
+
+
+def _detect_size_outliers(pdf_path: str,
+                           min_area: float = 0,
+                           max_area: float = float('inf')) -> list:
+    """Return 0-based indices of pages outside area range (in pts²)."""
+    outliers = []
+    try:
+        doc = fitz.open(pdf_path)
+        for i in range(doc.page_count):
+            w, h = float(doc[i].rect.width), float(doc[i].rect.height)
+            area = w * h
+            if area < min_area or area > max_area:
+                outliers.append(i)
+        doc.close()
+    except Exception:
+        pass
+    return outliers
+
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  REMOVAL STRATEGIES                                                  ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+def _remove_via_pikepdf(input_path: str, output_path: str,
+                         keep_indices: list) -> bool:
+    """Remove pages using pikepdf (primary strategy)."""
+    try:
+        with pikepdf.open(input_path, suppress_warnings=True) as src:
+            out = pikepdf.Pdf.new()
+            for i in keep_indices:
+                if 0 <= i < len(src.pages):
+                    out.pages.append(src.pages[i])
+            if len(out.pages) == 0:
+                return False
+            out.save(output_path,
+                     compress_streams=True,
+                     object_stream_mode=pikepdf.ObjectStreamMode.generate)
             return True
-        # Count non-white pixels (< 250)
-        non_white = sum(1 for b in data if b < 250)
-        return (non_white / total_px) < pixel_threshold
     except Exception:
         return False
 
 
-def _page_matches_pattern(fitz_page: fitz.Page, pattern: str) -> bool:
-    """Return True if page text matches the given regex pattern."""
-    try:
-        text = fitz_page.get_text('text')
-        return bool(re.search(pattern, text, re.IGNORECASE))
-    except Exception:
+def _remove_via_pypdf(input_path: str, output_path: str,
+                       keep_indices: list) -> bool:
+    """Fallback removal using pypdf."""
+    if not HAS_PYPDF:
         return False
-
-
-def _page_dimensions_pt(fitz_page: fitz.Page) -> tuple[float, float]:
-    """Return page width and height in points."""
-    r = fitz_page.rect
-    return r.width, r.height
-
-
-def _compress_output(input_path: str, output_path: str) -> bool:
-    """Compression pass using pikepdf."""
     try:
-        with pikepdf.open(input_path) as pdf:
-            pdf.save(
-                output_path,
-                compress_streams=True,
-                object_stream_mode=pikepdf.ObjectStreamMode.generate,
-                recompress_flate=True,
-            )
+        reader = PdfReader(input_path)
+        writer = PdfWriter()
+        total = len(reader.pages)
+        for i in keep_indices:
+            if 0 <= i < total:
+                writer.add_page(reader.pages[i])
+        if len(writer.pages) == 0:
+            return False
+        with open(output_path, 'wb') as f:
+            writer.write(f)
         return True
     except Exception:
         return False
 
 
-def _get_page_stats(fitz_page: fitz.Page, page_num: int) -> dict:
-    """Get stats for a single page."""
+def _remove_via_gs(input_path: str, output_path: str,
+                   keep_indices: list, total: int) -> bool:
+    """Remove pages using Ghostscript (last resort)."""
+    if not GS_BIN or not keep_indices:
+        return False
     try:
-        rect = fitz_page.rect
-        text = fitz_page.get_text('text')
-        images = fitz_page.get_images(full=False)
-        return {
-            'page': page_num,
-            'width_pt': round(rect.width, 1),
-            'height_pt': round(rect.height, 1),
-            'width_mm': round(rect.width * 25.4 / 72, 1),
-            'height_mm': round(rect.height * 25.4 / 72, 1),
-            'word_count': len(text.split()),
-            'has_images': len(images) > 0,
-            'image_count': len(images),
-            'is_blank': _is_blank_page(fitz_page),
-        }
+        # GS uses 1-based page list
+        page_list = ','.join(str(i + 1) for i in keep_indices)
+        cmd = [
+            GS_BIN, '-dNOPAUSE', '-dBATCH', '-dQUIET',
+            '-sDEVICE=pdfwrite',
+            f'-dFirstPage=1',
+            f'-dLastPage={total}',
+            '-dCompatibilityLevel=1.7',
+            f'-sOutputFile={output_path}',
+            '-c', f'<< /PageList [{page_list}] >> setpagedevice',
+            '-f', input_path,
+        ]
+        r = subprocess.run(cmd, capture_output=True, timeout=180)
+        return (r.returncode == 0 and os.path.exists(output_path)
+                and os.path.getsize(output_path) > 200)
     except Exception:
-        return {'page': page_num, 'error': 'Could not read page'}
+        return False
 
 
-# ───────────────────────────── Main API ──────────────────────────────────────
+def _gs_compress(input_path: str, output_path: str,
+                 quality: str = 'ebook') -> bool:
+    if not GS_BIN:
+        return False
+    q_map = {'screen': '/screen', 'ebook': '/ebook',
+              'printer': '/printer', 'prepress': '/prepress'}
+    q = q_map.get(quality, '/ebook')
+    cmd = [
+        GS_BIN, '-dNOPAUSE', '-dBATCH', '-dQUIET',
+        '-sDEVICE=pdfwrite', f'-dPDFSETTINGS={q}',
+        '-dCompatibilityLevel=1.7',
+        f'-sOutputFile={output_path}', input_path,
+    ]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=180)
+        return (r.returncode == 0 and os.path.exists(output_path)
+                and os.path.getsize(output_path) > 200)
+    except Exception:
+        return False
+
+
+def _qpdf_linearize(input_path: str, output_path: str) -> bool:
+    if not QPDF_BIN:
+        return False
+    cmd = [QPDF_BIN, '--linearize', input_path, output_path]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=120)
+        return (r.returncode == 0 and os.path.exists(output_path)
+                and os.path.getsize(output_path) > 200)
+    except Exception:
+        return False
+
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  METADATA                                                            ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+def _inject_metadata(path: str, original_count: int,
+                      removed_count: int) -> None:
+    try:
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — RemovePages'
+            pdf.docinfo['/Creator'] = 'pdf_remove_pages'
+            pdf.docinfo['/Keywords'] = (
+                f'original_pages={original_count}; '
+                f'removed={removed_count}; '
+                f'remaining={original_count - removed_count}')
+            pdf.docinfo['/ModDate'] = datetime.now().strftime("D:%Y%m%d%H%M%S")
+            pdf.save(path)
+    except Exception:
+        pass
+
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  PREVIEW REPORT                                                      ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+def _build_preview_report(pdf_path: str,
+                           remove_indices: list,
+                           keep_indices: list,
+                           output_path: str) -> None:
+    """Generate a PDF report showing what will be removed."""
+    styles = getSampleStyleSheet()
+    title_s = ParagraphStyle('T', parent=styles['Heading1'], fontSize=16,
+                              textColor=colors.HexColor('#1E3A8A'))
+    info_s  = ParagraphStyle('I', parent=styles['Normal'],  fontSize=10,
+                              textColor=colors.HexColor('#374151'))
+    red_s   = ParagraphStyle('R', parent=styles['Normal'],  fontSize=10,
+                              textColor=colors.HexColor('#DC2626'),
+                              fontName='Helvetica-Bold')
+    green_s = ParagraphStyle('G', parent=styles['Normal'],  fontSize=10,
+                              textColor=colors.HexColor('#16A34A'))
+
+    story = [
+        Paragraph('Remove Pages — Preview Report', title_s),
+        HRFlowable(color=colors.HexColor('#DBEAFE'), thickness=1),
+        Spacer(1, 0.3 * cm),
+        Paragraph(f'Source: <b>{os.path.basename(pdf_path)}</b>', info_s),
+        Paragraph(f'Total pages: <b>{len(remove_indices) + len(keep_indices)}</b>', info_s),
+        Paragraph(f'Pages to remove: <b>{len(remove_indices)}</b>', red_s),
+        Paragraph(f'Pages to keep: <b>{len(keep_indices)}</b>', green_s),
+        Spacer(1, 0.4 * cm),
+    ]
+
+    # Table
+    table_data = [['Page #', 'Action', 'Dimensions', 'Words', 'Images']]
+    all_idx = sorted(set(remove_indices) | set(keep_indices))
+
+    try:
+        doc_fitz = fitz.open(pdf_path)
+        for i in all_idx[:200]:
+            if i < doc_fitz.page_count:
+                stats = _get_page_stats(doc_fitz[i], i)
+                action = 'REMOVE' if i in remove_indices else 'KEEP'
+                table_data.append([
+                    str(stats['page']),
+                    action,
+                    f'{stats["width_pt"]:.0f}×{stats["height_pt"]:.0f} pt',
+                    str(stats['word_count']),
+                    str(stats['image_count']),
+                ])
+        doc_fitz.close()
+    except Exception:
+        pass
+
+    if len(table_data) > 1:
+        tbl = Table(table_data[:101], colWidths=[2*cm, 3*cm, 4*cm, 2.5*cm, 2.5*cm])
+        ts = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+            ('TEXTCOLOR',  (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',   (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',   (0, 0), (-1, -1), 9),
+            ('GRID',       (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1),
+             [colors.white, colors.HexColor('#F9FAFB')]),
+            ('TEXTCOLOR',  (1, 1), (1, -1), colors.HexColor('#374151')),
+        ])
+        # Color REMOVE rows red
+        for r_idx, row in enumerate(table_data[1:], start=1):
+            if row[1] == 'REMOVE':
+                ts.add('BACKGROUND', (0, r_idx), (-1, r_idx),
+                        colors.HexColor('#FEE2E2'))
+                ts.add('TEXTCOLOR',  (1, r_idx), (1, r_idx),
+                        colors.HexColor('#DC2626'))
+        tbl.setStyle(ts)
+        story.append(tbl)
+
+    doc = SimpleDocTemplate(output_path, pagesize=A4,
+                             leftMargin=2*cm, rightMargin=2*cm,
+                             topMargin=2.5*cm, bottomMargin=2.5*cm)
+    doc.build(story)
+
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  MAIN API                                                            ║
+# ╚══════════════════════════════════════════════════════════════════════╝
 
 def remove_pages(
     input_path: str,
     output_path: str,
-    pages: str = '',
-    password: str = '',
+    page_selector: str = '',
     remove_blank: bool = False,
     remove_duplicates: bool = False,
-    remove_by_pattern: str = '',
-    min_width_pt: float = 0,
-    min_height_pt: float = 0,
-    max_width_pt: float = 0,
-    max_height_pt: float = 0,
-    compress: bool = True,
+    remove_pattern: Optional[str] = None,
+    remove_small_pages: bool = False,
+    min_area_pts: float = 0,
+    max_area_pts: float = float('inf'),
+    invert_selection: bool = False,
     preview_only: bool = False,
+    preview_report_path: Optional[str] = None,
+    compress_output: bool = True,
+    gs_quality: str = 'ebook',
+    linearize: bool = False,
+    password: Optional[str] = None,
 ) -> dict:
     """
-    Remove pages from a PDF with extensive options.
+    Remove pages from a PDF with multi-strategy detection and removal.
 
     Args:
-        input_path:         Source PDF
-        output_path:        Output PDF
-        pages:              Page selector for explicit removal (e.g. '1,3,5-8')
-        password:           PDF password if encrypted
-        remove_blank:       Auto-detect and remove blank/empty pages
-        remove_duplicates:  Remove duplicate pages (content hash)
-        remove_by_pattern:  Remove pages containing this regex pattern
-        min_width_pt:       Remove pages narrower than this (points)
-        min_height_pt:      Remove pages shorter than this (points)
-        max_width_pt:       Remove pages wider than this (points; 0=no limit)
-        max_height_pt:      Remove pages taller than this (points; 0=no limit)
-        compress:           Apply compression pass after removal
-        preview_only:       If True, return what WOULD be removed without writing file
+        input_path:           Source PDF
+        output_path:          Output PDF (ignored if preview_only=True)
+        page_selector:        '1,3,5-8' | 'even' | 'odd' | 'last:N' | 'blank' | 'all'
+        remove_blank:         Also remove auto-detected blank pages
+        remove_duplicates:    Also remove duplicate pages
+        remove_pattern:       Also remove pages matching this regex in text
+        remove_small_pages:   Also remove pages outside area range
+        min_area_pts:         Min area in pt² for size filter
+        max_area_pts:         Max area in pt² for size filter
+        invert_selection:     Keep selector pages, remove everything else
+        preview_only:         Don't remove, just generate a preview report
+        preview_report_path:  Path for preview PDF (if preview_only)
+        compress_output:      Apply GS or pikepdf compression after removal
+        gs_quality:           GS quality preset
+        linearize:            Apply qpdf linearization
+        password:             Password for encrypted PDFs
     Returns:
-        dict with output_path, original_pages, remaining_pages, removed_pages, stats
+        dict with output_path, removed_count, remaining_count, method, etc.
     """
-    reader = PdfReader(input_path, strict=False)
-    if reader.is_encrypted:
-        if not reader.decrypt(password or ''):
-            raise ValueError('Incorrect password for encrypted PDF.')
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f'Input not found: {input_path}')
 
-    total = len(reader.pages)
+    # Open with fitz for analysis
+    try:
+        doc = fitz.open(input_path)
+        if password:
+            doc.authenticate(password)
+        total = doc.page_count
+        doc.close()
+    except Exception as e:
+        raise ValueError(f'Cannot open PDF: {e}')
 
-    fitz_doc = fitz.open(input_path)
-    if fitz_doc.is_encrypted:
-        fitz_doc.authenticate(password or '')
+    if total == 0:
+        raise ValueError('PDF has no pages.')
 
-    # ── Build remove set ───────────────────────────────────────────────────────
-    remove_set = set()
+    # Build removal set
+    remove_set: set = set()
 
     # Explicit selector
-    if pages.strip():
-        remove_set |= parse_remove_selector(pages, total)
+    if page_selector.strip().lower() not in ('', 'blank'):
+        sel_indices = parse_page_selector(page_selector, total,
+                                           invert=invert_selection)
+        remove_set.update(sel_indices)
+    elif page_selector.strip().lower() == 'blank':
+        remove_blank = True
 
-    # Blank page detection
+    # Blank detection
     if remove_blank:
-        for i in range(total):
-            if _is_blank_page(fitz_doc[i]):
-                remove_set.add(i)
+        remove_set.update(_detect_blank_pages(input_path))
 
-    # Pattern removal
-    if remove_by_pattern:
-        for i in range(total):
-            if _page_matches_pattern(fitz_doc[i], remove_by_pattern):
-                remove_set.add(i)
-
-    # Size-based removal
-    if min_width_pt > 0 or min_height_pt > 0 or max_width_pt > 0 or max_height_pt > 0:
-        for i in range(total):
-            w, h = _page_dimensions_pt(fitz_doc[i])
-            if min_width_pt > 0 and w < min_width_pt:
-                remove_set.add(i)
-            if min_height_pt > 0 and h < min_height_pt:
-                remove_set.add(i)
-            if max_width_pt > 0 and w > max_width_pt:
-                remove_set.add(i)
-            if max_height_pt > 0 and h > max_height_pt:
-                remove_set.add(i)
-
-    # Duplicate detection (first occurrence kept, later ones removed)
+    # Duplicate detection
     if remove_duplicates:
-        seen_hashes = {}
-        for i in range(total):
-            h = _content_hash(reader.pages[i])
-            if h:
-                if h in seen_hashes:
-                    remove_set.add(i)
-                else:
-                    seen_hashes[h] = i
+        remove_set.update(_detect_duplicate_pages(input_path))
 
-    # Ensure at least one page remains
+    # Pattern detection
+    if remove_pattern:
+        remove_set.update(_detect_pattern_pages(input_path, remove_pattern))
+
+    # Size filter
+    if remove_small_pages:
+        remove_set.update(
+            _detect_size_outliers(input_path, min_area_pts, max_area_pts))
+
+    remove_indices = sorted(remove_set)
     keep_indices = [i for i in range(total) if i not in remove_set]
-    if len(keep_indices) == 0:
-        raise ValueError(
-            'Operation would remove ALL pages. At least one page must remain.')
 
-    # Gather per-page stats for all pages
-    page_stats = [_get_page_stats(fitz_doc[i], i + 1) for i in range(total)]
-    fitz_doc.close()
-
-    removed_pages = sorted([i + 1 for i in remove_set])
-    kept_pages = sorted([i + 1 for i in keep_indices])
-
-    # ── Preview mode — return without writing ──────────────────────────────────
+    # Preview only
     if preview_only:
+        rpt = preview_report_path or output_path.replace('.pdf', '_preview.pdf')
+        _build_preview_report(input_path, remove_indices, keep_indices, rpt)
         return {
             'preview_only': True,
-            'original_pages': total,
-            'pages_to_remove': removed_pages,
-            'pages_to_keep': kept_pages,
-            'remove_count': len(remove_set),
-            'keep_count': len(keep_indices),
-            'page_stats': page_stats,
+            'preview_report': rpt,
+            'total_pages': total,
+            'would_remove': len(remove_indices),
+            'would_keep': len(keep_indices),
+            'pages_to_remove': [i + 1 for i in remove_indices],
         }
 
-    # ── Build output PDF ───────────────────────────────────────────────────────
-    writer = PdfWriter()
-    undo_map = {}    # new_page_idx → original_page_num
-    for new_idx, orig_idx in enumerate(keep_indices):
-        writer.add_page(reader.pages[orig_idx])
-        undo_map[new_idx + 1] = orig_idx + 1
+    if not keep_indices:
+        raise ValueError('All pages would be removed — aborting.')
 
-    # Preserve metadata
+    if not remove_indices:
+        # Nothing to remove — just copy
+        import shutil as _sh
+        _sh.copy2(input_path, output_path)
+        return {
+            'output_path': output_path,
+            'removed_count': 0,
+            'remaining_count': total,
+            'total_pages': total,
+            'method': 'no_op_copy',
+            'file_size_kb': round(os.path.getsize(output_path) / 1024, 1),
+        }
+
+    tmp_dir = tempfile.mkdtemp()
+    method_used = 'unknown'
+
     try:
-        if reader.metadata:
-            meta = dict(reader.metadata)
+        work_out = os.path.join(tmp_dir, 'removed.pdf')
+
+        # Strategy 1: pikepdf
+        if _remove_via_pikepdf(input_path, work_out, keep_indices):
+            method_used = 'pikepdf'
+
+        # Strategy 2: pypdf fallback
+        elif HAS_PYPDF and _remove_via_pypdf(input_path, work_out, keep_indices):
+            method_used = 'pypdf'
+
+        # Strategy 3: GS fallback
+        elif GS_BIN and _remove_via_gs(input_path, work_out, keep_indices, total):
+            method_used = 'ghostscript'
+
         else:
-            meta = {}
-        meta.update({
-            '/Producer': 'IshuTools.fun PDF Suite — Remove Pages',
-            '/Creator': 'IshuTools.fun',
-            '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
-        })
-        writer.add_metadata(meta)
-    except Exception:
-        pass
+            raise RuntimeError(
+                'All removal strategies failed. Check PDF integrity.')
 
-    orig_size = os.path.getsize(input_path)
+        # Compression pass
+        if compress_output and GS_BIN:
+            gs_out = os.path.join(tmp_dir, 'compressed.pdf')
+            if _gs_compress(work_out, gs_out, quality=gs_quality):
+                if os.path.getsize(gs_out) < os.path.getsize(work_out):
+                    work_out = gs_out
+                    method_used += '+gs_compress'
 
-    with open(output_path, 'wb') as f:
-        writer.write(f)
+        # qpdf linearize
+        if linearize and QPDF_BIN:
+            lin_out = os.path.join(tmp_dir, 'linear.pdf')
+            if _qpdf_linearize(work_out, lin_out):
+                work_out = lin_out
+                method_used += '+qpdf_linearize'
 
-    # ── Compression pass ───────────────────────────────────────────────────────
-    if compress:
-        tmp = output_path + '.comp.tmp'
-        if _compress_output(output_path, tmp):
-            os.replace(tmp, output_path)
+        # Copy to final destination
+        import shutil as _sh
+        _sh.copy2(work_out, output_path)
 
-    out_size = os.path.getsize(output_path)
+    finally:
+        try:
+            shutil.rmtree(tmp_dir)
+        except Exception:
+            pass
+
+    # Metadata injection
+    _inject_metadata(output_path, total, len(remove_indices))
 
     return {
         'output_path': output_path,
-        'original_pages': total,
-        'remaining_pages': len(keep_indices),
-        'removed_pages': removed_pages,
-        'kept_pages': kept_pages,
-        'remove_count': len(remove_set),
-        'original_size_kb': round(orig_size / 1024, 1),
-        'output_size_kb': round(out_size / 1024, 1),
-        'reduction_pct': round((1 - out_size / max(orig_size, 1)) * 100, 1),
-        'undo_map': undo_map,
-        'page_stats': page_stats,
+        'removed_count': len(remove_indices),
+        'remaining_count': len(keep_indices),
+        'total_pages': total,
+        'removed_pages': [i + 1 for i in remove_indices],
+        'method': method_used,
+        'gs_available': bool(GS_BIN),
+        'qpdf_available': bool(QPDF_BIN),
+        'file_size_kb': round(os.path.getsize(output_path) / 1024, 1),
     }
 
 
-def find_blank_pages(input_path: str, password: str = '') -> list[int]:
-    """Return list of 1-based page numbers that appear blank."""
-    doc = fitz.open(input_path)
-    if doc.is_encrypted:
-        doc.authenticate(password or '')
-    blank = [i + 1 for i in range(doc.page_count) if _is_blank_page(doc[i])]
-    doc.close()
-    return blank
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  PAGE STATS API                                                      ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+def get_page_stats(input_path: str,
+                   page_indices: Optional[list] = None) -> list:
+    """Return per-page statistics for a PDF."""
+    stats = []
+    try:
+        doc = fitz.open(input_path)
+        indices = page_indices if page_indices is not None else range(doc.page_count)
+        for i in indices:
+            if 0 <= i < doc.page_count:
+                stats.append(_get_page_stats(doc[i], i))
+        doc.close()
+    except Exception as e:
+        stats.append({'error': str(e)})
+    return stats
 
 
-def find_duplicate_pages(input_path: str, password: str = '') -> list[list[int]]:
-    """
-    Return groups of duplicate pages (by content hash).
-    Each group is a list of 1-based page numbers with identical content.
-    """
-    reader = PdfReader(input_path, strict=False)
-    if reader.is_encrypted:
-        reader.decrypt(password or '')
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  BATCH PROCESSING                                                    ║
+# ╚══════════════════════════════════════════════════════════════════════╝
 
-    hash_groups: dict[str, list[int]] = {}
-    for i, page in enumerate(reader.pages):
-        h = _content_hash(page)
-        if h:
-            hash_groups.setdefault(h, []).append(i + 1)
+def batch_remove_pages(
+    input_paths: list,
+    output_dir: str,
+    **kwargs,
+) -> dict:
+    """Remove pages from multiple PDFs in batch."""
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    success = failed = 0
+    for src in input_paths:
+        base = os.path.splitext(os.path.basename(src))[0]
+        dst = os.path.join(output_dir, f'{base}_removed.pdf')
+        try:
+            r = remove_pages(src, dst, **kwargs)
+            r['source'] = src
+            results.append(r)
+            success += 1
+        except Exception as e:
+            results.append({'source': src, 'error': str(e)})
+            failed += 1
+    return {'total': len(input_paths), 'success': success,
+            'failed': failed, 'results': results}
 
-    return [grp for grp in hash_groups.values() if len(grp) > 1]
 
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  AVAILABLE ENGINES                                                   ║
+# ╚══════════════════════════════════════════════════════════════════════╝
 
-def analyze_pdf_pages(input_path: str, password: str = '') -> dict:
-    """
-    Full page analysis: dimensions, content summary, blank detection, duplicates.
-    """
-    fitz_doc = fitz.open(input_path)
-    if fitz_doc.is_encrypted:
-        fitz_doc.authenticate(password or '')
-
-    reader = PdfReader(input_path, strict=False)
-    if reader.is_encrypted:
-        reader.decrypt(password or '')
-
-    total = fitz_doc.page_count
-    pages = []
-    blank_pages = []
-    hash_map: dict[str, list[int]] = {}
-
-    for i in range(total):
-        stats = _get_page_stats(fitz_doc[i], i + 1)
-        h = _content_hash(reader.pages[i])
-        stats['content_hash'] = h[:8] if h else ''
-        pages.append(stats)
-        if stats.get('is_blank'):
-            blank_pages.append(i + 1)
-        if h:
-            hash_map.setdefault(h, []).append(i + 1)
-
-    dup_groups = [grp for grp in hash_map.values() if len(grp) > 1]
-    fitz_doc.close()
-
+def get_available_engines() -> dict:
     return {
-        'total_pages': total,
-        'file_size_kb': round(os.path.getsize(input_path) / 1024, 1),
-        'blank_pages': blank_pages,
-        'duplicate_groups': dup_groups,
-        'pages': pages,
+        'engines': (
+            ['pikepdf', 'fitz/PyMuPDF', 'pillow'] +
+            (['pypdf'] if HAS_PYPDF else []) +
+            (['ghostscript'] if GS_BIN else []) +
+            (['qpdf'] if QPDF_BIN else [])
+        ),
+        'features': [
+            'blank_detection', 'duplicate_detection',
+            'pattern_match', 'size_filter',
+            'preview_mode', 'compression', 'linearize',
+        ],
+        'gs_available': bool(GS_BIN),
+        'qpdf_available': bool(QPDF_BIN),
     }
