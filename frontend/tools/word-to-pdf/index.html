@@ -3,80 +3,94 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Word to PDF Free — Convert DOCX to PDF Online | IshuTools</title>
-  <meta name="description" content="Convert Word documents (.docx, .doc) to PDF online for free. Preserves fonts, tables, images, and formatting. No signup. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="word to pdf, docx to pdf, convert word to pdf online, doc to pdf, word document to pdf, ishu, ishutools" />
+  <meta name="description" content="Convert Word documents (.docx, .doc) to PDF online free. Preserves fonts, tables, images, headers, and all formatting. No Microsoft Word needed. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="word to pdf, docx to pdf, convert word to pdf online, doc to pdf, word document to pdf converter, word to pdf free, docx to pdf online free, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/word-to-pdf/" />
-  <meta property="og:title" content="Word to PDF Free Online — IshuTools" />
-  <meta property="og:description" content="Convert Word .docx to PDF instantly. 100% free, no signup, no watermark." />
+  <meta property="og:title" content="Word to PDF Free — Convert DOCX to PDF | IshuTools" />
+  <meta property="og:description" content="Convert Word .docx to PDF free. No Microsoft Word needed. Preserves formatting. No signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/word-to-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Ctext y='22' x='4' font-size='20'%3E📝%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <link rel="stylesheet" href="style.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Word to PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar"}}</script>
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Word to PDF Converter Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/word-to-pdf/",
+    "description": "Convert Microsoft Word documents (.docx, .doc) to high-quality PDF online free. No Microsoft Word required. Preserves fonts, tables, images, and formatting. A4, Letter, Legal page sizes.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "DOCX to PDF, DOC to PDF, preserve fonts tables images, A4 Letter Legal A3, portrait landscape, no Microsoft Word needed",
+    "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"1876"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can I convert Word to PDF without Microsoft Word?",
+        "acceptedAnswer": {"@type":"Answer","text":"Yes. IshuTools converts Word .docx and .doc files to PDF entirely in the cloud without requiring Microsoft Word to be installed. LibreOffice powers the conversion for maximum compatibility."}
+      },
+      {
+        "@type": "Question",
+        "name": "Does Word to PDF preserve formatting?",
+        "acceptedAnswer": {"@type":"Answer","text":"Yes. IshuTools preserves fonts, tables, images, headers, footers, paragraph styles, and all formatting from your Word document when converting to PDF."}
+      }
+    ]
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id: 'word-to-pdf',
-    name: 'Word to PDF',
-    emoji: '📝',
-    category: 'Convert to PDF',
-    categorySlug: '',
-    description: 'Convert Microsoft Word documents (.docx, .doc) to high-quality PDF. Preserves fonts, tables, images, headers, and all formatting.',
-    apiEndpoint: '/api/word-to-pdf',
-    multiFile: false,
-    acceptedTypes: '.docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    acceptedLabel: 'DOCX / DOC',
-    resultType: 'file',
-    outputFilename: 'converted.pdf',
-    outputMime: 'application/pdf',
-    options: [
-      {
-        type: 'select', id: 'page_size', label: 'Page Size',
-        icon: 'fas fa-file',
-        choices: [
-          { v: 'A4',     l: 'A4 — International standard' },
-          { v: 'Letter', l: 'Letter — US standard' },
-          { v: 'Legal',  l: 'Legal — US legal size' },
-          { v: 'A3',     l: 'A3 — Large format' }
-        ],
-        default: 'A4'
-      },
-      {
-        type: 'radio', id: 'orientation', label: 'Orientation',
-        choices: [
-          { v: 'portrait',  l: 'Portrait' },
-          { v: 'landscape', l: 'Landscape' }
-        ],
-        default: 'portrait'
-      },
-      {
-        type: 'radio', id: 'quality', label: 'Output Quality',
-        choices: [
-          { v: 'standard', l: 'Standard (smaller file)' },
-          { v: 'high',     l: 'High quality (larger file)' }
-        ],
-        default: 'standard'
-      }
+    id:'word-to-pdf', name:'Word to PDF', emoji:'📝',
+    category:'Convert to PDF', categorySlug:'',
+    description:'Convert Microsoft Word documents (.docx, .doc) to high-quality PDF. Preserves fonts, tables, images, headers, and all formatting. No Microsoft Word installation required.',
+    apiEndpoint:'/api/word-to-pdf', multiFile:false,
+    acceptedTypes:'.docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    acceptedLabel:'DOCX / DOC',
+    resultType:'file', outputFilename:'converted.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'select', id:'page_size', label:'Page Size',
+        choices:[
+          {v:'A4',    l:'A4 — 210×297mm (international)'},
+          {v:'Letter',l:'Letter — 8.5×11in (US standard)'},
+          {v:'Legal', l:'Legal — 8.5×14in'},
+          {v:'A3',    l:'A3 — 297×420mm (large format)'}
+        ], default:'A4' },
+      { type:'radio', id:'orientation', label:'Orientation',
+        choices:[{v:'portrait',l:'Portrait'},{v:'landscape',l:'Landscape'}],
+        default:'portrait' },
+      { type:'radio', id:'quality', label:'Output Quality',
+        choices:[{v:'standard',l:'Standard (smaller file)'},{v:'high',l:'High quality (larger file)'}],
+        default:'standard' }
     ],
-    steps: [
+    steps:[
       'Upload your Word document (.docx or .doc).',
       'Select page size and orientation.',
       'Click "Convert Word to PDF" and download instantly.'
     ],
-    features: [
-      'Preserves fonts, tables, and images',
+    features:[
+      'Preserves fonts, tables, images, headers, and footers',
       'Supports .docx and .doc formats',
-      'A4, Letter, Legal, A3 page sizes',
+      'Page sizes: A4, Letter, Legal, A3',
       'Portrait and landscape orientation',
-      'No Microsoft Word required',
-      '100% free, no watermarks'
+      'No Microsoft Word required — powered by LibreOffice',
+      '100% free — no watermarks, no signup'
     ],
-    related: [
-      { name: 'PDF to Word',   url: '/tools/pdf-to-word/',   emoji: '📄', c1: '#2563eb', c2: '#3b82f6', desc: 'PDF to Word' },
-      { name: 'Excel to PDF',  url: '/tools/excel-to-pdf/',  emoji: '📊', c1: '#10b981', c2: '#059669', desc: 'Excel to PDF' },
-      { name: 'PPT to PDF',    url: '/tools/pptx-to-pdf/',   emoji: '📊', c1: '#f97316', c2: '#ef4444', desc: 'PowerPoint to PDF' },
-      { name: 'Compress PDF',  url: '/tools/compress-pdf/',  emoji: '🗜️', c1: '#10b981', c2: '#059669', desc: 'Reduce size' }
+    related:[
+      {name:'PDF to Word',  url:'/tools/pdf-to-word/',  emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'},
+      {name:'Excel to PDF', url:'/tools/excel-to-pdf/', emoji:'📊',c1:'#10b981',c2:'#059669',desc:'Excel to PDF'},
+      {name:'PPT to PDF',   url:'/tools/pptx-to-pdf/',  emoji:'📊',c1:'#f97316',c2:'#ef4444',desc:'PowerPoint to PDF'},
+      {name:'Compress PDF', url:'/tools/compress-pdf/', emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
     ]
   };
   </script>

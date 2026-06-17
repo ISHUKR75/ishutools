@@ -2,36 +2,74 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Optimize PDF Free — Optimize for Web, Print & Screen | IshuTools</title>
-  <meta name="description" content="Optimize PDF for web, print or screen online free. Fast PDF optimization by Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="optimize pdf, pdf optimization, web optimized pdf, pdf optimizer online, ishu, ishutools" />
+  <title>Optimize PDF Free — Web, Print & Screen Optimization | IshuTools</title>
+  <meta name="description" content="Optimize PDF for web, print, or screen online free. Web linearization for fast browser loading. Removes redundant objects. No signup, no watermark. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="optimize pdf, pdf optimization, web optimized pdf, linearize pdf, pdf optimizer online free, pdf for web, fast pdf loading, pdf print optimization, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/optimize-pdf/" />
+  <meta property="og:title" content="Optimize PDF Free — Web, Print, Screen | IshuTools" />
+  <meta property="og:description" content="Optimize PDF for web loading, print quality, or screen. Free, no signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/optimize-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f59e0b'/%3E%3Ctext y='22' x='4' font-size='20'%3E⚡%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Optimize PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/optimize-pdf/",
+    "description": "Optimize PDF for web (linearized fast-loading), print (high quality), or screen (balanced). Removes redundant objects, deduplicates streams. pikepdf + PyMuPDF powered. No signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "web linearization, print optimization, screen optimization, remove redundant objects, deduplicate streams, fast browser loading"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'optimize-pdf', name:'Optimize PDF', emoji:'⚡',
     category:'Organize PDF', categorySlug:'',
-    description:'Optimize your PDF for web viewing, high-quality print, or screen display. Reduces size while maintaining output quality.',
+    description:'Optimize your PDF for web viewing (linearized for fast browser streaming), high-quality print, or screen display. Removes redundant objects and deduplicates streams for maximum efficiency.',
     apiEndpoint:'/api/optimize-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'optimized.pdf', outputMime:'application/pdf',
     options:[
       { type:'select', id:'target', label:'Optimization Target',
         choices:[
-          {v:'web',l:'🌐 Web — Fast loading, linearized for streaming'},
-          {v:'print',l:'🖨️ Print — High quality, full resolution'},
-          {v:'screen',l:'💻 Screen — Balanced, medium quality'}
-        ], default:'web' }
+          {v:'web',    l:'🌐 Web — Fast loading, linearized for streaming'},
+          {v:'print',  l:'🖨️ Print — High quality, full resolution'},
+          {v:'screen', l:'💻 Screen — Balanced, medium quality'},
+          {v:'prepress',l:'🎨 Prepress — Maximum quality for professional print'}
+        ], default:'web' },
+      { type:'select', id:'remove_unused', label:'Remove Unused Elements',
+        choices:[
+          {v:'true', l:'Yes — Remove unused fonts, images, objects'},
+          {v:'false',l:'No — Keep all elements'}
+        ], default:'true' }
     ],
-    steps:['Upload your PDF.','Select the optimization target.','Download the optimized PDF.'],
-    features:['Web linearization for fast browser loading','Print-quality optimization','Removes redundant objects','pikepdf-powered compression'],
+    steps:[
+      'Upload your PDF file.',
+      'Select the optimization target (web, print, or screen).',
+      'Click "Optimize PDF" and download the optimized file.'
+    ],
+    features:[
+      'Web linearization for fast browser streaming',
+      'Print-quality: full resolution images preserved',
+      'Removes redundant objects and duplicate streams',
+      'pikepdf + PyMuPDF multi-engine optimization',
+      'Object deduplication and stream compression',
+      '100% free — no watermarks, no signup'
+    ],
     related:[
-      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce file size'},
-      {name:'Repair PDF',url:'/tools/repair-pdf/',emoji:'🔧',c1:'#6366f1',c2:'#8b5cf6',desc:'Fix damaged PDF'},
-      {name:'PDF to PDF/A',url:'/tools/pdf-to-pdfa/',emoji:'🏛️',c1:'#8b5cf6',c2:'#6366f1',desc:'Archive format'},
-      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+      {name:'Compress PDF',  url:'/tools/compress-pdf/',  emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce file size'},
+      {name:'Repair PDF',    url:'/tools/repair-pdf/',    emoji:'🔧',c1:'#6366f1',c2:'#8b5cf6',desc:'Fix damaged PDF'},
+      {name:'PDF to PDF/A',  url:'/tools/pdf-to-pdfa/',   emoji:'🏛️',c1:'#8b5cf6',c2:'#6366f1',desc:'Archive format'},
+      {name:'Merge PDF',     url:'/tools/merge-pdf/',     emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
     ]
   };
   </script>

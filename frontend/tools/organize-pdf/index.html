@@ -2,31 +2,64 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Organize PDF — Reorder Pages Free Online | IshuTools</title>
-  <meta name="description" content="Reorder and rearrange PDF pages online for free. Specify new page order easily. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="organize pdf, reorder pdf pages, rearrange pdf, pdf page organizer, ishu, ishutools" />
+  <title>Organize PDF Free — Reorder and Rearrange PDF Pages Online | IshuTools</title>
+  <meta name="description" content="Reorder and rearrange PDF pages online free. Specify any new page order with a comma-separated list. Duplicate pages, reverse order, or put chapter pages first. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="organize pdf, reorder pdf pages, rearrange pdf, pdf page organizer, change pdf page order, reorganize pdf, rearrange pages in pdf online free, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/organize-pdf/" />
+  <meta property="og:title" content="Organize PDF Free — Reorder Pages | IshuTools" />
+  <meta property="og:description" content="Reorder PDF pages in any order. Specify new order as a list. Free, no signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/organize-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238b5cf6'/%3E%3Ctext y='22' x='4' font-size='20'%3E📋%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Organize PDF — Reorder Pages Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/organize-pdf/",
+    "description": "Reorder and rearrange PDF pages in any order. Specify new page order as a comma-separated list. Duplicate pages, reverse order. Instant processing. Free, no signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "custom page order, duplicate pages, reverse order, comma-separated notation, instant download, free"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'organize-pdf', name:'Organize PDF', emoji:'📋',
     category:'Organize PDF', categorySlug:'',
-    description:'Reorder pages in your PDF document. Just specify the new page order as a comma-separated list and download the rearranged PDF.',
+    description:'Reorder pages in your PDF document by specifying any new order. Type a comma-separated list like "3,1,2,4" to rearrange. Duplicate pages with "1,1,2" or reverse order. Fast and free.',
     apiEndpoint:'/api/organize-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'organized.pdf', outputMime:'application/pdf',
     options:[
-      { type:'pages', id:'order', label:'New Page Order', placeholder:'e.g. 3, 1, 2, 4 (rearranges pages in that order)' }
+      { type:'pages', id:'order', label:'New Page Order',
+        placeholder:'e.g. 3, 1, 2, 4 — or 1, 1, 2 to duplicate page 1' }
     ],
-    steps:['Upload your PDF file.','Enter the new page order (e.g. 3,1,2 to move page 3 first).','Download the reorganized PDF.'],
-    features:['Custom page ordering with simple notation','Duplicate pages (e.g. 1,1,2 repeats page 1)','Instant processing','Free forever — no limits'],
+    steps:[
+      'Upload your PDF file.',
+      'Enter the new page order as a comma-separated list (e.g. 3,1,2 moves page 3 to front).',
+      'Download the reorganized PDF instantly.'
+    ],
+    features:[
+      'Specify any custom page order with a simple list',
+      'Duplicate pages (e.g. 1,1,2 repeats page 1 twice)',
+      'Rearrange chapters, appendices, or table of contents',
+      'Preserves all fonts, images, and formatting',
+      'Instant processing',
+      '100% free — no limits, no signup'
+    ],
     related:[
-      {name:'Remove Pages',url:'/tools/remove-pages/',emoji:'🗑️',c1:'#ef4444',c2:'#f97316',desc:'Delete pages'},
-      {name:'Extract Pages',url:'/tools/extract-pages/',emoji:'📤',c1:'#10b981',c2:'#06b6d4',desc:'Extract pages'},
-      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
-      {name:'Rotate PDF',url:'/tools/rotate-pdf/',emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'}
+      {name:'Remove Pages',  url:'/tools/remove-pages/',  emoji:'🗑️',c1:'#ef4444',c2:'#f97316',desc:'Delete pages'},
+      {name:'Extract Pages', url:'/tools/extract-pages/', emoji:'📤',c1:'#10b981',c2:'#06b6d4',desc:'Extract pages'},
+      {name:'Merge PDF',     url:'/tools/merge-pdf/',     emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
+      {name:'Rotate PDF',    url:'/tools/rotate-pdf/',    emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'}
     ]
   };
   </script>

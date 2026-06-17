@@ -2,39 +2,76 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Add Page Numbers to PDF Free Online | IshuTools</title>
-  <meta name="description" content="Add page numbers to PDF online free. Choose position, font size, and starting number. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="add page numbers to pdf, pdf page numbering, number pdf pages, ishu, ishutools" />
+  <title>Add Page Numbers to PDF Free — Number PDF Pages Online | IshuTools</title>
+  <meta name="description" content="Add page numbers to PDF online free. Choose 6 position presets (top/bottom, left/center/right). Custom font size, start number, prefix, and color. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="add page numbers to pdf, pdf page numbering, number pdf pages, page numbers pdf online free, pdf footer page number, pdf header page number, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/add-page-numbers/" />
+  <meta property="og:title" content="Add Page Numbers to PDF Free | IshuTools" />
+  <meta property="og:description" content="Add page numbers to PDF. 6 positions, custom font, prefix. Free, no signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/add-page-numbers/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔢%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Add Page Numbers to PDF Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/add-page-numbers/",
+    "description": "Add page numbers to PDF online free. 6 position presets, custom font size, start number, prefix text, color. reportlab + PyMuPDF powered. No signup required.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "6 position presets, custom font size, custom start number, optional prefix text, color picker, skip pages option"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'add-page-numbers', name:'Add Page Numbers', emoji:'🔢',
     category:'Edit PDF', categorySlug:'',
-    description:'Add page numbers to your PDF document. Customize the position, starting number, font size, and prefix.',
+    description:'Add page numbers to your PDF document. Choose from 6 position presets (top/bottom, left/center/right). Customize font size, start number, prefix text, and color.',
     apiEndpoint:'/api/add-page-numbers', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'numbered.pdf', outputMime:'application/pdf',
     options:[
-      { type:'select', id:'position', label:'Position',
+      { type:'select', id:'position', label:'Number Position',
         choices:[
-          {v:'bottom-center',l:'Bottom Center'},{v:'bottom-right',l:'Bottom Right'},
-          {v:'bottom-left',l:'Bottom Left'},{v:'top-center',l:'Top Center'},
-          {v:'top-right',l:'Top Right'},{v:'top-left',l:'Top Left'}
+          {v:'bottom-center',l:'↓ Bottom Center (most common)'},
+          {v:'bottom-right',l:'↘ Bottom Right'},
+          {v:'bottom-left',l:'↙ Bottom Left'},
+          {v:'top-center',l:'↑ Top Center'},
+          {v:'top-right',l:'↗ Top Right'},
+          {v:'top-left',l:'↖ Top Left'}
         ], default:'bottom-center' },
       { type:'number', id:'start_num',  label:'Start Number', min:1, default:1 },
       { type:'number', id:'font_size',  label:'Font Size (pt)', min:6, max:48, default:12 },
-      { type:'text',   id:'prefix',     label:'Prefix Text', placeholder:'e.g. Page  (optional)' }
+      { type:'text',   id:'prefix',     label:'Prefix Text (optional)', placeholder:'e.g. Page  — or leave blank' },
+      { type:'color',  id:'color',      label:'Number Color', default:'#333333' }
     ],
-    steps:['Upload your PDF.','Set position, starting number, and font size.','Download the numbered PDF.'],
-    features:['6 position options (top/bottom, left/center/right)','Custom start number','Optional prefix text (e.g. "Page ")','reportlab-powered precise placement'],
+    steps:[
+      'Upload your PDF file.',
+      'Choose position (bottom center, bottom right, etc.).',
+      'Set start number, font size, and optional prefix.',
+      'Download the numbered PDF.'
+    ],
+    features:[
+      '6 position presets (top/bottom × left/center/right)',
+      'Custom start number (e.g. start at page 3)',
+      'Optional prefix text (e.g. "Page " or "- ")',
+      'Adjustable font size and color',
+      'reportlab + PyMuPDF precise rendering',
+      '100% free — no watermarks, no signup'
+    ],
     related:[
-      {name:'Add Watermark',url:'/tools/add-watermark/',emoji:'💧',c1:'#6366f1',c2:'#8b5cf6',desc:'Add watermark'},
-      {name:'Edit PDF',url:'/tools/edit-pdf/',emoji:'✏️',c1:'#8b5cf6',c2:'#6366f1',desc:'Edit PDF text'},
-      {name:'Rotate PDF',url:'/tools/rotate-pdf/',emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'},
-      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+      {name:'Add Watermark',    url:'/tools/add-watermark/',    emoji:'💧',c1:'#6366f1',c2:'#8b5cf6',desc:'Add watermark'},
+      {name:'Edit PDF',         url:'/tools/edit-pdf/',         emoji:'✏️',c1:'#8b5cf6',c2:'#6366f1',desc:'Annotate PDF'},
+      {name:'Rotate PDF',       url:'/tools/rotate-pdf/',       emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'},
+      {name:'Merge PDF',        url:'/tools/merge-pdf/',        emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
     ]
   };
   </script>

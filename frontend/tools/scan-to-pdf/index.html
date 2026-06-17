@@ -2,39 +2,88 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scan to PDF Free — Images to Searchable PDF | IshuTools</title>
-  <meta name="description" content="Convert scanned images to searchable PDF online free. OCR-powered, no signup. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="scan to pdf, image to searchable pdf, ocr scan, scan pdf online, ishu, ishutools" />
+  <title>Scan to PDF Free — Images to Searchable PDF with OCR | IshuTools</title>
+  <meta name="description" content="Convert scanned images to searchable PDF online free. OCR-powered using Tesseract. Supports JPG, PNG, TIFF, BMP. 10+ languages. No signup, no watermark. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="scan to pdf, image to searchable pdf, ocr scan, scan pdf online free, scanned image to pdf, photo to pdf ocr, tesseract ocr pdf, scanned document to searchable pdf, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/scan-to-pdf/" />
+  <meta property="og:title" content="Scan to PDF Free — Images to Searchable PDF | IshuTools" />
+  <meta property="og:description" content="Convert scanned images to searchable PDF with OCR. 10+ languages. Free, no signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/scan-to-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2306b6d4'/%3E%3Ctext y='22' x='4' font-size='20'%3E📷%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Scan to PDF — Images to Searchable PDF Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/scan-to-pdf/",
+    "description": "Convert scanned images (JPG, PNG, TIFF) to searchable PDF online free. Tesseract OCR engine. Supports 10+ languages including Hindi, Chinese, Arabic. Multiple images to one PDF.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "OCR image to searchable PDF, Tesseract v5, 10+ languages, auto image enhancement, multiple images, JPG PNG TIFF BMP WebP"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'scan-to-pdf', name:'Scan to PDF', emoji:'📷',
     category:'Organize PDF', categorySlug:'',
-    description:'Convert scanned images (JPG, PNG, TIFF) into a searchable, OCR-processed PDF. Multiple images become a single document.',
+    description:'Convert scanned images (JPG, PNG, TIFF, BMP, WebP) into a searchable, OCR-processed PDF. Upload multiple images to create a single multi-page document. Tesseract OCR v5 for accurate text recognition.',
     apiEndpoint:'/api/scan-to-pdf', multiFile:true, minFiles:1, maxFiles:30,
-    acceptedTypes:'.jpg,.jpeg,.png,.tiff,.bmp,.webp,image/*', acceptedLabel:'JPG / PNG / TIFF / BMP / WebP',
+    acceptedTypes:'.jpg,.jpeg,.png,.tiff,.bmp,.webp,image/*',
+    acceptedLabel:'JPG / PNG / TIFF / BMP / WebP',
     resultType:'file', outputFilename:'scanned.pdf', outputMime:'application/pdf',
     options:[
       { type:'select', id:'language', label:'OCR Language',
         choices:[
-          {v:'eng',l:'English'},{v:'hin',l:'Hindi'},{v:'fra',l:'French'},
-          {v:'deu',l:'German'},{v:'spa',l:'Spanish'},{v:'por',l:'Portuguese'},
-          {v:'chi_sim',l:'Chinese (Simplified)'},{v:'jpn',l:'Japanese'},
-          {v:'kor',l:'Korean'},{v:'ara',l:'Arabic'}
+          {v:'eng',     l:'English'},
+          {v:'hin',     l:'Hindi (हिन्दी)'},
+          {v:'fra',     l:'French (Français)'},
+          {v:'deu',     l:'German (Deutsch)'},
+          {v:'spa',     l:'Spanish (Español)'},
+          {v:'por',     l:'Portuguese (Português)'},
+          {v:'chi_sim', l:'Chinese Simplified (简体中文)'},
+          {v:'jpn',     l:'Japanese (日本語)'},
+          {v:'kor',     l:'Korean (한국어)'},
+          {v:'ara',     l:'Arabic (عربي)'},
+          {v:'rus',     l:'Russian (Русский)'}
         ], default:'eng' },
-      { type:'select', id:'enhance', label:'Enhance Image',
-        choices:[{v:'true',l:'Yes — improve contrast & sharpness'},{v:'false',l:'No — use original'}], default:'true' }
+      { type:'select', id:'enhance', label:'Enhance Scan Quality',
+        choices:[
+          {v:'true', l:'Yes — Improve contrast, sharpness, deskew'},
+          {v:'false',l:'No — Use original images'}
+        ], default:'true' },
+      { type:'select', id:'page_size', label:'PDF Page Size',
+        choices:[
+          {v:'auto',  l:'Auto (fit to image)'},
+          {v:'A4',    l:'A4 — 210×297mm'},
+          {v:'Letter',l:'Letter — 8.5×11in'}
+        ], default:'auto' }
     ],
-    steps:['Upload one or more scanned images.','Select the document language for OCR.','Download the searchable PDF.'],
-    features:['Tesseract OCR engine (10+ languages)','Auto image enhancement','Multiple images → single PDF','Fully searchable output text'],
+    steps:[
+      'Upload one or more scanned images (JPG, PNG, TIFF, etc.).',
+      'Select the document language for best OCR accuracy.',
+      'Click "Convert to Searchable PDF" and download.'
+    ],
+    features:[
+      'Tesseract OCR v5 — best open-source accuracy',
+      'Auto image enhancement (contrast, deskew, sharpness)',
+      '10+ languages including Hindi, Chinese, Arabic',
+      'Multiple images → single multi-page PDF',
+      'Fully searchable text layer in output PDF',
+      '100% free — no watermarks, no signup'
+    ],
     related:[
-      {name:'OCR PDF',url:'/tools/ocr-pdf/',emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make PDF searchable'},
-      {name:'JPG to PDF',url:'/tools/jpg-to-pdf/',emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'Images to PDF'},
+      {name:'OCR PDF',    url:'/tools/ocr-pdf/',    emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make existing PDF searchable'},
+      {name:'JPG to PDF', url:'/tools/jpg-to-pdf/', emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'Images to PDF (no OCR)'},
       {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
-      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+      {name:'Merge PDF',  url:'/tools/merge-pdf/',  emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
     ]
   };
   </script>

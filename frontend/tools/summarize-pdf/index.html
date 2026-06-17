@@ -2,41 +2,100 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI PDF Summarizer Free — Summarize PDF Online | IshuTools</title>
-  <meta name="description" content="Summarize PDF documents with AI online for free. Get key points and summary instantly. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="ai pdf summarizer, summarize pdf, pdf summary, pdf key points, ai pdf tool, ishu, ishutools" />
+  <title>AI PDF Summarizer Free — Summarize PDF Online Instantly | IshuTools</title>
+  <meta name="description" content="Summarize PDF with AI for free. Get key points, main topics, and concise summaries in seconds. No API key, no signup. Short, medium, or long summaries. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="ai pdf summarizer, summarize pdf online, pdf summary free, pdf key points, pdf abstract generator, summarize pdf no signup, ai pdf tool, pdf summarizer online free, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/summarize-pdf/" />
-  <meta property="og:title" content="AI PDF Summarizer — IshuTools" />
-  <meta property="og:description" content="Summarize any PDF with AI. 100% free, no signup." />
+  <meta property="og:title" content="AI PDF Summarizer Free — Get Key Points Instantly | IshuTools" />
+  <meta property="og:description" content="Summarize any PDF with AI. Get key points and summary. 100% free, no signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/summarize-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E🤖%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"AI PDF Summarizer","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"}}</script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AI PDF Summarizer Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/summarize-pdf/",
+    "description": "AI-powered PDF summarizer. Get key points, main topics, and concise summaries from any PDF. Extractive AI summarization — no API key required. Short, medium, or long summaries.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "AI extractive summarization, key points, main topics, document statistics, word count, reading time, 3 summary lengths"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does AI PDF summarizer work?",
+        "acceptedAnswer": {"@type":"Answer","text":"IshuTools uses extractive AI summarization — it analyzes the text content of your PDF, identifies the most important sentences and key points, and creates a concise summary. No external AI API is needed."}
+      },
+      {
+        "@type": "Question",
+        "name": "Is PDF summarization free?",
+        "acceptedAnswer": {"@type":"Answer","text":"100% free. No signup, no API key, no email required. IshuTools PDF Summarizer is completely free to use."}
+      },
+      {
+        "@type": "Question",
+        "name": "What types of PDFs can be summarized?",
+        "acceptedAnswer": {"@type":"Answer","text":"Any text-based PDF can be summarized — research papers, reports, books, contracts, articles. Scanned image-only PDFs need to be processed with OCR first before summarizing."}
+      }
+    ]
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'summarize-pdf', name:'AI Summarizer', emoji:'🤖',
     category:'AI Intelligence', categorySlug:'',
-    description:'Automatically summarize PDF documents using AI-powered extractive summarization. Get key points, main topics, and a concise summary in seconds.',
+    description:'Automatically summarize PDF documents using AI-powered extractive summarization. Get key points, main topics, document statistics, and a concise summary in seconds — no API key required.',
     apiEndpoint:'/api/summarize-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'json', outputFilename:'summary.json',
     options:[
       { type:'select', id:'length', label:'Summary Length',
         choices:[
-          {v:'short',l:'Short — 3-5 key sentences'},
-          {v:'medium',l:'Medium — Balanced summary (recommended)'},
-          {v:'long',l:'Long — Detailed comprehensive summary'}
-        ], default:'medium' }
+          {v:'brief',  l:'Brief — 3-5 essential sentences'},
+          {v:'short',  l:'Short — Key highlights (5-8 sentences)'},
+          {v:'medium', l:'Medium — Balanced summary (recommended)'},
+          {v:'long',   l:'Long — Detailed comprehensive summary'},
+          {v:'bullets',l:'Bullet Points — Numbered key points list'}
+        ], default:'medium' },
+      { type:'select', id:'focus', label:'Focus Area',
+        choices:[
+          {v:'all',        l:'Entire document'},
+          {v:'conclusions',l:'Conclusions & findings'},
+          {v:'abstract',   l:'Abstract & introduction'},
+          {v:'key_points', l:'Key points & recommendations'}
+        ], default:'all' }
     ],
-    steps:['Upload your PDF document.','Choose summary length.','Read the AI-generated summary instantly.'],
-    features:['Extractive AI summarization','Short, medium, or long summaries','Key points extraction','No API key required — 100% free'],
+    steps:[
+      'Upload your PDF document (text-based PDFs work best).',
+      'Choose summary length: Brief, Short, Medium, Long, or Bullet Points.',
+      'Click "Summarize" — read your AI-generated summary instantly.'
+    ],
+    features:[
+      'Extractive AI summarization — no hallucinations',
+      '5 summary lengths (Brief to Long)',
+      'Key points extraction with topics',
+      'Document statistics: word count, reading time, pages',
+      'No external AI API — completely private',
+      '100% free, no signup required'
+    ],
     related:[
-      {name:'Translate PDF',url:'/tools/translate-pdf/',emoji:'🌍',c1:'#10b981',c2:'#06b6d4',desc:'Translate PDF'},
-      {name:'OCR PDF',url:'/tools/ocr-pdf/',emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make searchable'},
-      {name:'Compare PDF',url:'/tools/compare-pdf/',emoji:'⚖️',c1:'#6366f1',c2:'#8b5cf6',desc:'Compare PDFs'},
-      {name:'PDF to Word',url:'/tools/pdf-to-word/',emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'}
+      {name:'Translate PDF', url:'/tools/translate-pdf/', emoji:'🌍',c1:'#10b981',c2:'#06b6d4',desc:'Translate PDF'},
+      {name:'OCR PDF',       url:'/tools/ocr-pdf/',       emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make searchable first'},
+      {name:'Compare PDF',   url:'/tools/compare-pdf/',   emoji:'⚖️',c1:'#6366f1',c2:'#8b5cf6',desc:'Compare two PDFs'},
+      {name:'PDF to Word',   url:'/tools/pdf-to-word/',   emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to editable Word'}
     ]
   };
   </script>

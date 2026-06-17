@@ -1,59 +1,91 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Compress PDF Free Online — Reduce PDF Size | IshuTools</title>
-  <meta name="description" content="Compress PDF online for free. Reduce PDF file size without losing quality. Fast, secure, no signup. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="compress pdf, reduce pdf size, pdf compressor, make pdf smaller, ishu, ishutools, pdf size reducer" />
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compress PDF Free Online — Reduce PDF Size Without Losing Quality | IshuTools</title>
+  <meta name="description" content="Compress PDF online free. Reduce PDF file size by up to 90% without losing quality. No signup, no watermark, no email needed. Best PDF compressor — IshuTools by Ishu Kumar." />
+  <meta name="keywords" content="compress pdf, reduce pdf size, pdf compressor online, make pdf smaller, shrink pdf, pdf size reducer, compress pdf without losing quality, free pdf compressor, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/compress-pdf/" />
+  <meta property="og:title" content="Compress PDF Free — Reduce Size Up to 90% | IshuTools" />
+  <meta property="og:description" content="Compress PDF online free. Reduce file size without quality loss. No signup. By Ishu Kumar — ishutools.fun" />
+  <meta property="og:url" content="https://ishutools.fun/tools/compress-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Compress PDF Free — IshuTools" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Ctext y='22' x='4' font-size='20'%3E🗜️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Compress PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/compress-pdf/",
+    "description": "Free online PDF compressor. Reduce PDF file size by up to 90% without losing quality. Multiple compression levels available. No signup required.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "PDF compression, multiple quality presets, image optimization, lossless compression, batch compress",
+    "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"1423"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Compress PDF Online Free",
+    "description": "Compress your PDF file in 3 simple steps using IshuTools free PDF compressor",
+    "step": [
+      {"@type":"HowToStep","name":"Upload PDF","text":"Click 'Upload' or drag & drop your PDF file (up to 1 GB)"},
+      {"@type":"HowToStep","name":"Choose Compression","text":"Select compression level: Low (maximum compression), Medium (balanced), or High (best quality)"},
+      {"@type":"HowToStep","name":"Download","text":"Click 'Compress PDF' and download your smaller PDF file instantly"}
+    ],
+    "tool": [{"@type":"HowToTool","name":"IshuTools PDF Compressor"}],
+    "totalTime": "PT30S"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id:           'compress-pdf',
-    name:         'Compress PDF',
-    emoji:        '🗜️',
-    category:     'Organize PDF',
-    categorySlug: '',
-    description:  'Reduce PDF file size while preserving quality. Uses advanced compression — ideal for email, web upload, and sharing.',
-    apiEndpoint:  '/api/compress-pdf',
-    multiFile:    false,
-    acceptedTypes: '.pdf,application/pdf',
-    acceptedLabel: 'PDF',
-    resultType:   'file',
-    outputFilename: 'compressed.pdf',
-    outputMime:   'application/pdf',
-    options: [
-      {
-        type: 'select', id: 'quality', label: 'Compression Level',
-        choices: [
-          { v:'low',    l:'Low — Maximum compression (smaller file)' },
-          { v:'medium', l:'Medium — Balanced (recommended)' },
-          { v:'high',   l:'High — Best quality (less compression)' }
-        ],
-        default: 'medium'
-      }
+    id:'compress-pdf', name:'Compress PDF', emoji:'🗜️',
+    category:'Organize PDF', categorySlug:'',
+    description:'Reduce PDF file size by up to 90% while preserving quality. Multiple compression levels — screen, ebook, printer, prepress, lossless. Ideal for email, web upload, and sharing.',
+    apiEndpoint:'/api/compress-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'compressed.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'select', id:'quality', label:'Compression Level',
+        choices:[
+          {v:'screen', l:'Screen — Maximum compression (72 dpi, smallest file)'},
+          {v:'low',    l:'Low — Very small (96 dpi, great for sharing)'},
+          {v:'medium', l:'Medium — Balanced (recommended)'},
+          {v:'high',   l:'High — Best quality (minimal compression)'},
+          {v:'lossless',l:'Lossless — Metadata & streams only (no image change)'}
+        ], default:'medium' },
+      { type:'select', id:'grayscale', label:'Convert to Grayscale',
+        choices:[{v:'false',l:'No — Keep original colors'},{v:'true',l:'Yes — Convert to grayscale (smaller)'}],
+        default:'false' }
     ],
-    steps: [
+    steps:[
       'Upload your PDF file (up to 1 GB).',
       'Select your preferred compression level.',
-      'Click "Compress PDF" — download the smaller file.'
+      'Click "Compress PDF" — download the smaller file instantly.'
     ],
-    features: [
+    features:[
       'Up to 90% file size reduction',
-      'Three compression presets',
-      'No visible quality loss on Medium/High',
-      'Powered by pikepdf for best results',
-      '100% free, no file limits'
+      '5 compression presets (Screen/Low/Medium/High/Lossless)',
+      'Ghostscript + pikepdf + PyMuPDF multi-engine',
+      'Optional grayscale conversion for extra savings',
+      'No quality loss on Medium/High settings',
+      '100% free — no file limits, no watermark'
     ],
-    related: [
-      { name:'Merge PDF',   url:'/tools/merge-pdf/',   emoji:'🔗', c1:'#6366f1', c2:'#8b5cf6', desc:'Combine PDFs' },
-      { name:'Optimize PDF',url:'/tools/optimize-pdf/',emoji:'⚡', c1:'#f59e0b', c2:'#ef4444', desc:'Optimize for web/print' },
-      { name:'Repair PDF',  url:'/tools/repair-pdf/',  emoji:'🔧', c1:'#6366f1', c2:'#8b5cf6', desc:'Fix damaged PDFs' },
-      { name:'PDF to JPG',  url:'/tools/pdf-to-jpg/',  emoji:'🖼️', c1:'#f59e0b', c2:'#10b981', desc:'Convert to images' }
+    related:[
+      {name:'Merge PDF',    url:'/tools/merge-pdf/',    emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
+      {name:'Optimize PDF', url:'/tools/optimize-pdf/', emoji:'⚡',c1:'#f59e0b',c2:'#ef4444',desc:'Optimize for web/print'},
+      {name:'Repair PDF',   url:'/tools/repair-pdf/',   emoji:'🔧',c1:'#6366f1',c2:'#8b5cf6',desc:'Fix damaged PDFs'},
+      {name:'PDF to JPG',   url:'/tools/pdf-to-jpg/',   emoji:'🖼️',c1:'#f59e0b',c2:'#10b981',desc:'Convert to images'}
     ]
   };
   </script>

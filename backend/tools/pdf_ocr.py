@@ -667,7 +667,7 @@ def extract_text_native(pdf_path: str, page_range: str = 'all',
         total = doc.page_count
 
         if page_range and str(page_range).strip().lower() != 'all':
-            from backend.tools.pdf_split import parse_ranges
+            from tools.pdf_split import parse_ranges
             indices = parse_ranges(page_range, total)
         else:
             indices = list(range(total))

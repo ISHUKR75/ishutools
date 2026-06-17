@@ -230,7 +230,7 @@ def api_remove_pages():
             return error_response('Please specify pages to remove (e.g. 1,3,5-8).')
         path  = save_uploaded_file(file)
         out   = output_path('pages_removed.pdf')
-        remove_pages(path, out, pages=pages)
+        remove_pages(path, out, page_selector=pages)
         return send_result(out, 'pages_removed.pdf')
     except Exception as e:
         logger.exception("remove-pages error")
@@ -358,7 +358,8 @@ def api_img_to_pdf():
         margin      = int(request.form.get('margin', 0))
         paths       = save_uploaded_files(files, '.jpg')
         out         = output_path('images.pdf')
-        images_to_pdf(paths, out, page_size=page_size, orientation=orientation, margin=margin)
+        images_to_pdf(paths, out, page_size=page_size, orientation=orientation,
+                      margin_top=margin, margin_bottom=margin, margin_left=margin, margin_right=margin)
         return send_result(out, 'converted.pdf')
     except Exception as e:
         logger.exception("img-to-pdf error")
@@ -441,8 +442,9 @@ def api_html_to_pdf():
                 html_content = f.read()
         if not html_content and not html_url:
             return error_response('Please provide HTML content, a URL, or upload an HTML file.')
-        out = output_path('converted.pdf')
-        html_to_pdf(out, html_content=html_content, html_url=html_url)
+        out    = output_path('converted.pdf')
+        source = html_url if html_url else html_content
+        html_to_pdf(source, out, is_url=bool(html_url))
         return send_result(out, 'converted.pdf')
     except Exception as e:
         logger.exception("html-to-pdf error")
@@ -813,9 +815,11 @@ def api_translate_pdf():
             return error_response('No file uploaded.')
         target_lang = request.form.get('target_lang', 'hi')
         source_lang = request.form.get('source_lang', 'auto')
+        bilingual   = request.form.get('bilingual', 'false').lower() == 'true'
         path        = save_uploaded_file(file)
         out         = output_path('translated.pdf')
-        translate_pdf(path, out, target_lang=target_lang, source_lang=source_lang)
+        translate_pdf(path, out, target_lang=target_lang,
+                      source_lang=source_lang, bilingual=bilingual)
         return send_result(out, 'translated.pdf')
     except Exception as e:
         logger.exception("translate-pdf error")

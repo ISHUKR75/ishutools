@@ -2,18 +2,39 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Add Watermark to PDF Free Online | IshuTools</title>
-  <meta name="description" content="Add text watermark to PDF online for free. Customize text, opacity, color, size, angle. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="add watermark to pdf, pdf watermark, watermark pdf online, stamp pdf, ishu, ishutools" />
+  <title>Add Watermark to PDF Free Online — Text Watermark | IshuTools</title>
+  <meta name="description" content="Add text watermark to PDF online free. Customize text, opacity, color, size, angle, and position. Apply to all pages or specific pages. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="add watermark to pdf, pdf watermark, watermark pdf online, stamp pdf, pdf watermark free, text watermark pdf, confidential watermark pdf, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/add-watermark/" />
+  <meta property="og:title" content="Add Watermark to PDF Free — Text Watermark | IshuTools" />
+  <meta property="og:description" content="Add customizable text watermark to PDF free. Control opacity, color, angle. No signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/add-watermark/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E💧%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Add Watermark to PDF Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/add-watermark/",
+    "description": "Add customizable text watermark to PDF online free. Control text, opacity, color, size, rotation angle, and position. Apply to all pages. No signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "custom text watermark, opacity control, color picker, font size, rotation angle, position presets, all pages"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'add-watermark', name:'Add Watermark', emoji:'💧',
     category:'Edit PDF', categorySlug:'',
-    description:'Add a customizable text watermark to your PDF pages. Control text, opacity, color, font size, rotation, and position.',
+    description:'Add a fully customizable text watermark to your PDF pages. Control watermark text, opacity, color, font size, rotation angle, and position. Apply to all pages or specific pages.',
     apiEndpoint:'/api/add-watermark', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'watermarked.pdf', outputMime:'application/pdf',
@@ -23,17 +44,41 @@
       { type:'number', id:'font_size', label:'Font Size (pt)', min:12, max:200, default:48 },
       { type:'range',  id:'opacity',   label:'Opacity', min:0.05, max:1, step:0.05, default:0.3, unit:'%', scale:100 },
       { type:'select', id:'rotation',  label:'Angle',
-        choices:[{v:'0',l:'0° Horizontal'},{v:'30',l:'30°'},{v:'45',l:'45° Diagonal'},{v:'60',l:'60°'},{v:'90',l:'90° Vertical'}], default:'45' },
-      { type:'select', id:'position',  label:'Position',
-        choices:[{v:'center',l:'Center'},{v:'top-left',l:'Top Left'},{v:'top-right',l:'Top Right'},{v:'bottom-left',l:'Bottom Left'},{v:'bottom-right',l:'Bottom Right'}], default:'center' }
+        choices:[
+          {v:'0',  l:'0° — Horizontal'},
+          {v:'30', l:'30° — Slight diagonal'},
+          {v:'45', l:'45° — Standard diagonal'},
+          {v:'60', l:'60° — Steep diagonal'},
+          {v:'90', l:'90° — Vertical'}
+        ], default:'45' },
+      { type:'select', id:'position', label:'Position',
+        choices:[
+          {v:'center',       l:'Center (most common)'},
+          {v:'top-left',     l:'Top Left'},
+          {v:'top-right',    l:'Top Right'},
+          {v:'bottom-left',  l:'Bottom Left'},
+          {v:'bottom-right', l:'Bottom Right'}
+        ], default:'center' }
     ],
-    steps:['Upload your PDF.','Enter watermark text and customize appearance.','Download the watermarked PDF.'],
-    features:['Custom text, color, size, angle','Adjustable opacity (transparent to solid)','Applies to every page','reportlab-powered rendering'],
+    steps:[
+      'Upload your PDF file.',
+      'Enter watermark text (e.g. CONFIDENTIAL, DRAFT, SAMPLE).',
+      'Customize color, size, opacity, angle, and position.',
+      'Click "Add Watermark" and download the result.'
+    ],
+    features:[
+      'Fully customizable text, color, size, and opacity',
+      'Rotation angles: 0°, 30°, 45°, 60°, 90°',
+      '5 position presets including center diagonal',
+      'Applies watermark to every page',
+      'reportlab + PyMuPDF dual-engine rendering',
+      '100% free — no signup, no watermark on output'
+    ],
     related:[
       {name:'Add Page Numbers',url:'/tools/add-page-numbers/',emoji:'🔢',c1:'#6366f1',c2:'#8b5cf6',desc:'Number pages'},
-      {name:'Protect PDF',url:'/tools/protect-pdf/',emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
-      {name:'Sign PDF',url:'/tools/sign-pdf/',emoji:'✍️',c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
-      {name:'Redact PDF',url:'/tools/redact-pdf/',emoji:'⬛',c1:'#0f172a',c2:'#1e293b',desc:'Redact text'}
+      {name:'Protect PDF',     url:'/tools/protect-pdf/',     emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
+      {name:'Sign PDF',        url:'/tools/sign-pdf/',        emoji:'✍️',c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
+      {name:'Redact PDF',      url:'/tools/redact-pdf/',      emoji:'⬛',c1:'#0f172a',c2:'#1e293b',desc:'Redact text'}
     ]
   };
   </script>

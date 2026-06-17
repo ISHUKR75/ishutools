@@ -2,36 +2,79 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crop PDF Free — Trim PDF Pages Online | IshuTools</title>
-  <meta name="description" content="Crop PDF pages online free. Remove margins, trim whitespace, or crop to a specific area. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="crop pdf, trim pdf pages, pdf cropper, remove pdf margins, ishu, ishutools" />
+  <title>Crop PDF Free — Trim Margins and Crop Pages Online | IshuTools</title>
+  <meta name="description" content="Crop PDF pages online free. Remove margins, trim whitespace, or crop to a specific area using percent, points, mm, or inch units. Auto-crop white margins. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="crop pdf, trim pdf pages, pdf cropper, remove pdf margins, crop pdf online free, auto crop pdf, trim white margins pdf, pdf page cropper, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/crop-pdf/" />
+  <meta property="og:title" content="Crop PDF Free — Trim Margins & White Space | IshuTools" />
+  <meta property="og:description" content="Crop PDF pages, remove margins, auto-crop whitespace. Percent or points units. Free, no signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/crop-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f43f5e'/%3E%3Ctext y='22' x='4' font-size='20'%3E✂️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Crop PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/crop-pdf/",
+    "description": "Crop PDF pages online free. Remove margins or crop to specific area using percent, points, mm, or inch units. Auto-crop to detect white borders. PyMuPDF powered. No signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "crop all pages, percent or points units, auto-crop white margins, left right top bottom margins, PyMuPDF powered, no quality loss"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'crop-pdf', name:'Crop PDF', emoji:'✂️',
     category:'Edit PDF', categorySlug:'',
-    description:'Crop PDF pages to remove margins or focus on a specific area. Enter percentages to define the crop region.',
+    description:'Crop PDF pages to remove margins, trim whitespace, or focus on a specific area. Use percentage-based or point-based cropping. Crop all pages uniformly or specify custom margins.',
     apiEndpoint:'/api/crop-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'cropped.pdf', outputMime:'application/pdf',
     options:[
-      { type:'number', id:'left',   label:'Left Margin (%)',   min:0, max:50, default:0 },
-      { type:'number', id:'right',  label:'Right Margin (%)',  min:50, max:100, default:100 },
-      { type:'number', id:'top',    label:'Top Margin (%)',    min:50, max:100, default:100 },
-      { type:'number', id:'bottom', label:'Bottom Margin (%)', min:0, max:50, default:0 },
-      { type:'select', id:'unit',   label:'Unit',
-        choices:[{v:'percent',l:'Percent (% of page)'},{v:'points',l:'Points (pt)'}], default:'percent' }
+      { type:'select', id:'unit', label:'Unit',
+        choices:[
+          {v:'percent',l:'Percent (% of page dimension)'},
+          {v:'points', l:'Points (pt — 1 pt = 1/72 inch)'},
+          {v:'mm',     l:'Millimeters (mm)'},
+          {v:'inch',   l:'Inches'}
+        ], default:'percent' },
+      { type:'number', id:'left',   label:'Left Crop',   min:0, max:50, default:0 },
+      { type:'number', id:'right',  label:'Right Crop',  min:0, max:50, default:0 },
+      { type:'number', id:'top',    label:'Top Crop',    min:0, max:50, default:0 },
+      { type:'number', id:'bottom', label:'Bottom Crop', min:0, max:50, default:0 },
+      { type:'select', id:'auto_crop', label:'Auto-Crop Mode',
+        choices:[
+          {v:'false',l:'Manual — use values above'},
+          {v:'true', l:'Auto — detect and remove white borders'}
+        ], default:'false' }
     ],
-    steps:['Upload your PDF.','Enter crop margins as percentage of page dimensions.','Download the cropped PDF.'],
-    features:['Percentage or point-based cropping','Crops all pages uniformly','Removes unwanted whitespace and margins','PyMuPDF-powered'],
+    steps:[
+      'Upload your PDF file.',
+      'Choose units (percent, points, mm, or inches).',
+      'Enter crop values for each side, or enable Auto-Crop.',
+      'Download the cropped PDF.'
+    ],
+    features:[
+      'Crop using percent, points, mm, or inches',
+      'Independent left/right/top/bottom control',
+      'Auto-crop mode detects and removes white borders',
+      'Crops all pages uniformly',
+      'PyMuPDF — no quality loss',
+      '100% free — no watermarks, no signup'
+    ],
     related:[
-      {name:'Rotate PDF',url:'/tools/rotate-pdf/',emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'},
-      {name:'Remove Pages',url:'/tools/remove-pages/',emoji:'🗑️',c1:'#ef4444',c2:'#f97316',desc:'Remove pages'},
-      {name:'Edit PDF',url:'/tools/edit-pdf/',emoji:'✏️',c1:'#8b5cf6',c2:'#6366f1',desc:'Edit PDF'},
-      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
+      {name:'Rotate PDF',   url:'/tools/rotate-pdf/',   emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'},
+      {name:'Remove Pages', url:'/tools/remove-pages/', emoji:'🗑️',c1:'#ef4444',c2:'#f97316',desc:'Remove pages'},
+      {name:'Edit PDF',     url:'/tools/edit-pdf/',     emoji:'✏️',c1:'#8b5cf6',c2:'#6366f1',desc:'Edit PDF'},
+      {name:'Compress PDF', url:'/tools/compress-pdf/', emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
     ]
   };
   </script>

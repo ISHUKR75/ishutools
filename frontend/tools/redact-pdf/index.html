@@ -2,90 +2,87 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redact PDF Free — Permanently Black Out Text Online | IshuTools</title>
-  <meta name="description" content="Permanently redact sensitive text, emails, phone numbers, and PII from PDF online free. Search-based automatic redaction. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="redact pdf, black out pdf text, pdf redactor, censor pdf, remove text pdf, pii redaction, ishu, ishutools" />
+  <title>Redact PDF Free — Permanently Black Out Sensitive Text Online | IshuTools</title>
+  <meta name="description" content="Permanently redact sensitive text, emails, phone numbers, SSN, and PII from PDF online free. Search-based automatic redaction. Choose black, navy, or red boxes. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="redact pdf, black out pdf text, pdf redactor, censor pdf, remove text pdf, pii redaction pdf, permanently remove text pdf, redact pdf free, pdf censoring tool, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/redact-pdf/" />
+  <meta property="og:title" content="Redact PDF Free — Black Out Sensitive Text | IshuTools" />
+  <meta property="og:description" content="Permanently redact PII, emails, phone numbers from PDF. Black box redaction. No signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/redact-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231e293b'/%3E%3Ctext y='22' x='4' font-size='20'%3E⬛%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <link rel="stylesheet" href="style.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Redact PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar"}}</script>
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Redact PDF — Permanently Remove Sensitive Text Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/redact-pdf/",
+    "description": "Permanently redact sensitive text, PII, emails, phone numbers, SSN from PDF online free. Search-based automatic redaction. Custom redaction box color. Metadata stripping option. No signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "permanent redaction, PII auto-redact, email redaction, phone redaction, SSN redaction, credit card redaction, custom terms, metadata stripping"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id: 'redact-pdf',
-    name: 'Redact PDF',
-    emoji: '⬛',
-    category: 'PDF Security',
-    categorySlug: '',
-    description: 'Permanently black out sensitive text, names, phone numbers, emails, and PII from PDF files. Search-based automatic redaction — irreversible.',
-    apiEndpoint: '/api/redact-pdf',
-    multiFile: false,
-    acceptedTypes: '.pdf,application/pdf',
-    acceptedLabel: 'PDF',
-    resultType: 'file',
-    outputFilename: 'redacted.pdf',
-    outputMime: 'application/pdf',
-    options: [
-      {
-        type: 'textarea', id: 'search_terms', label: 'Terms to Redact (one per line)',
-        placeholder: 'Enter specific words, names, or phrases:\nJohn Smith\n555-123-4567\nconfidential@example.com',
-        rows: 5
-      },
-      {
-        type: 'select', id: 'preset', label: 'Auto-Redact Preset (PII patterns)',
-        icon: 'fas fa-wand-magic-sparkles',
-        choices: [
-          { v: 'none',      l: 'None — Use custom terms only' },
-          { v: 'pii',       l: '🔒 PII — Email + Phone + SSN + Credit Card' },
-          { v: 'email',     l: '📧 Email addresses only' },
-          { v: 'phone',     l: '📞 Phone numbers (US + India)' },
-          { v: 'financial', l: '💳 Financial — Credit cards + SSN + Aadhaar + PAN' },
-          { v: 'legal',     l: '⚖️ Legal — Dates + URLs + Email + Phone' }
-        ],
-        default: 'none'
-      },
-      {
-        type: 'select', id: 'redaction_color', label: 'Redaction Box Color',
-        icon: 'fas fa-square',
-        choices: [
-          { v: '#000000', l: '⬛ Black (standard)' },
-          { v: '#1e293b', l: '🟦 Dark Navy' },
-          { v: '#ef4444', l: '🟥 Red' },
-          { v: '#6366f1', l: '🟪 Indigo' }
-        ],
-        default: '#000000'
-      },
-      {
-        type: 'radio', id: 'redact_metadata', label: 'Also Strip Metadata',
-        choices: [
-          { v: 'true',  l: 'Yes — Remove author, title, keywords' },
-          { v: 'false', l: 'No — Keep metadata' }
-        ],
-        default: 'true'
-      }
+    id:'redact-pdf', name:'Redact PDF', emoji:'⬛',
+    category:'PDF Security', categorySlug:'',
+    description:'Permanently black out sensitive text, names, phone numbers, emails, SSN, and PII from PDF files. Search-based redaction — text is fully removed, not just covered. Irreversible and secure.',
+    apiEndpoint:'/api/redact-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'redacted.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'textarea', id:'search_terms', label:'Terms to Redact (one per line)',
+        placeholder:'Enter specific words, names, or phrases:\nJohn Smith\n555-123-4567\nconfidential@example.com', rows:5 },
+      { type:'select', id:'preset', label:'Auto-Redact Preset (PII patterns)',
+        choices:[
+          {v:'none',      l:'None — Use custom terms only'},
+          {v:'pii',       l:'🔒 PII — Email + Phone + SSN + Credit Card'},
+          {v:'email',     l:'📧 Email addresses only'},
+          {v:'phone',     l:'📞 Phone numbers (US + India format)'},
+          {v:'financial', l:'💳 Financial — Credit cards + SSN + Aadhaar + PAN'},
+          {v:'legal',     l:'⚖️ Legal — Dates + URLs + Email + Phone'}
+        ], default:'none' },
+      { type:'select', id:'redaction_color', label:'Redaction Box Color',
+        choices:[
+          {v:'#000000',l:'⬛ Black (standard)'},
+          {v:'#1e293b',l:'🟦 Dark Navy'},
+          {v:'#ef4444',l:'🟥 Red'},
+          {v:'#6366f1',l:'🟪 Indigo'}
+        ], default:'#000000' },
+      { type:'radio', id:'redact_metadata', label:'Strip Metadata',
+        choices:[
+          {v:'true', l:'Yes — Remove author, title, keywords'},
+          {v:'false',l:'No — Keep metadata'}
+        ], default:'true' }
     ],
-    steps: [
+    steps:[
       'Upload your PDF document.',
-      'Enter specific words/phrases to redact (one per line).',
-      'Or choose an auto-redact preset (emails, phones, PII).',
-      'Download the permanently redacted PDF.'
+      'Enter specific terms to redact (one per line).',
+      'Or choose an auto-redact preset (PII, emails, phones).',
+      'Click "Redact PDF" — download the permanently redacted file.'
     ],
-    features: [
-      'Permanently removes text (not just covered)',
-      'Auto-redact emails, phones, SSN, credit cards',
-      'Custom word/phrase redaction',
-      'Custom redaction box color',
-      'Metadata stripping option',
+    features:[
+      'Permanently removes text (not just visually covered)',
+      'Auto-redact: emails, phones, SSN, credit cards, PII',
+      'Custom word/phrase redaction list',
+      'Custom redaction box color (black, navy, red, indigo)',
+      'Metadata stripping option (author, title, keywords)',
       'PyMuPDF + Ghostscript for absolute permanence',
-      '100% free, no watermarks'
+      '100% free — no watermarks, no signup'
     ],
-    related: [
-      { name: 'Protect PDF',  url: '/tools/protect-pdf/',  emoji: '🔒', c1: '#ef4444', c2: '#f97316', desc: 'Add password' },
-      { name: 'Sign PDF',     url: '/tools/sign-pdf/',     emoji: '✍️', c1: '#8b5cf6', c2: '#6366f1', desc: 'Sign PDF' },
-      { name: 'Unlock PDF',   url: '/tools/unlock-pdf/',   emoji: '🔓', c1: '#10b981', c2: '#06b6d4', desc: 'Remove password' },
-      { name: 'Compare PDF',  url: '/tools/compare-pdf/',  emoji: '⚖️', c1: '#6366f1', c2: '#8b5cf6', desc: 'Compare PDFs' }
+    related:[
+      {name:'Protect PDF',url:'/tools/protect-pdf/',emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
+      {name:'Sign PDF',   url:'/tools/sign-pdf/',   emoji:'✍️',c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
+      {name:'Unlock PDF', url:'/tools/unlock-pdf/', emoji:'🔓',c1:'#10b981',c2:'#06b6d4',desc:'Remove password'},
+      {name:'Compare PDF',url:'/tools/compare-pdf/',emoji:'⚖️',c1:'#6366f1',c2:'#8b5cf6',desc:'Compare PDFs'}
     ]
   };
   </script>

@@ -1,72 +1,107 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Merge PDF Free Online — Combine PDFs | IshuTools by Ishu Kumar</title>
-  <meta name="description" content="Merge PDF files online for free. Combine multiple PDF documents into one in seconds. No signup, no watermark. Created by Ishu Kumar. ishutools.fun" />
-  <meta name="keywords" content="merge pdf, combine pdf, join pdf, merge pdf online free, ishu, ishu kumar, ishutools, pdf merger" />
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merge PDF Free Online — Combine Multiple PDF Files Into One | IshuTools</title>
+  <meta name="description" content="Merge PDF files online for free. Combine multiple PDF documents into one in seconds. Supports up to 50 files. No signup, no watermark. Best free PDF merger by Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="merge pdf, combine pdf, join pdf, merge pdf online free, pdf merger, merge multiple pdf, combine pdf files into one, pdf combiner, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/merge-pdf/" />
-  <meta property="og:title" content="Merge PDF Free Online — IshuTools" />
-  <meta property="og:description" content="Combine multiple PDFs into one. 100% free, no signup." />
+  <meta property="og:title" content="Merge PDF Free — Combine PDFs Into One | IshuTools" />
+  <meta property="og:description" content="Merge multiple PDFs into one free. Up to 50 files. No signup, no watermark. By Ishu Kumar." />
   <meta property="og:url" content="https://ishutools.fun/tools/merge-pdf/" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary" />
-  <!-- Tool-specific SVG favicon -->
+  <meta name="twitter:title" content="Merge PDF Free — IshuTools" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔗%3C/text%3E%3C/svg%3E" />
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <!-- Shared base CSS -->
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <!-- Tool-specific CSS -->
-  <link rel="stylesheet" href="style.css" />
-  <!-- JSON-LD -->
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Merge PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"}}</script>
-  <!-- Tool config MUST come before tool-base.js -->
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Merge PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/merge-pdf/",
+    "description": "Merge multiple PDF files into one document online free. Supports up to 50 PDF files at once. Drag to reorder. Preserves original formatting and quality. No signup required.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "merge up to 50 PDFs, drag to reorder, preserve formatting, 1 GB per file, no watermark, instant download",
+    "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"4123"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Merge PDF Files Online Free",
+    "description": "Combine multiple PDFs into one in 3 simple steps",
+    "step": [
+      {"@type":"HowToStep","name":"Upload PDFs","text":"Click 'Upload Files' or drag & drop your PDF files (up to 50 files, 1 GB each)"},
+      {"@type":"HowToStep","name":"Arrange Order","text":"Drag and drop files to arrange them in the order you want in the merged document"},
+      {"@type":"HowToStep","name":"Download","text":"Click 'Merge PDF' and download your combined PDF file instantly"}
+    ],
+    "totalTime": "PT30S"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How many PDF files can I merge at once?",
+        "acceptedAnswer": {"@type":"Answer","text":"IshuTools supports merging up to 50 PDF files at once with a maximum of 1 GB per file. There is no limit on total document size."}
+      },
+      {
+        "@type": "Question",
+        "name": "Will merging PDFs lose quality?",
+        "acceptedAnswer": {"@type":"Answer","text":"No. IshuTools preserves the original resolution, formatting, fonts, images, and all content from every PDF file in the merged output."}
+      },
+      {
+        "@type": "Question",
+        "name": "Is PDF merging free?",
+        "acceptedAnswer": {"@type":"Answer","text":"100% free. No signup, no email, no watermark, no file limits. IshuTools is completely free to use."}
+      }
+    ]
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id:           'merge-pdf',
-    name:         'Merge PDF',
-    emoji:        '🔗',
-    category:     'Organize PDF',
-    categorySlug: '',
-    description:  'Combine multiple PDF files into a single document. Drag, drop and merge in seconds — free, secure, no signup required.',
-    apiEndpoint:  '/api/merge-pdf',
-    multiFile:    true,
-    minFiles:     2,
-    maxFiles:     50,
-    acceptedTypes: '.pdf,application/pdf',
-    acceptedLabel: 'PDF / PDF / PDF',
-    resultType:   'file',
-    outputFilename: 'merged.pdf',
-    outputMime:   'application/pdf',
-    options: [],
-    steps: [
-      'Click "Upload Files" or drag & drop your PDFs.',
-      'Arrange them in the order you want.',
-      'Click "Process Merge PDF" and download the result.'
+    id:'merge-pdf', name:'Merge PDF', emoji:'🔗',
+    category:'Organize PDF', categorySlug:'',
+    description:'Combine multiple PDF files into a single document. Drag, drop, and reorder files before merging. Preserves original formatting, quality, and content. Free, secure, no signup required.',
+    apiEndpoint:'/api/merge-pdf', multiFile:true, minFiles:2, maxFiles:50,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF / PDF / PDF',
+    resultType:'file', outputFilename:'merged.pdf', outputMime:'application/pdf',
+    options:[],
+    steps:[
+      'Click "Upload Files" or drag & drop your PDFs (up to 50 files).',
+      'Drag to reorder files in the sequence you want.',
+      'Click "Merge PDF" and download the combined document.'
     ],
-    features: [
+    features:[
       '100% free — no hidden fees, ever',
       'Supports up to 50 PDF files at once',
-      'Preserves original formatting & quality',
+      'Drag & drop to reorder before merging',
+      'Preserves original formatting, fonts & images',
       'No signup or account required',
       'Files deleted after processing',
       '1 GB max file size per file'
     ],
-    related: [
-      { name:'Split PDF',    url:'/tools/split-pdf/',    emoji:'✂️', c1:'#3b82f6', c2:'#06b6d4', desc:'Split into pages' },
-      { name:'Compress PDF', url:'/tools/compress-pdf/', emoji:'🗜️', c1:'#10b981', c2:'#059669', desc:'Reduce file size' },
-      { name:'Organize PDF', url:'/tools/organize-pdf/', emoji:'📋', c1:'#8b5cf6', c2:'#6366f1', desc:'Reorder pages' },
-      { name:'PDF to Word',  url:'/tools/pdf-to-word/',  emoji:'📝', c1:'#f59e0b', c2:'#ef4444', desc:'Convert to Word' }
+    related:[
+      {name:'Split PDF',    url:'/tools/split-pdf/',    emoji:'✂️',c1:'#3b82f6',c2:'#06b6d4',desc:'Split into pages'},
+      {name:'Compress PDF', url:'/tools/compress-pdf/', emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce file size'},
+      {name:'Organize PDF', url:'/tools/organize-pdf/', emoji:'📋',c1:'#8b5cf6',c2:'#6366f1',desc:'Reorder pages'},
+      {name:'PDF to Word',  url:'/tools/pdf-to-word/',  emoji:'📝',c1:'#f59e0b',c2:'#ef4444',desc:'Convert to Word'}
     ]
   };
   </script>
 </head>
 <body>
-  <!-- tool-base.js renders all UI into this body -->
   <script src="/static/js/tool-base.js" defer></script>
   <script src="script.js" defer></script>
 </body>

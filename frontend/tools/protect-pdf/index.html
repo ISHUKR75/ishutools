@@ -3,37 +3,78 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Protect PDF Free — Add Password to PDF Online | IshuTools</title>
-  <meta name="description" content="Add password protection to PDF online for free. Set user and owner passwords. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="protect pdf, add password to pdf, encrypt pdf, password protect pdf, ishu, ishutools" />
+  <meta name="description" content="Add password protection to PDF online free. Set user and owner passwords. AES-256 encryption. Restrict printing, copying, and editing permissions. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="protect pdf, add password to pdf, encrypt pdf, password protect pdf, pdf encryption, lock pdf, secure pdf online free, pdf permissions, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/protect-pdf/" />
+  <meta property="og:title" content="Protect PDF Free — Add Password & Encrypt | IshuTools" />
+  <meta property="og:description" content="Add AES-256 password protection to your PDF. Set permissions. No signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/protect-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ef4444'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔒%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Protect PDF — Add Password & Encrypt Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/protect-pdf/",
+    "description": "Add password protection and AES-256 encryption to PDF files online free. Set user and owner passwords. Restrict printing, copying, and editing permissions. Powered by pikepdf.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "AES-256 encryption, user password, owner password, print permissions, copy permissions, edit permissions"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'protect-pdf', name:'Protect PDF', emoji:'🔒',
     category:'PDF Security', categorySlug:'',
-    description:'Add password protection and encryption to your PDF. Set a user password for opening and an owner password for editing permissions.',
+    description:'Add password protection and AES-256 encryption to your PDF. Set a user password for opening and an owner password for editing. Control printing, copying, and modification permissions.',
     apiEndpoint:'/api/protect-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'protected.pdf', outputMime:'application/pdf',
     options:[
-      { type:'password', id:'user_password',  label:'Open Password (required)', placeholder:'Password to open the PDF' },
-      { type:'password', id:'owner_password', label:'Owner Password (optional)', placeholder:'Password for editing (optional)' },
+      { type:'password', id:'user_password',  label:'Open Password (required)',
+        placeholder:'Password needed to open the PDF' },
+      { type:'password', id:'owner_password', label:'Owner Password (optional)',
+        placeholder:'Password needed to edit (optional)' },
       { type:'select',   id:'permissions',    label:'Permissions',
         choices:[
-          {v:'all',l:'All permissions allowed'},
-          {v:'print_only',l:'Print only'},
-          {v:'read_only',l:'Read only (no print/copy)'}
-        ], default:'all' }
+          {v:'all',       l:'All permissions — print, copy, edit allowed'},
+          {v:'print_only',l:'Print only — cannot copy or edit'},
+          {v:'read_only', l:'Read only — cannot print, copy, or edit'}
+        ], default:'all' },
+      { type:'select',   id:'encryption',     label:'Encryption Strength',
+        choices:[
+          {v:'aes256',l:'AES-256 — Strongest (recommended)'},
+          {v:'aes128',l:'AES-128 — Compatible with older readers'},
+          {v:'rc4_128',l:'RC4-128 — Legacy compatibility'}
+        ], default:'aes256' }
     ],
-    steps:['Upload your PDF.','Enter a password for opening the PDF.','Optionally set an owner password and permissions.','Download the protected PDF.'],
-    features:['AES-256 encryption','User & owner password support','Configurable permissions','pikepdf-powered encryption'],
+    steps:[
+      'Upload your PDF file.',
+      'Set an open password (required to open the PDF).',
+      'Optionally set an owner password and permissions.',
+      'Click "Protect PDF" and download the encrypted file.'
+    ],
+    features:[
+      'AES-256, AES-128, RC4-128 encryption options',
+      'User password (open) + owner password (edit)',
+      'Full permission control: print / copy / edit',
+      'pikepdf-powered — industry-standard encryption',
+      'No data stored — encrypted server-side',
+      '100% free — no signup, no watermark'
+    ],
     related:[
-      {name:'Unlock PDF',url:'/tools/unlock-pdf/',emoji:'🔓',c1:'#10b981',c2:'#06b6d4',desc:'Remove password'},
-      {name:'Redact PDF',url:'/tools/redact-pdf/',emoji:'⬛',c1:'#0f172a',c2:'#1e293b',desc:'Redact sensitive text'},
-      {name:'Sign PDF',url:'/tools/sign-pdf/',emoji:'✍️',c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
-      {name:'Compare PDF',url:'/tools/compare-pdf/',emoji:'⚖️',c1:'#6366f1',c2:'#8b5cf6',desc:'Compare PDFs'}
+      {name:'Unlock PDF', url:'/tools/unlock-pdf/', emoji:'🔓',c1:'#10b981',c2:'#06b6d4',desc:'Remove password'},
+      {name:'Redact PDF', url:'/tools/redact-pdf/', emoji:'⬛', c1:'#0f172a',c2:'#1e293b',desc:'Redact sensitive text'},
+      {name:'Sign PDF',   url:'/tools/sign-pdf/',   emoji:'✍️', c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
+      {name:'Compare PDF',url:'/tools/compare-pdf/',emoji:'⚖️', c1:'#6366f1',c2:'#8b5cf6',desc:'Compare PDFs'}
     ]
   };
   </script>

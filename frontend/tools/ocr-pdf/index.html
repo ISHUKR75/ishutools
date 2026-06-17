@@ -2,39 +2,92 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OCR PDF Free — Make Scanned PDF Searchable | IshuTools</title>
-  <meta name="description" content="OCR PDF online free. Make scanned PDFs searchable and selectable. Supports 10+ languages. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="ocr pdf, pdf ocr online, make pdf searchable, scanned pdf text, ishu, ishutools" />
+  <title>OCR PDF Free — Make Scanned PDF Searchable Online | IshuTools</title>
+  <meta name="description" content="OCR PDF online free. Make scanned PDFs text-searchable and selectable using Tesseract OCR. Supports 15+ languages including Hindi, Arabic, Chinese. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="ocr pdf, pdf ocr online, make pdf searchable, scanned pdf to text, extract text from pdf image, ocr pdf free, tesseract ocr pdf, pdf text recognition, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/ocr-pdf/" />
+  <meta property="og:title" content="OCR PDF Free — Make Scanned PDF Searchable | IshuTools" />
+  <meta property="og:description" content="Make scanned PDFs searchable using OCR. 15+ languages. No signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/ocr-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238b5cf6'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔍%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "OCR PDF — Make Scanned PDF Searchable Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/ocr-pdf/",
+    "description": "OCR PDF online free. Make scanned PDFs fully text-searchable using Tesseract OCR v5. Supports 15+ languages including Hindi, Arabic, Chinese, Japanese, Korean. Export as searchable PDF or plain text.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "OCR scanned PDF, Tesseract OCR v5, 15+ languages, searchable PDF output, plain text export, Hindi OCR, Arabic OCR, Chinese OCR"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'ocr-pdf', name:'OCR PDF', emoji:'🔍',
     category:'Organize PDF', categorySlug:'',
-    description:'Extract text from scanned PDFs and make them fully searchable using Optical Character Recognition (OCR). Supports 10+ languages.',
+    description:'Make scanned PDFs fully searchable and selectable using Optical Character Recognition (OCR). Powered by Tesseract OCR v5 — the most accurate open-source OCR engine. Supports 15+ languages.',
     apiEndpoint:'/api/ocr-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'ocr_output.pdf', outputMime:'application/pdf',
     options:[
       { type:'select', id:'language', label:'Document Language',
         choices:[
-          {v:'eng',l:'English'},{v:'hin',l:'Hindi'},{v:'fra',l:'French'},
-          {v:'deu',l:'German'},{v:'spa',l:'Spanish'},{v:'por',l:'Portuguese'},
-          {v:'chi_sim',l:'Chinese (Simplified)'},{v:'jpn',l:'Japanese'},
-          {v:'kor',l:'Korean'},{v:'ara',l:'Arabic'},{v:'rus',l:'Russian'}
+          {v:'eng',     l:'English'},
+          {v:'hin',     l:'Hindi (हिन्दी)'},
+          {v:'fra',     l:'French (Français)'},
+          {v:'deu',     l:'German (Deutsch)'},
+          {v:'spa',     l:'Spanish (Español)'},
+          {v:'por',     l:'Portuguese (Português)'},
+          {v:'ita',     l:'Italian (Italiano)'},
+          {v:'chi_sim', l:'Chinese Simplified (简体中文)'},
+          {v:'chi_tra', l:'Chinese Traditional (繁體中文)'},
+          {v:'jpn',     l:'Japanese (日本語)'},
+          {v:'kor',     l:'Korean (한국어)'},
+          {v:'ara',     l:'Arabic (عربي)'},
+          {v:'rus',     l:'Russian (Русский)'},
+          {v:'nld',     l:'Dutch (Nederlands)'},
+          {v:'pol',     l:'Polish (Polski)'}
         ], default:'eng' },
       { type:'select', id:'output_format', label:'Output Format',
-        choices:[{v:'pdf',l:'PDF (searchable)'},{v:'txt',l:'Plain Text (.txt)'}], default:'pdf' }
+        choices:[
+          {v:'pdf',l:'Searchable PDF (text layer added)'},
+          {v:'txt',l:'Plain Text (.txt file)'}
+        ], default:'pdf' },
+      { type:'select', id:'dpi', label:'Processing DPI',
+        choices:[
+          {v:'150',l:'150 DPI — Fast (good for clean scans)'},
+          {v:'200',l:'200 DPI — Balanced (recommended)'},
+          {v:'300',l:'300 DPI — High accuracy (slower)'}
+        ], default:'200' }
     ],
-    steps:['Upload your scanned PDF.','Select the document language.','Choose output format (PDF or TXT).','Download the searchable result.'],
-    features:['Powered by Tesseract OCR v5','Supports 10+ languages including Hindi','Exports searchable PDF or plain text','100% accurate for clear scans'],
+    steps:[
+      'Upload your scanned PDF file.',
+      'Select the document language for best accuracy.',
+      'Choose output format (searchable PDF or plain text).',
+      'Click "Run OCR" and download the searchable result.'
+    ],
+    features:[
+      'Tesseract OCR v5 — best open-source accuracy',
+      '15+ languages including Hindi, Arabic, CJK',
+      'Invisible text layer preserves original layout',
+      'Export as searchable PDF or plain .txt',
+      'Configurable DPI for speed vs accuracy tradeoff',
+      '100% free — no signup, no watermark'
+    ],
     related:[
-      {name:'Scan to PDF',url:'/tools/scan-to-pdf/',emoji:'📷',c1:'#06b6d4',c2:'#3b82f6',desc:'Images to searchable PDF'},
-      {name:'AI Summarizer',url:'/tools/ai-summarizer/',emoji:'🤖',c1:'#6366f1',c2:'#8b5cf6',desc:'Summarize PDF content'},
-      {name:'Translate PDF',url:'/tools/translate-pdf/',emoji:'🌍',c1:'#10b981',c2:'#06b6d4',desc:'Translate PDF'},
-      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
+      {name:'Scan to PDF',   url:'/tools/scan-to-pdf/',   emoji:'📷',c1:'#06b6d4',c2:'#3b82f6',desc:'Images to searchable PDF'},
+      {name:'AI Summarizer', url:'/tools/ai-summarizer/', emoji:'🤖',c1:'#6366f1',c2:'#8b5cf6',desc:'Summarize content'},
+      {name:'Translate PDF', url:'/tools/translate-pdf/', emoji:'🌍',c1:'#10b981',c2:'#06b6d4',desc:'Translate PDF'},
+      {name:'Compress PDF',  url:'/tools/compress-pdf/',  emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
     ]
   };
   </script>

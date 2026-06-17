@@ -2,32 +2,73 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML to PDF Free — Convert Webpage to PDF Online | IshuTools</title>
-  <meta name="description" content="Convert HTML, webpages, or URLs to PDF online for free. WeasyPrint-powered. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="html to pdf, webpage to pdf, url to pdf, website to pdf, convert html pdf, ishu, ishutools" />
+  <title>HTML to PDF Free — Convert Webpage or URL to PDF Online | IshuTools</title>
+  <meta name="description" content="Convert HTML, webpages, or website URLs to PDF online free. Paste HTML code or enter a URL. WeasyPrint CSS rendering. No signup, no watermark. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="html to pdf, webpage to pdf, url to pdf, website to pdf, convert html to pdf, web page to pdf converter, html to pdf free, html pdf generator, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/html-to-pdf/" />
+  <meta property="og:title" content="HTML to PDF Free — Convert Webpage to PDF | IshuTools" />
+  <meta property="og:description" content="Convert HTML files, webpages, or URLs to PDF. WeasyPrint rendering. Free, no signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/html-to-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f43f5e'/%3E%3Ctext y='22' x='4' font-size='20'%3E🌐%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "HTML to PDF Converter Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/html-to-pdf/",
+    "description": "Convert HTML files, raw HTML code, or website URLs to PDF online free. WeasyPrint CSS3 engine for accurate rendering. Supports web fonts, tables, and complex layouts.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "HTML to PDF, URL to PDF, paste HTML code, WeasyPrint CSS3, web fonts, A4 Letter page sizes, no watermark"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'html-to-pdf', name:'HTML to PDF', emoji:'🌐',
     category:'Convert to PDF', categorySlug:'',
-    description:'Convert HTML files, raw HTML code, or website URLs to PDF. Uses WeasyPrint for accurate CSS rendering.',
+    description:'Convert HTML files, raw HTML code, or website URLs to high-quality PDF. WeasyPrint engine renders CSS3 accurately. Perfect for generating reports, invoices, or saving webpages as PDF.',
     apiEndpoint:'/api/html-to-pdf', multiFile:false, noFile:false,
     acceptedTypes:'.html,.htm,text/html', acceptedLabel:'HTML',
     resultType:'file', outputFilename:'converted.pdf', outputMime:'application/pdf',
     options:[
-      { type:'url',      id:'html_url',     label:'Website URL', placeholder:'https://example.com (optional)' },
-      { type:'textarea', id:'html_content',  label:'Paste HTML Code', placeholder:'<html><body>Your content here</body></html>' }
+      { type:'url',      id:'html_url',    label:'Website URL to Convert',
+        placeholder:'https://example.com — leave blank to use HTML file or code' },
+      { type:'textarea', id:'html_content', label:'Or Paste HTML Code',
+        placeholder:'<html><body><h1>Hello PDF!</h1><p>Your content here...</p></body></html>' },
+      { type:'select',   id:'page_size',   label:'Page Size',
+        choices:[
+          {v:'A4',    l:'A4 — 210×297mm (international)'},
+          {v:'Letter',l:'Letter — 8.5×11in (US)'},
+          {v:'Legal', l:'Legal — 8.5×14in'},
+          {v:'A3',    l:'A3 — 297×420mm'}
+        ], default:'A4' }
     ],
-    steps:['Upload an HTML file, enter a URL, or paste HTML code.','Click "Convert HTML to PDF".','Download the PDF.'],
-    features:['WeasyPrint CSS engine — accurate rendering','Supports CSS3, web fonts','URL or file or code input','Handles complex layouts'],
+    steps:[
+      'Upload an HTML file, enter a URL, or paste HTML code.',
+      'Select page size (A4, Letter, Legal, or A3).',
+      'Click "Convert HTML to PDF" and download.'
+    ],
+    features:[
+      'WeasyPrint CSS3 engine — accurate rendering',
+      'Supports CSS3, web fonts, tables, flexbox',
+      'URL → PDF or file upload or paste HTML code',
+      'A4, Letter, Legal, A3 page sizes',
+      'Handles complex layouts and print stylesheets',
+      '100% free — no watermarks, no signup'
+    ],
     related:[
-      {name:'Word to PDF',url:'/tools/word-to-pdf/',emoji:'📝',c1:'#2563eb',c2:'#3b82f6',desc:'Word to PDF'},
-      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
-      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
-      {name:'PDF to JPG',url:'/tools/pdf-to-jpg/',emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'PDF to images'}
+      {name:'Word to PDF',  url:'/tools/word-to-pdf/',  emoji:'📝',c1:'#2563eb',c2:'#3b82f6',desc:'Word to PDF'},
+      {name:'Compress PDF', url:'/tools/compress-pdf/', emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
+      {name:'Merge PDF',    url:'/tools/merge-pdf/',    emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
+      {name:'PDF to JPG',   url:'/tools/pdf-to-jpg/',   emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'PDF to images'}
     ]
   };
   </script>

@@ -442,7 +442,7 @@ def _create_audit_page(
         # Signer details
         c.setFillColorRGB(0.07, 0.15, 0.42)
         c.setFont('Helvetica-Bold', 11)
-        c.drawString(72, y - 16, signer.get('name', 'Unknown'))[:30]
+        c.drawString(72, y - 16, signer.get('name', 'Unknown')[:30])
 
         c.setFont('Helvetica', 8.5)
         c.setFillColorRGB(0.3, 0.3, 0.3)

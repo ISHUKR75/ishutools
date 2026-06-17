@@ -3,29 +3,80 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Unlock PDF Free — Remove Password Protection Online | IshuTools</title>
-  <meta name="description" content="Unlock PDF and remove password protection online for free. No signup. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="unlock pdf, remove pdf password, pdf unlocker, decrypt pdf, ishu, ishutools" />
+  <meta name="description" content="Unlock PDF and remove password protection online for free. Remove user and owner passwords. Supports AES-256 and RC4 encryption. No signup, no watermark. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="unlock pdf, remove pdf password, pdf unlocker, decrypt pdf, remove pdf password protection, unlock pdf free, pdf password remover, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/unlock-pdf/" />
+  <meta property="og:title" content="Unlock PDF Free — Remove Password | IshuTools" />
+  <meta property="og:description" content="Remove password protection from PDF online free. No signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/unlock-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔓%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Unlock PDF — Remove PDF Password Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/unlock-pdf/",
+    "description": "Remove password protection from PDF files online free. Supports AES-256, AES-128, and RC4 encryption. Removes user and owner passwords. Powered by pikepdf.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "Remove PDF password, unlock encrypted PDF, AES-256 decryption, RC4 decryption, owner password removal"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can I unlock a PDF without knowing the password?",
+        "acceptedAnswer": {"@type":"Answer","text":"No. To unlock a PDF, you need to know the correct password. IshuTools uses the password you provide to decrypt and unlock the file. If you don't know the password, it cannot be removed."}
+      },
+      {
+        "@type": "Question",
+        "name": "Is unlocking PDF legal?",
+        "acceptedAnswer": {"@type":"Answer","text":"Unlocking a PDF is legal only if you own the document or have authorization to remove its password. Do not use this tool on PDFs you don't have permission to unlock."}
+      }
+    ]
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'unlock-pdf', name:'Unlock PDF', emoji:'🔓',
     category:'PDF Security', categorySlug:'',
-    description:'Remove password protection from a PDF file. Upload your protected PDF, enter the password if required, and download the unlocked version.',
+    description:'Remove password protection from a PDF file. Upload your protected PDF, enter the password, and download the fully unlocked version. Supports AES-256, AES-128, and RC4 encryption.',
     apiEndpoint:'/api/unlock-pdf', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'unlocked.pdf', outputMime:'application/pdf',
     options:[
-      { type:'password', id:'password', label:'PDF Password (if required)', placeholder:'Enter password or leave blank' }
+      { type:'password', id:'password', label:'PDF Password',
+        placeholder:'Enter the PDF password (required to unlock)' }
     ],
-    steps:['Upload your password-protected PDF.','Enter the password if you know it.','Download the unlocked PDF.'],
-    features:['pikepdf-powered decryption','Removes user & owner passwords','Supports 40/128-bit RC4 and AES','Only works with correct password'],
+    steps:[
+      'Upload your password-protected PDF file.',
+      'Enter the PDF password in the field below.',
+      'Click "Unlock PDF" and download the unlocked file.'
+    ],
+    features:[
+      'pikepdf-powered AES-256 decryption',
+      'Removes user password (open) and owner password (edit)',
+      'Supports AES-256, AES-128, and RC4 (40/128-bit)',
+      'Multi-engine fallback for maximum compatibility',
+      'No data stored — files deleted after processing',
+      '100% free — no signup, no watermark'
+    ],
     related:[
       {name:'Protect PDF',url:'/tools/protect-pdf/',emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
-      {name:'Sign PDF',url:'/tools/sign-pdf/',emoji:'✍️',c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
-      {name:'Redact PDF',url:'/tools/redact-pdf/',emoji:'⬛',c1:'#0f172a',c2:'#1e293b',desc:'Redact text'},
+      {name:'Sign PDF',   url:'/tools/sign-pdf/',   emoji:'✍️', c1:'#8b5cf6',c2:'#6366f1',desc:'Sign PDF'},
+      {name:'Redact PDF', url:'/tools/redact-pdf/', emoji:'⬛', c1:'#0f172a',c2:'#1e293b',desc:'Redact text'},
       {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
     ]
   };

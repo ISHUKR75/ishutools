@@ -2,71 +2,76 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Compare PDF Free — Find Differences Between Two PDFs | IshuTools</title>
-  <meta name="description" content="Compare two PDF files online free. Find text differences, additions, and deletions with detailed diff report. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="compare pdf, pdf diff, find pdf differences, compare two pdfs, pdf comparison tool, ishu, ishutools" />
+  <title>Compare PDF Free — Find Differences Between Two PDFs Online | IshuTools</title>
+  <meta name="description" content="Compare two PDF files online free. Find text differences — additions, deletions, and changes — with a detailed diff report. Word, line, or character-level comparison. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="compare pdf, pdf diff, find pdf differences, compare two pdfs, pdf comparison tool online, pdf differ, text diff pdf, pdf changes tracker, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/compare-pdf/" />
+  <meta property="og:title" content="Compare PDF Free — Find Differences | IshuTools" />
+  <meta property="og:description" content="Compare two PDFs. Find additions, deletions, and changes. Word-level diff. Free, no signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/compare-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E⚖️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <link rel="stylesheet" href="style.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Compare PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar"}}</script>
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Compare PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/compare-pdf/",
+    "description": "Compare two PDF files and find text differences — additions, deletions, and changes — with detailed diff report. Word-level, line-level, or character-level comparison. Similarity score. No signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "word-level diff, line diff, character diff, similarity score, page comparison, metadata comparison, additions and deletions"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id: 'compare-pdf',
-    name: 'Compare PDF',
-    emoji: '⚖️',
-    category: 'PDF Security',
-    categorySlug: '',
-    description: 'Compare two PDF documents side-by-side and find all text differences — additions, deletions, and changes — instantly.',
-    apiEndpoint: '/api/compare-pdf',
-    multiFile: false,
-    twoFiles: true,
-    acceptedTypes: '.pdf,application/pdf',
-    acceptedLabel: 'PDF',
-    resultType: 'json',
-    outputFilename: 'comparison.json',
-    options: [
-      {
-        type: 'select', id: 'diff_type', label: 'Comparison Mode',
-        icon: 'fas fa-magnifying-glass',
-        choices: [
-          { v: 'word',      l: '📝 Word-level diff (recommended)' },
-          { v: 'line',      l: '📄 Line-by-line comparison' },
-          { v: 'character', l: '🔤 Character-level (very detailed)' }
-        ],
-        default: 'word'
-      },
-      {
-        type: 'radio', id: 'ignore_whitespace', label: 'Whitespace Handling',
-        choices: [
-          { v: 'true',  l: 'Ignore whitespace differences' },
-          { v: 'false', l: 'Include whitespace' }
-        ],
-        default: 'true'
-      }
+    id:'compare-pdf', name:'Compare PDF', emoji:'⚖️',
+    category:'PDF Security', categorySlug:'',
+    description:'Compare two PDF documents and find all text differences — additions, deletions, and changes. Get a detailed similarity score, page-by-page comparison, and metadata diff report.',
+    apiEndpoint:'/api/compare-pdf', multiFile:false,
+    twoFiles:true,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'json', outputFilename:'comparison.json',
+    options:[
+      { type:'select', id:'diff_type', label:'Comparison Mode',
+        choices:[
+          {v:'word',     l:'📝 Word-level diff (recommended)'},
+          {v:'line',     l:'📄 Line-by-line comparison'},
+          {v:'character',l:'🔤 Character-level (very detailed)'}
+        ], default:'word' },
+      { type:'radio', id:'ignore_whitespace', label:'Whitespace Handling',
+        choices:[
+          {v:'true', l:'Ignore whitespace differences'},
+          {v:'false',l:'Include whitespace in comparison'}
+        ], default:'true' }
     ],
-    steps: [
+    steps:[
       'Upload the original PDF as File 1.',
       'Upload the revised PDF as File 2.',
-      'Choose comparison mode.',
-      'View the diff report showing all changes.'
+      'Choose comparison mode (word, line, or character).',
+      'View the diff report showing all changes and similarity score.'
     ],
-    features: [
-      'Word, line, and character-level diff',
-      'Detects additions and deletions',
-      'Page-by-page comparison',
-      'Similarity percentage score',
-      'Metadata comparison',
-      'Works with text-based PDFs',
-      '100% free, no signup required'
+    features:[
+      'Word-level, line-by-line, and character-level diff',
+      'Detects additions (green) and deletions (red)',
+      'Page-by-page similarity percentage score',
+      'Metadata comparison (author, dates, title)',
+      'Font and image inventory comparison',
+      'Handles encrypted PDFs with password',
+      '100% free — no watermarks, no signup'
     ],
-    related: [
-      { name: 'AI Summarizer', url: '/tools/summarize-pdf/', emoji: '🤖', c1: '#6366f1', c2: '#8b5cf6', desc: 'Summarize PDF' },
-      { name: 'Merge PDF',     url: '/tools/merge-pdf/',     emoji: '🔗', c1: '#6366f1', c2: '#8b5cf6', desc: 'Combine PDFs' },
-      { name: 'Protect PDF',   url: '/tools/protect-pdf/',   emoji: '🔒', c1: '#ef4444', c2: '#f97316', desc: 'Add password' },
-      { name: 'Redact PDF',    url: '/tools/redact-pdf/',    emoji: '⬛', c1: '#0f172a', c2: '#1e293b', desc: 'Redact text' }
+    related:[
+      {name:'AI Summarizer',url:'/tools/summarize-pdf/',emoji:'🤖',c1:'#6366f1',c2:'#8b5cf6',desc:'Summarize PDF'},
+      {name:'Merge PDF',    url:'/tools/merge-pdf/',    emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
+      {name:'Protect PDF',  url:'/tools/protect-pdf/',  emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
+      {name:'Redact PDF',   url:'/tools/redact-pdf/',   emoji:'⬛',c1:'#0f172a',c2:'#1e293b',desc:'Redact text'}
     ]
   };
   </script>

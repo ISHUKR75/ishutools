@@ -2,32 +2,73 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF to PDF/A Free — Convert to Archival Format | IshuTools</title>
-  <meta name="description" content="Convert PDF to PDF/A archival format online free. ISO compliant long-term archiving. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="pdf to pdf/a, pdf/a converter, archival pdf, iso 19005, long term pdf, ishu, ishutools" />
+  <title>PDF to PDF/A Free — Convert to ISO Archival Format Online | IshuTools</title>
+  <meta name="description" content="Convert PDF to PDF/A (ISO 19005) archival format online free. Choose PDF/A-1b, PDF/A-2b, or PDF/A-3b conformance. Long-term document preservation. No signup. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="pdf to pdf/a, pdf/a converter, archival pdf, iso 19005, long term pdf archiving, pdf/a-1b, pdf/a-2b, pdf compliance, government archival, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/pdf-to-pdfa/" />
+  <meta property="og:title" content="PDF to PDF/A Free — ISO 19005 Archival Format | IshuTools" />
+  <meta property="og:description" content="Convert PDF to PDF/A archival format. ISO 19005 compliant. PDF/A-1b, 2b, 3b. No signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/pdf-to-pdfa/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238b5cf6'/%3E%3Ctext y='22' x='4' font-size='20'%3E🏛️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "PDF to PDF/A Converter Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/pdf-to-pdfa/",
+    "description": "Convert PDF to ISO 19005 compliant PDF/A archival format. Choose PDF/A-1b, PDF/A-2b, or PDF/A-3b conformance level. Used for government, legal, and long-term document preservation.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "PDF/A-1b, PDF/A-2b, PDF/A-3b, ISO 19005 compliance, government archival, legal document preservation, self-contained PDF"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'pdf-to-pdfa', name:'PDF to PDF/A', emoji:'🏛️',
     category:'Convert from PDF', categorySlug:'',
-    description:'Convert standard PDFs to PDF/A format for long-term archival. PDF/A is an ISO standard for documents that need to be preserved decades.',
+    description:'Convert standard PDF to ISO 19005 compliant PDF/A format for long-term archival. PDF/A is required for government, legal, and institutional document preservation. Choose from 3 conformance levels.',
     apiEndpoint:'/api/pdf-to-pdfa', multiFile:false,
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'pdf_a.pdf', outputMime:'application/pdf',
     options:[
-      { type:'select', id:'level', label:'PDF/A Level',
-        choices:[{v:'1b',l:'PDF/A-1b — Basic (most compatible)'},{v:'2b',l:'PDF/A-2b — Enhanced'},{v:'3b',l:'PDF/A-3b — Allows file attachments'}], default:'1b' }
+      { type:'select', id:'level', label:'PDF/A Conformance Level',
+        choices:[
+          {v:'1b',l:'PDF/A-1b — Basic level (most compatible, recommended)'},
+          {v:'2b',l:'PDF/A-2b — Enhanced (transparency, JPEG2000)'},
+          {v:'3b',l:'PDF/A-3b — Allows file attachments'}
+        ], default:'1b' },
+      { type:'select', id:'intent', label:'Color Profile',
+        choices:[
+          {v:'sRGB',l:'sRGB — Standard web color (recommended)'},
+          {v:'CMYK',l:'CMYK — Print color profile'}
+        ], default:'sRGB' }
     ],
-    steps:['Upload your PDF.','Select the PDF/A conformance level.','Download the archived PDF/A file.'],
-    features:['ISO 19005 compliant output','Three conformance levels (1b, 2b, 3b)','Self-contained — no external dependencies','Government & legal archival standard'],
+    steps:[
+      'Upload your PDF file.',
+      'Select the PDF/A conformance level (1b recommended for maximum compatibility).',
+      'Click "Convert to PDF/A" and download the ISO-compliant file.'
+    ],
+    features:[
+      'ISO 19005 compliant output (all 3 conformance levels)',
+      'Self-contained — fonts and ICC profiles embedded',
+      'No external content or JavaScript allowed',
+      'Government, legal, and institutional archival standard',
+      'Three levels: PDF/A-1b, PDF/A-2b, PDF/A-3b',
+      '100% free — no watermarks, no signup'
+    ],
     related:[
-      {name:'Optimize PDF',url:'/tools/optimize-pdf/',emoji:'⚡',c1:'#f59e0b',c2:'#ef4444',desc:'Optimize PDF'},
-      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
-      {name:'Protect PDF',url:'/tools/protect-pdf/',emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
-      {name:'Repair PDF',url:'/tools/repair-pdf/',emoji:'🔧',c1:'#6366f1',c2:'#8b5cf6',desc:'Fix damaged PDF'}
+      {name:'Optimize PDF', url:'/tools/optimize-pdf/', emoji:'⚡',c1:'#f59e0b',c2:'#ef4444',desc:'Optimize PDF'},
+      {name:'Compress PDF', url:'/tools/compress-pdf/', emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
+      {name:'Protect PDF',  url:'/tools/protect-pdf/',  emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
+      {name:'Repair PDF',   url:'/tools/repair-pdf/',   emoji:'🔧',c1:'#6366f1',c2:'#8b5cf6',desc:'Fix damaged PDF'}
     ]
   };
   </script>

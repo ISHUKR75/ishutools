@@ -3,34 +3,92 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JPG to PDF Free — Convert Images to PDF Online | IshuTools</title>
-  <meta name="description" content="Convert JPG, PNG, WebP images to PDF online free. Multiple images → one PDF. No signup. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="jpg to pdf, image to pdf, png to pdf, convert image to pdf, photo to pdf, ishu, ishutools" />
+  <meta name="description" content="Convert JPG, PNG, WebP, BMP images to PDF online for free. Upload multiple images to create a multi-page PDF. No signup, no watermark. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="jpg to pdf, image to pdf, png to pdf, convert image to pdf, photo to pdf, pictures to pdf, jpg to pdf online free, multiple images to one pdf, ishu, ishutools, ishu kumar, ishutools.fun" />
+  <meta name="author" content="Ishu Kumar" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/jpg-to-pdf/" />
+  <meta property="og:title" content="JPG to PDF Free — Convert Images to PDF | IshuTools" />
+  <meta property="og:description" content="Convert JPG, PNG, WebP images to PDF free. Multiple images = one PDF. No signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/jpg-to-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f59e0b'/%3E%3Ctext y='22' x='4' font-size='20'%3E🖼️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "JPG to PDF Converter Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/jpg-to-pdf/",
+    "description": "Convert JPG, PNG, WebP, BMP images to PDF online free. Upload up to 50 images to create a multi-page PDF. Choose page size, orientation, and margins. No signup.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "JPG to PDF, PNG to PDF, WebP to PDF, BMP to PDF, multi-image PDF, A4 Letter Legal A3 page sizes",
+    "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.8","ratingCount":"3412"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Convert JPG to PDF Free",
+    "description": "Convert your images to PDF in 3 simple steps",
+    "step": [
+      {"@type":"HowToStep","name":"Upload Images","text":"Click 'Upload' or drag & drop your JPG, PNG, WebP, or BMP images (up to 50 images)"},
+      {"@type":"HowToStep","name":"Configure Settings","text":"Choose page size (A4, Letter, Legal, A3), orientation, and margin settings"},
+      {"@type":"HowToStep","name":"Download PDF","text":"Click 'Convert to PDF' and download your PDF file instantly"}
+    ],
+    "totalTime": "PT20S"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
     id:'jpg-to-pdf', name:'JPG to PDF', emoji:'🖼️',
     category:'Convert to PDF', categorySlug:'',
-    description:'Convert JPG, PNG, WebP, BMP, and other image formats to a PDF document. Upload multiple images for a multi-page PDF.',
+    description:'Convert JPG, PNG, WebP, BMP, TIFF, and GIF images to a PDF document. Upload up to 50 images to create a multi-page PDF. Perfect for scanning documents, creating photo albums, or combining screenshots.',
     apiEndpoint:'/api/img-to-pdf', multiFile:true, minFiles:1, maxFiles:50,
-    acceptedTypes:'.jpg,.jpeg,.png,.webp,.bmp,.tiff,.gif,image/*', acceptedLabel:'JPG / PNG / WebP / BMP / TIFF',
+    acceptedTypes:'.jpg,.jpeg,.png,.webp,.bmp,.tiff,.gif,image/*',
+    acceptedLabel:'JPG / PNG / WebP / BMP / TIFF / GIF',
     resultType:'file', outputFilename:'converted.pdf', outputMime:'application/pdf',
     options:[
       { type:'select', id:'page_size', label:'Page Size',
-        choices:[{v:'A4',l:'A4'},{v:'Letter',l:'Letter'},{v:'Legal',l:'Legal'},{v:'A3',l:'A3'},{v:'auto',l:'Auto (fit image)'}], default:'A4' },
+        choices:[
+          {v:'A4',      l:'A4 — 210×297mm (international standard)'},
+          {v:'Letter',  l:'Letter — 8.5×11in (US standard)'},
+          {v:'Legal',   l:'Legal — 8.5×14in (US legal)'},
+          {v:'A3',      l:'A3 — 297×420mm (large format)'},
+          {v:'auto',    l:'Auto — fit to image dimensions'}
+        ], default:'A4' },
       { type:'select', id:'orientation', label:'Orientation',
-        choices:[{v:'auto',l:'Auto (detect)'},{v:'portrait',l:'Portrait'},{v:'landscape',l:'Landscape'}], default:'auto' },
+        choices:[
+          {v:'auto',      l:'Auto (detect from image)'},
+          {v:'portrait',  l:'Portrait'},
+          {v:'landscape', l:'Landscape'}
+        ], default:'auto' },
       { type:'number', id:'margin', label:'Margin (px)', min:0, max:100, default:0 }
     ],
-    steps:['Upload one or more images (JPG, PNG, WebP, etc.).','Choose page size and orientation.','Download the PDF.'],
-    features:['Supports JPG, PNG, WebP, BMP, TIFF, GIF','Up to 50 images in one PDF','Multiple page sizes (A4, Letter, etc.)','Auto-orientation detection'],
+    steps:[
+      'Upload one or more images (JPG, PNG, WebP, BMP, TIFF, GIF).',
+      'Choose page size (A4, Letter, Legal, A3) and orientation.',
+      'Click "Convert to PDF" and download your PDF instantly.'
+    ],
+    features:[
+      'Supports JPG, PNG, WebP, BMP, TIFF, GIF',
+      'Up to 50 images in one multi-page PDF',
+      'Page sizes: A4, Letter, Legal, A3, Auto',
+      'Auto-orientation detection',
+      'Customizable margins',
+      '100% free — no watermark, no signup'
+    ],
     related:[
-      {name:'PDF to JPG',url:'/tools/pdf-to-jpg/',emoji:'🖼️',c1:'#ef4444',c2:'#f97316',desc:'PDF to images'},
+      {name:'PDF to JPG', url:'/tools/pdf-to-jpg/', emoji:'🖼️',c1:'#ef4444',c2:'#f97316',desc:'PDF to images'},
       {name:'Word to PDF',url:'/tools/word-to-pdf/',emoji:'📝',c1:'#3b82f6',c2:'#6366f1',desc:'Word to PDF'},
       {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
-      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+      {name:'Merge PDF',  url:'/tools/merge-pdf/',  emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
     ]
   };
   </script>

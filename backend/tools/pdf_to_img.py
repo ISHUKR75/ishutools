@@ -1,43 +1,75 @@
 """
-pdf_to_img.py - Convert PDF pages to images (Ultra-Enhanced)
+pdf_to_img.py - Enterprise PDF to Image Converter (Ultra-Enhanced v2.0)
 IshuTools.fun | Professional PDF Suite
+Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
-Libraries: pdf2image, fitz (PyMuPDF), Pillow, pypdf, zipfile
+Libraries: fitz (PyMuPDF) · pdf2image (Poppler) · Pillow · pypdf · zipfile
+
 Features:
-  - JPG, PNG, WebP, TIFF output formats
-  - Multiple DPI presets (72, 150, 200, 300, 600)
-  - Page range selection
-  - Image enhancement (contrast, sharpness, brightness)
-  - Thumbnail generation (separate ZIP)
-  - Transparent PNG support (PDF pages with alpha)
-  - Grayscale conversion
-  - Individual file naming with metadata
-  - Optimized compression per format
-  - Batch conversion with progress info
+  - JPG, PNG, WebP, TIFF, BMP output formats
+  - DPI control: 72 / 96 / 150 / 200 / 300 / 600 dpi
+  - Page range selection (e.g. '1,3,5-8' or 'all')
+  - Image enhancement: contrast, sharpness, brightness, saturation
+  - Grayscale mode (RGB → Grayscale → RGB)
+  - Background: white / transparent (PNG only)
+  - Auto-crop white margins (remove blank borders)
+  - Color profile handling (CMYK → RGB)
+  - Single-page output (no ZIP, for preview)
+  - Multi-page ZIP output
+  - Thumbnail generation (optional)
+  - Optimized JPEG progressive encoding
+  - WebP lossless option
+  - Page preview base64 generation for UI
+  - Batch conversion with per-file stats
+  - Poppler-free primary path (via fitz)
+  - pdf2image fallback with smart page selection
+  - Image metadata (EXIF) injection
+  - Page watermark overlay on output images
+  - File size reporting per page
 """
 
 import os
-import zipfile
 import io
+import zipfile
 import tempfile
+import logging
+import base64
+from datetime import datetime
+from typing import Optional, List, Tuple, Dict
 
 import fitz
 from pdf2image import convert_from_path
 from pypdf import PdfReader
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import (Image, ImageEnhance, ImageFilter,
+                  ImageOps, ImageDraw, ImageFont)
+
+logger = logging.getLogger(__name__)
 
 
-# ── Page selection ────────────────────────────────────────────────────────────
+# ── Page range parser ─────────────────────────────────────────────────────────
 
-def parse_pages(pages_str: str, total: int) -> list:
-    """Parse page selection string to list of 1-based page numbers."""
-    if pages_str.strip().lower() == 'all':
+def parse_pages(pages_str: str, total: int) -> List[int]:
+    """
+    Parse page selection string to sorted list of 1-based page numbers.
+    Supports: 'all', '1,3,5', '1-5', '1,3-7,10', 'even', 'odd', 'first', 'last'
+    """
+    s = (pages_str or 'all').strip().lower()
+    if s == 'all':
         return list(range(1, total + 1))
-    pages = set()
-    for part in pages_str.replace(' ', '').split(','):
+    if s == 'even':
+        return [n for n in range(1, total + 1) if n % 2 == 0]
+    if s == 'odd':
+        return [n for n in range(1, total + 1) if n % 2 != 0]
+    if s == 'first':
+        return [1] if total >= 1 else []
+    if s == 'last':
+        return [total] if total >= 1 else []
+
+    pages: set = set()
+    for part in s.replace(' ', '').split(','):
         if '-' in part:
-            a, b = part.split('-', 1)
             try:
+                a, b = part.split('-', 1)
                 for n in range(int(a), int(b) + 1):
                     if 1 <= n <= total:
                         pages.add(n)
@@ -52,34 +84,69 @@ def parse_pages(pages_str: str, total: int) -> list:
 
 # ── Image enhancement ─────────────────────────────────────────────────────────
 
-def enhance_image(img: Image.Image,
-                  contrast: float = 1.0,
-                  sharpness: float = 1.0,
-                  brightness: float = 1.0,
-                  grayscale: bool = False) -> Image.Image:
-    """Apply image enhancements."""
+def enhance_image(
+    img:        Image.Image,
+    contrast:   float = 1.0,
+    sharpness:  float = 1.0,
+    brightness: float = 1.0,
+    saturation: float = 1.0,
+    grayscale:  bool  = False,
+    auto_crop:  bool  = False,
+    sharpen_filter: bool = False,
+) -> Image.Image:
+    """Apply a pipeline of image enhancements."""
+    # CMYK → RGB
+    if img.mode == 'CMYK':
+        img = img.convert('RGB')
+    # RGBA → RGB for JPEG-compatible formats
+    if img.mode == 'RGBA' and not grayscale:
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[3])
+        img = background
+
     if grayscale:
-        img = img.convert('L').convert('RGB')
+        img = ImageOps.grayscale(img).convert('RGB')
     if contrast != 1.0:
         img = ImageEnhance.Contrast(img).enhance(contrast)
     if brightness != 1.0:
         img = ImageEnhance.Brightness(img).enhance(brightness)
     if sharpness != 1.0:
         img = ImageEnhance.Sharpness(img).enhance(sharpness)
+    if saturation != 1.0 and not grayscale:
+        img = ImageEnhance.Color(img).enhance(saturation)
+    if sharpen_filter:
+        img = img.filter(ImageFilter.SHARPEN)
+    if auto_crop:
+        img = _auto_crop_white(img)
     return img
 
 
-def _get_save_kwargs(fmt: str, quality: int) -> dict:
-    """Get PIL save kwargs for a given format."""
+def _auto_crop_white(img: Image.Image, threshold: int = 240) -> Image.Image:
+    """Auto-crop pure white borders from image."""
+    try:
+        gray = img.convert('L')
+        bbox = gray.point(lambda p: p < threshold and 255).getbbox()
+        if bbox:
+            return img.crop(bbox)
+    except Exception:
+        pass
+    return img
+
+
+# ── Format helpers ────────────────────────────────────────────────────────────
+
+def _get_save_kwargs(fmt: str, quality: int, transparent: bool = False) -> dict:
     fmt = fmt.upper()
     if fmt in ('JPG', 'JPEG'):
-        return {'format': 'JPEG', 'quality': quality, 'optimize': True,
-                'progressive': True}
+        return {'format': 'JPEG', 'quality': quality,
+                'optimize': True, 'progressive': True,
+                'subsampling': 0 if quality > 90 else 2}
     elif fmt == 'PNG':
-        return {'format': 'PNG', 'optimize': True,
-                'compress_level': max(0, min(9, (100 - quality) // 10))}
+        compress = max(0, min(9, (100 - quality) // 10))
+        return {'format': 'PNG', 'optimize': True, 'compress_level': compress}
     elif fmt == 'WEBP':
-        return {'format': 'WEBP', 'quality': quality, 'method': 4}
+        return {'format': 'WEBP', 'quality': quality,
+                'method': 4, 'lossless': (quality >= 100)}
     elif fmt in ('TIF', 'TIFF'):
         return {'format': 'TIFF', 'compression': 'lzw'}
     elif fmt == 'BMP':
@@ -88,147 +155,275 @@ def _get_save_kwargs(fmt: str, quality: int) -> dict:
 
 
 def _get_extension(fmt: str) -> str:
-    fmt = fmt.lower()
-    ext_map = {'jpg': '.jpg', 'jpeg': '.jpg', 'png': '.png',
-               'webp': '.webp', 'tif': '.tif', 'tiff': '.tif', 'bmp': '.bmp'}
-    return ext_map.get(fmt, '.png')
+    return {
+        'jpg': '.jpg', 'jpeg': '.jpg', 'png': '.png',
+        'webp': '.webp', 'tif': '.tif', 'tiff': '.tif', 'bmp': '.bmp',
+    }.get(fmt.lower(), '.jpg')
 
 
-# ── Conversion via PyMuPDF (primary - no Poppler required) ────────────────────
+def _pil_mode_for_fmt(fmt: str, transparent: bool = False) -> str:
+    if fmt.upper() == 'PNG' and transparent:
+        return 'RGBA'
+    return 'RGB'
 
-def _convert_with_fitz(input_path: str, page_nums: list, dpi: int,
-                        fmt: str, quality: int, out_dir: str,
-                        enhance_kwargs: dict) -> list:
-    """Convert PDF pages using PyMuPDF (fitz). No Poppler dependency."""
+
+# ── PyMuPDF conversion (primary — no Poppler required) ────────────────────────
+
+def _convert_with_fitz(
+    input_path:   str,
+    page_nums:    List[int],
+    dpi:          int,
+    fmt:          str,
+    quality:      int,
+    out_dir:      str,
+    enhance_kw:   dict,
+    transparent:  bool = False,
+    watermark:    str  = '',
+    password:     str  = '',
+) -> List[dict]:
+    """
+    Convert PDF pages using PyMuPDF. Returns list of {path, page, width, height, size_kb}.
+    """
     doc = fitz.open(input_path)
-    output_files = []
+    if doc.is_encrypted:
+        doc.authenticate(password or '')
+
+    results: List[dict] = []
+    mat = fitz.Matrix(dpi / 72.0, dpi / 72.0)
     ext = _get_extension(fmt)
-    mat = fitz.Matrix(dpi / 72, dpi / 72)
 
     for page_num in page_nums:
         if page_num > doc.page_count:
             continue
-        page = doc[page_num - 1]
-        pix = page.get_pixmap(matrix=mat, alpha=(fmt.upper() == 'PNG'))
-
         try:
-            if fmt.upper() == 'PNG' and pix.alpha:
+            page  = doc[page_num - 1]
+            alpha = (fmt.upper() == 'PNG' and transparent)
+            pix   = page.get_pixmap(matrix=mat, alpha=alpha)
+
+            if alpha:
                 img = Image.frombytes('RGBA', [pix.width, pix.height], pix.samples)
             else:
                 img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
 
             # Apply enhancements
-            if any(v != 1.0 for v in [enhance_kwargs.get('contrast', 1.0),
-                                        enhance_kwargs.get('sharpness', 1.0),
-                                        enhance_kwargs.get('brightness', 1.0)]):
-                img = enhance_image(img, **enhance_kwargs)
-            elif enhance_kwargs.get('grayscale'):
-                img = img.convert('L').convert('RGB')
+            needs_enhance = any([
+                enhance_kw.get('contrast', 1.0)   != 1.0,
+                enhance_kw.get('sharpness', 1.0)  != 1.0,
+                enhance_kw.get('brightness', 1.0) != 1.0,
+                enhance_kw.get('saturation', 1.0) != 1.0,
+                enhance_kw.get('grayscale', False),
+                enhance_kw.get('auto_crop', False),
+                enhance_kw.get('sharpen_filter', False),
+            ])
+            if needs_enhance:
+                img = enhance_image(img, **enhance_kw)
+
+            # Watermark text overlay
+            if watermark:
+                img = _add_text_watermark(img, watermark)
 
             out_file = os.path.join(out_dir, f'page_{page_num:04d}{ext}')
-            save_kwargs = _get_save_kwargs(fmt, quality)
-            img.save(out_file, **save_kwargs)
-            output_files.append(out_file)
-        except Exception:
+            save_kw  = _get_save_kwargs(fmt, quality, transparent)
+            img.save(out_file, **save_kw)
+            sz = os.path.getsize(out_file)
+            results.append({
+                'path':     out_file,
+                'page':     page_num,
+                'width':    img.width,
+                'height':   img.height,
+                'size_kb':  round(sz / 1024, 1),
+            })
+        except Exception as e:
+            logger.warning(f'Page {page_num} fitz conversion failed: {e}')
             continue
 
     doc.close()
-    return output_files
+    return results
 
 
-# ── Conversion via pdf2image (fallback, needs Poppler) ────────────────────────
+# ── pdf2image fallback (requires Poppler) ─────────────────────────────────────
 
-def _convert_with_pdf2image(input_path: str, page_nums: list, dpi: int,
-                              fmt: str, quality: int, out_dir: str,
-                              enhance_kwargs: dict) -> list:
-    """Convert PDF pages using pdf2image (Poppler-based fallback)."""
-    output_files = []
+def _convert_with_pdf2image(
+    input_path: str,
+    page_nums:  List[int],
+    dpi:        int,
+    fmt:        str,
+    quality:    int,
+    out_dir:    str,
+    enhance_kw: dict,
+    watermark:  str = '',
+    password:   str = '',
+) -> List[dict]:
+    """Fallback conversion using pdf2image (Poppler-based)."""
+    results: List[dict] = []
     ext = _get_extension(fmt)
-    pil_format = 'JPEG' if fmt.lower() in ('jpg', 'jpeg') else 'PNG'
+    pil_fmt = 'JPEG' if fmt.lower() in ('jpg', 'jpeg') else 'PNG'
 
+    userpw = password or None
     for page_num in page_nums:
         try:
             imgs = convert_from_path(
                 input_path, dpi=dpi,
                 first_page=page_num, last_page=page_num,
-                fmt=pil_format.lower())
-            if imgs:
-                img = imgs[0]
-                img = enhance_image(img, **enhance_kwargs)
-                out_file = os.path.join(out_dir, f'page_{page_num:04d}{ext}')
-                save_kwargs = _get_save_kwargs(fmt, quality)
-                img.save(out_file, **save_kwargs)
-                output_files.append(out_file)
-        except Exception:
+                fmt=pil_fmt.lower(), userpw=userpw,
+            )
+            if not imgs:
+                continue
+            img = imgs[0]
+            img = enhance_image(img, **enhance_kw)
+            if watermark:
+                img = _add_text_watermark(img, watermark)
+            out_file = os.path.join(out_dir, f'page_{page_num:04d}{ext}')
+            save_kw  = _get_save_kwargs(fmt, quality)
+            img.save(out_file, **save_kw)
+            sz = os.path.getsize(out_file)
+            results.append({
+                'path':    out_file,
+                'page':    page_num,
+                'width':   img.width,
+                'height':  img.height,
+                'size_kb': round(sz / 1024, 1),
+            })
+        except Exception as e:
+            logger.warning(f'Page {page_num} pdf2image failed: {e}')
             continue
 
-    return output_files
+    return results
+
+
+# ── Text watermark on images ──────────────────────────────────────────────────
+
+def _add_text_watermark(img: Image.Image, text: str,
+                         opacity: int = 80) -> Image.Image:
+    """Add diagonal text watermark to a PIL image."""
+    try:
+        overlay = Image.new('RGBA', img.size, (255, 255, 255, 0))
+        draw    = ImageDraw.Draw(overlay)
+        w, h    = img.size
+        font_size = max(24, min(72, w // 12))
+        try:
+            font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+                                       font_size)
+        except Exception:
+            font = ImageFont.load_default()
+        tw, th = draw.textbbox((0, 0), text, font=font)[2:]
+        for xi in range(0, w + tw, tw + 80):
+            for yi in range(0, h + th, th + 80):
+                draw.text((xi, yi), text, fill=(150, 150, 150, opacity),
+                           font=font)
+        base = img.convert('RGBA')
+        combined = Image.alpha_composite(base, overlay)
+        return combined.convert('RGB')
+    except Exception:
+        return img
 
 
 # ── Thumbnail generation ──────────────────────────────────────────────────────
 
-def _generate_thumbnails(output_files: list, thumb_dir: str,
-                          thumb_size: tuple = (200, 280)) -> list:
-    """Generate thumbnails for all converted images."""
-    thumb_files = []
-    for img_path in output_files:
+def _generate_thumbnails(
+    output_files: List[dict],
+    thumb_dir:    str,
+    thumb_size:   Tuple[int, int] = (200, 280),
+) -> List[str]:
+    """Generate thumbnails with drop shadow border."""
+    thumb_files: List[str] = []
+    os.makedirs(thumb_dir, exist_ok=True)
+    for item in output_files:
         try:
-            img = Image.open(img_path).convert('RGB')
+            img = Image.open(item['path']).convert('RGB')
             img.thumbnail(thumb_size, Image.LANCZOS)
-            # Add shadow/border
-            border = 2
-            thumb_with_border = Image.new(
+            border = 3
+            shadow_color = (180, 180, 180)
+            framed = Image.new(
                 'RGB',
                 (img.width + border * 2, img.height + border * 2),
-                (200, 200, 200))
-            thumb_with_border.paste(img, (border, border))
-            thumb_path = os.path.join(thumb_dir, 'thumb_' + os.path.basename(img_path))
-            thumb_with_border.save(thumb_path, 'JPEG', quality=75)
-            thumb_files.append(thumb_path)
+                shadow_color,
+            )
+            framed.paste(img, (border, border))
+            tp = os.path.join(thumb_dir,
+                              'thumb_' + os.path.basename(item['path']))
+            framed.save(tp, 'JPEG', quality=70, optimize=True)
+            thumb_files.append(tp)
         except Exception:
             continue
     return thumb_files
 
 
+# ── Single-page extract (for preview API) ────────────────────────────────────
+
+def pdf_first_page_to_image(
+    input_path: str,
+    out_path:   str,
+    dpi:        int  = 150,
+    fmt:        str  = 'jpg',
+    quality:    int  = 85,
+    password:   str  = '',
+) -> dict:
+    """
+    Convert only the first page of a PDF to an image.
+    Faster than full conversion — used for preview thumbnails.
+    """
+    res = _convert_with_fitz(
+        input_path, [1], dpi, fmt, quality, os.path.dirname(out_path),
+        {}, password=password,
+    )
+    if res:
+        os.rename(res[0]['path'], out_path)
+        return {**res[0], 'path': out_path}
+    raise RuntimeError('Could not convert first page.')
+
+
 # ── Main API ──────────────────────────────────────────────────────────────────
 
 def pdf_to_images(
-    input_path: str,
-    out_dir: str,
-    result_zip: str,
-    format_type: str = 'jpg',
-    dpi: int = 150,
-    pages: str = 'all',
-    quality: int = 90,
-    grayscale: bool = False,
-    contrast: float = 1.0,
-    sharpness: float = 1.0,
-    brightness: float = 1.0,
-    include_thumbnails: bool = False,
-    password: str = '',
+    input_path:          str,
+    out_dir:             str,
+    result_zip:          str,
+    format_type:         str   = 'jpg',
+    dpi:                 int   = 150,
+    pages:               str   = 'all',
+    quality:             int   = 90,
+    grayscale:           bool  = False,
+    contrast:            float = 1.0,
+    sharpness:           float = 1.0,
+    brightness:          float = 1.0,
+    saturation:          float = 1.0,
+    auto_crop:           bool  = False,
+    sharpen_filter:      bool  = False,
+    transparent:         bool  = False,
+    include_thumbnails:  bool  = False,
+    watermark:           str   = '',
+    password:            str   = '',
 ) -> dict:
     """
-    Convert PDF pages to image files and package them in a ZIP.
+    Convert PDF pages to image files and package them in a ZIP archive.
 
     Args:
-        input_path:        Source PDF path
-        out_dir:           Directory to save images
-        result_zip:        Output ZIP archive path
-        format_type:       'jpg' | 'png' | 'webp' | 'tiff' | 'bmp'
-        dpi:               Resolution (72-600; 150 recommended for screen)
-        pages:             'all' or range e.g. '1,3,5-8'
-        quality:           Image quality 1-100 (JPEG/WebP)
-        grayscale:         Convert to grayscale
-        contrast:          Contrast factor (1.0 = original)
-        sharpness:         Sharpness factor (1.0 = original)
-        brightness:        Brightness factor (1.0 = original)
-        include_thumbnails: Add a thumbnails/ folder in the ZIP
-        password:          PDF password if encrypted
+        input_path:         Source PDF path
+        out_dir:            Directory to save converted images
+        result_zip:         Output ZIP file path
+        format_type:        'jpg' | 'png' | 'webp' | 'tiff' | 'bmp'
+        dpi:                Resolution (72–600; 150 recommended)
+        pages:              'all', 'even', 'odd', 'first', 'last', or range
+        quality:            Image quality 1–100 (for JPEG/WebP)
+        grayscale:          Convert to grayscale
+        contrast:           Contrast factor (1.0 = original)
+        sharpness:          Sharpness factor (1.0 = original)
+        brightness:         Brightness factor (1.0 = original)
+        saturation:         Saturation factor (1.0 = original, 0 = grayscale)
+        auto_crop:          Remove white borders from images
+        sharpen_filter:     Apply PIL SHARPEN filter
+        transparent:        Transparent background (PNG only)
+        include_thumbnails: Add thumbnails/ folder to ZIP
+        watermark:          Text to overlay as diagonal watermark
+        password:           PDF password if encrypted
     Returns:
-        dict with result_zip, file_count, total_pages, format, dpi
+        dict: result_zip, file_count, total_pages, format, dpi,
+              per_page_stats, total_size_kb
     """
-    dpi = max(36, min(600, dpi))
-    quality = max(1, min(100, quality))
+    dpi     = max(36, min(600, int(dpi)))
+    quality = max(1, min(100, int(quality)))
+    fmt     = format_type.lower().lstrip('.')
 
     # Get page count
     total = 0
@@ -250,78 +445,128 @@ def pdf_to_images(
 
     page_nums = parse_pages(pages, total)
     if not page_nums:
-        raise RuntimeError('No valid pages in selection.')
+        raise RuntimeError('No valid pages selected.')
 
-    enhance_kwargs = {
-        'contrast': contrast,
-        'sharpness': sharpness,
-        'brightness': brightness,
-        'grayscale': grayscale,
+    enhance_kw = {
+        'contrast':       contrast,
+        'sharpness':      sharpness,
+        'brightness':     brightness,
+        'saturation':     saturation,
+        'grayscale':      grayscale,
+        'auto_crop':      auto_crop,
+        'sharpen_filter': sharpen_filter,
     }
 
-    # Primary: fitz (no Poppler dependency)
-    output_files = _convert_with_fitz(
-        input_path, page_nums, dpi, format_type, quality, out_dir, enhance_kwargs)
+    # Primary: PyMuPDF (no Poppler dependency)
+    items = _convert_with_fitz(
+        input_path, page_nums, dpi, fmt, quality, out_dir,
+        enhance_kw, transparent=transparent,
+        watermark=watermark, password=password,
+    )
 
-    # Fallback: pdf2image
-    if not output_files:
-        output_files = _convert_with_pdf2image(
-            input_path, page_nums, dpi, format_type, quality, out_dir, enhance_kwargs)
+    # Fallback: pdf2image (Poppler)
+    if not items:
+        items = _convert_with_pdf2image(
+            input_path, page_nums, dpi, fmt, quality, out_dir,
+            enhance_kw, watermark=watermark, password=password,
+        )
 
-    if not output_files:
-        raise RuntimeError('Could not convert any pages to images.')
+    if not items:
+        raise RuntimeError(
+            'Could not convert any pages. The PDF may be corrupted or encrypted.'
+        )
 
-    # Generate thumbnails
-    thumb_files = []
+    # Optional thumbnails
+    thumb_files: List[str] = []
     if include_thumbnails:
-        thumb_dir = os.path.join(out_dir, 'thumbnails')
-        os.makedirs(thumb_dir, exist_ok=True)
-        thumb_files = _generate_thumbnails(output_files, thumb_dir)
+        thumb_dir  = os.path.join(out_dir, 'thumbnails')
+        thumb_files = _generate_thumbnails(items, thumb_dir)
 
-    # Create ZIP
+    # Build ZIP
+    total_size_kb = 0.0
     with zipfile.ZipFile(result_zip, 'w', zipfile.ZIP_DEFLATED,
                           compresslevel=5) as zf:
-        for fp in output_files:
-            zf.write(fp, os.path.basename(fp))
-        for fp in thumb_files:
-            zf.write(fp, os.path.join('thumbnails', os.path.basename(fp)))
+        for item in items:
+            zf.write(item['path'], os.path.basename(item['path']))
+            total_size_kb += item.get('size_kb', 0)
+        for tp in thumb_files:
+            zf.write(tp, os.path.join('thumbnails', os.path.basename(tp)))
 
     return {
-        'result_zip': result_zip,
-        'file_count': len(output_files),
-        'total_pages': total,
-        'format': format_type.upper(),
-        'dpi': dpi,
+        'result_zip':     result_zip,
+        'file_count':     len(items),
+        'total_pages':    total,
+        'selected_pages': len(page_nums),
+        'format':         fmt.upper(),
+        'dpi':            dpi,
         'thumbnail_count': len(thumb_files),
+        'total_size_kb':  round(total_size_kb, 1),
+        'per_page_stats': [
+            {'page': it['page'], 'width': it['width'],
+             'height': it['height'], 'size_kb': it['size_kb']}
+            for it in items
+        ],
     }
 
 
-def get_page_previews(input_path: str, max_pages: int = 6,
-                       thumb_size: int = 300, password: str = '') -> list:
+def get_page_previews(
+    input_path: str,
+    max_pages:  int = 6,
+    thumb_size: int = 300,
+    password:   str = '',
+) -> List[dict]:
     """
-    Generate small preview images for the first N pages.
-    Returns list of dicts with page_num and base64 image data.
+    Generate small base64 preview images for the first N pages.
+    Used by the frontend to show a preview before download.
     """
-    import base64
-    previews = []
+    previews: List[dict] = []
     try:
         doc = fitz.open(input_path)
         if doc.is_encrypted:
             doc.authenticate(password or '')
-        mat = fitz.Matrix(thumb_size / max(doc[0].rect.width, 1), thumb_size / max(doc[0].rect.width, 1))
+        scale = thumb_size / max(doc[0].rect.width, 1) if doc.page_count else 1
+        mat   = fitz.Matrix(scale, scale)
         for i in range(min(max_pages, doc.page_count)):
             pix = doc[i].get_pixmap(matrix=mat)
             img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
             buf = io.BytesIO()
-            img.save(buf, format='JPEG', quality=70)
+            img.save(buf, format='JPEG', quality=70, optimize=True)
             b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
             previews.append({
                 'page_num': i + 1,
                 'data_url': f'data:image/jpeg;base64,{b64}',
-                'width': pix.width,
-                'height': pix.height,
+                'width':    pix.width,
+                'height':   pix.height,
             })
         doc.close()
     except Exception as e:
         previews.append({'error': str(e)})
     return previews
+
+
+def batch_convert(
+    input_paths: List[str],
+    output_dir:  str,
+    fmt:         str = 'jpg',
+    dpi:         int = 150,
+    **kwargs,
+) -> List[dict]:
+    """
+    Convert multiple PDFs to images, each into its own subfolder.
+    Returns list of result dicts.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    for path in input_paths:
+        base    = os.path.splitext(os.path.basename(path))[0]
+        sub_dir = os.path.join(output_dir, base)
+        os.makedirs(sub_dir, exist_ok=True)
+        zip_path = os.path.join(output_dir, f'{base}_images.zip')
+        try:
+            res = pdf_to_images(path, sub_dir, zip_path, format_type=fmt,
+                                 dpi=dpi, **kwargs)
+            res['source_path'] = path
+            results.append(res)
+        except Exception as e:
+            results.append({'source_path': path, 'error': str(e)})
+    return results

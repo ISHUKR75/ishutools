@@ -3,102 +3,90 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign PDF Free — Add Signature to PDF Online | IshuTools</title>
-  <meta name="description" content="Add a professional signature to your PDF online free. Text, styled, or typed signature. Position it precisely. No signup. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="sign pdf, add signature to pdf, pdf signature online, esign pdf, digital signature pdf, ishu, ishutools" />
+  <meta name="description" content="Sign PDF online free. Add a professional text signature to any PDF. Choose from 4 styles, 6 positions. Sign all pages or a specific page. No signup, no watermark. By Ishu Kumar — ishutools.fun." />
+  <meta name="keywords" content="sign pdf, add signature to pdf, pdf signature online, esign pdf, digital signature pdf, electronic signature pdf, sign pdf free, pdf signer online, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/sign-pdf/" />
-  <meta property="og:title" content="Sign PDF Free Online — IshuTools" />
-  <meta property="og:description" content="Add a professional signature to any PDF. 100% free, no signup." />
+  <meta property="og:title" content="Sign PDF Free — Add Signature Online | IshuTools" />
+  <meta property="og:description" content="Add professional signature to PDF. 4 styles, 6 positions. Free, no signup." />
+  <meta property="og:url" content="https://ishutools.fun/tools/sign-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238b5cf6'/%3E%3Ctext y='22' x='4' font-size='20'%3E✍️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <link rel="stylesheet" href="style.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sign PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"}}</script>
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Sign PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/sign-pdf/",
+    "description": "Add a professional text signature to PDF online free. 4 signature styles (Corporate, Casual, Legal, Minimal). 6 position presets. Sign all pages or specific pages. Custom color and size.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "4 signature styles, 6 position presets, custom color, custom font size, sign all pages or specific page, no watermark added"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id: 'sign-pdf',
-    name: 'Sign PDF',
-    emoji: '✍️',
-    category: 'PDF Security',
-    categorySlug: '',
-    description: 'Add a professional text signature to your PDF. Choose a style, position it anywhere on the page, and customize color, size, and font.',
-    apiEndpoint: '/api/sign-pdf',
-    multiFile: false,
-    acceptedTypes: '.pdf,application/pdf',
-    acceptedLabel: 'PDF',
-    resultType: 'file',
-    outputFilename: 'signed.pdf',
-    outputMime: 'application/pdf',
-    options: [
-      {
-        type: 'text', id: 'signature_text', label: 'Signature Text',
-        placeholder: 'Your Full Name', default: ''
-      },
-      {
-        type: 'select', id: 'style', label: 'Signature Style',
-        icon: 'fas fa-paint-brush',
-        choices: [
-          { v: 'corporate', l: '🏢 Corporate — Professional blue' },
-          { v: 'casual',    l: '✍️ Casual — Elegant script look' },
-          { v: 'legal',     l: '⚖️ Legal — Formal black with border' },
-          { v: 'minimal',   l: '✨ Minimal — Clean and simple' }
-        ],
-        default: 'corporate'
-      },
-      {
-        type: 'select', id: 'position', label: 'Position on Page',
-        icon: 'fas fa-arrows-up-down-left-right',
-        choices: [
-          { v: 'bottom-right',  l: '↘ Bottom Right (default)' },
-          { v: 'bottom-left',   l: '↙ Bottom Left' },
-          { v: 'bottom-center', l: '↓ Bottom Center' },
-          { v: 'top-right',     l: '↗ Top Right' },
-          { v: 'top-left',      l: '↖ Top Left' },
-          { v: 'center',        l: '⊙ Center' }
-        ],
-        default: 'bottom-right'
-      },
-      {
-        type: 'select', id: 'pages', label: 'Sign Which Pages',
-        icon: 'fas fa-file-pdf',
-        choices: [
-          { v: 'last',  l: 'Last page only (most common)' },
-          { v: 'first', l: 'First page only' },
-          { v: 'all',   l: 'All pages' },
-          { v: '1',     l: 'Page 1 only' }
-        ],
-        default: 'last'
-      },
-      {
-        type: 'number', id: 'font_size', label: 'Font Size (pt)',
-        min: 10, max: 72, default: 24
-      },
-      {
-        type: 'color', id: 'color', label: 'Signature Color',
-        default: '#003399'
-      }
+    id:'sign-pdf', name:'Sign PDF', emoji:'✍️',
+    category:'PDF Security', categorySlug:'',
+    description:'Add a professional text signature to your PDF. Choose from 4 signature styles (Corporate, Casual, Legal, Minimal), 6 position presets, and customize color and font size. Sign all pages or just one.',
+    apiEndpoint:'/api/sign-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'signed.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'text',   id:'signature_text', label:'Signature Text',
+        placeholder:'Your Full Name', default:'' },
+      { type:'select', id:'style', label:'Signature Style',
+        choices:[
+          {v:'corporate',l:'🏢 Corporate — Professional blue'},
+          {v:'casual',   l:'✍️ Casual — Elegant script look'},
+          {v:'legal',    l:'⚖️ Legal — Formal black with border'},
+          {v:'minimal',  l:'✨ Minimal — Clean and simple'}
+        ], default:'corporate' },
+      { type:'select', id:'position_preset', label:'Position on Page',
+        choices:[
+          {v:'bottom-right', l:'↘ Bottom Right (most common)'},
+          {v:'bottom-left',  l:'↙ Bottom Left'},
+          {v:'bottom-center',l:'↓ Bottom Center'},
+          {v:'top-right',    l:'↗ Top Right'},
+          {v:'top-left',     l:'↖ Top Left'},
+          {v:'center',       l:'⊙ Center'}
+        ], default:'bottom-right' },
+      { type:'select', id:'pages', label:'Sign Which Pages',
+        choices:[
+          {v:'last', l:'Last page only (most common)'},
+          {v:'first',l:'First page only'},
+          {v:'all',  l:'All pages'},
+          {v:'1',    l:'Page 1 only'}
+        ], default:'last' },
+      { type:'number', id:'font_size', label:'Font Size (pt)', min:10, max:72, default:24 },
+      { type:'color',  id:'color', label:'Signature Color', default:'#003399' }
     ],
-    steps: [
+    steps:[
       'Upload your PDF document.',
       'Type your name or signature text.',
-      'Choose a style, position, and which pages to sign.',
-      'Download the signed PDF instantly.'
+      'Choose a style and position preset.',
+      'Click "Sign PDF" and download your signed document.'
     ],
-    features: [
-      '4 professional signature styles',
-      '6 position presets on any page',
-      'Sign all pages or a specific page',
+    features:[
+      '4 professional signature styles (Corporate, Casual, Legal, Minimal)',
+      '6 position presets on the page',
+      'Sign last page, first page, all pages, or custom',
       'Custom color and font size',
-      'reportlab-powered rendering',
-      'No watermarks added',
-      '100% free, no account needed'
+      'reportlab + PyMuPDF multi-engine rendering',
+      'No watermarks added to output',
+      '100% free — no account needed'
     ],
-    related: [
-      { name: 'Protect PDF',    url: '/tools/protect-pdf/',    emoji: '🔒', c1: '#ef4444', c2: '#f97316', desc: 'Add password' },
-      { name: 'Add Watermark',  url: '/tools/add-watermark/',  emoji: '💧', c1: '#6366f1', c2: '#8b5cf6', desc: 'Add watermark' },
-      { name: 'Redact PDF',     url: '/tools/redact-pdf/',     emoji: '⬛', c1: '#0f172a', c2: '#1e293b', desc: 'Redact text' },
-      { name: 'Compress PDF',   url: '/tools/compress-pdf/',   emoji: '🗜️', c1: '#10b981', c2: '#059669', desc: 'Reduce size' }
+    related:[
+      {name:'Protect PDF',   url:'/tools/protect-pdf/',  emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},
+      {name:'Add Watermark', url:'/tools/add-watermark/',emoji:'💧',c1:'#6366f1',c2:'#8b5cf6',desc:'Add watermark'},
+      {name:'Redact PDF',    url:'/tools/redact-pdf/',   emoji:'⬛',c1:'#0f172a',c2:'#1e293b',desc:'Redact text'},
+      {name:'Compress PDF',  url:'/tools/compress-pdf/', emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
     ]
   };
   </script>

@@ -1,64 +1,70 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Split PDF Free Online — Extract Pages | IshuTools by Ishu Kumar</title>
-  <meta name="description" content="Split PDF online for free. Extract individual pages or custom ranges. No signup needed. Made by Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="split pdf, pdf splitter, extract pages from pdf, split pdf online free, ishu, ishutools" />
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Split PDF Free Online — Extract Pages, Custom Ranges | IshuTools</title>
+  <meta name="description" content="Split PDF online free. Extract individual pages, custom ranges, or every N pages. Download as ZIP. No signup, no watermark. IshuTools by Ishu Kumar." />
+  <meta name="keywords" content="split pdf, pdf splitter, extract pages from pdf, split pdf online free, divide pdf, pdf page extractor, pdf to pages, ishu, ishutools, ishu kumar, ishutools.fun" />
   <meta name="author" content="Ishu Kumar" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://ishutools.fun/tools/split-pdf/" />
+  <meta property="og:title" content="Split PDF Free — Extract Pages | IshuTools" />
+  <meta property="og:description" content="Split PDF into individual pages or custom ranges. Download as ZIP. Free, no signup. By Ishu Kumar." />
+  <meta property="og:url" content="https://ishutools.fun/tools/split-pdf/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext y='22' x='4' font-size='20'%3E✂️%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" />
-  <link rel="stylesheet" href="style.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Split PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar"}}</script>
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Split PDF Online Free",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://ishutools.fun/tools/split-pdf/",
+    "description": "Free online PDF splitter. Split PDF into individual pages, custom ranges, or every N pages. Download all pages as ZIP. No signup required.",
+    "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+    "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
+    "featureList": "Split every page, custom page ranges, every N pages, bookmark-based split, ZIP download"
+  }
+  </script>
   <script>
   window.TOOL_CONFIG = {
-    id:           'split-pdf',
-    name:         'Split PDF',
-    emoji:        '✂️',
-    category:     'Organize PDF',
-    categorySlug: '',
-    description:  'Split a PDF into individual pages or custom page ranges. Download as a ZIP file containing all split pages.',
-    apiEndpoint:  '/api/split-pdf',
-    multiFile:    false,
-    acceptedTypes: '.pdf,application/pdf',
-    acceptedLabel: 'PDF',
-    resultType:   'file',
-    outputFilename: 'split_pages.zip',
-    outputMime:   'application/zip',
-    options: [
-      {
-        type: 'select', id: 'mode', label: 'Split Mode',
-        choices: [
-          { v:'all',     l:'Every Page (one PDF per page)' },
-          { v:'range',   l:'Custom Ranges (e.g. 1-3, 5, 7-9)' },
-          { v:'every_n', l:'Every N Pages' }
-        ],
-        default: 'all'
-      },
-      { type:'pages',  id:'ranges',   label:'Page Ranges',  placeholder:'e.g. 1-3, 5, 7-9 (for Range mode)' },
-      { type:'number', id:'every_n',  label:'Every N Pages', min:1, max:100, default:1 }
+    id:'split-pdf', name:'Split PDF', emoji:'✂️',
+    category:'Organize PDF', categorySlug:'',
+    description:'Split a PDF into individual pages or custom page ranges. Download as a ZIP file. Supports every page, custom ranges, every N pages, and more.',
+    apiEndpoint:'/api/split-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'split_pages.zip', outputMime:'application/zip',
+    options:[
+      { type:'select', id:'mode', label:'Split Mode',
+        choices:[
+          {v:'all',     l:'Every Page — one PDF per page'},
+          {v:'range',   l:'Custom Ranges — e.g. 1-3, 5, 7-9'},
+          {v:'every_n', l:'Every N Pages — split into equal chunks'}
+        ], default:'all' },
+      { type:'pages',  id:'ranges',  label:'Page Ranges',  placeholder:'e.g. 1-3, 5, 7-9 (for Range mode)' },
+      { type:'number', id:'every_n', label:'Every N Pages', min:1, max:100, default:1 }
     ],
-    steps: [
+    steps:[
       'Upload your PDF file.',
       'Choose split mode: every page, custom ranges, or every N pages.',
       'Click "Split PDF" and download the ZIP with all pages.'
     ],
-    features: [
-      'Split into individual pages or ranges',
-      'ZIP download with all split PDFs',
-      'Preserves original page quality',
+    features:[
+      'Split into individual pages or custom ranges',
+      'ZIP download containing all split PDFs',
+      'Preserves original page quality and formatting',
       'No file size limit (up to 1 GB)',
-      '100% free, no watermarks'
+      '100% free — no watermarks, no signup'
     ],
-    related: [
-      { name:'Merge PDF',       url:'/tools/merge-pdf/',       emoji:'🔗', c1:'#6366f1', c2:'#8b5cf6', desc:'Combine PDFs' },
-      { name:'Extract Pages',   url:'/tools/extract-pages/',   emoji:'📤', c1:'#10b981', c2:'#06b6d4', desc:'Extract pages' },
-      { name:'Remove Pages',    url:'/tools/remove-pages/',    emoji:'🗑️', c1:'#ef4444', c2:'#f97316', desc:'Delete pages' },
-      { name:'Compress PDF',    url:'/tools/compress-pdf/',    emoji:'🗜️', c1:'#f59e0b', c2:'#10b981', desc:'Reduce size' }
+    related:[
+      {name:'Merge PDF',       url:'/tools/merge-pdf/',       emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
+      {name:'Extract Pages',   url:'/tools/extract-pages/',   emoji:'📤',c1:'#10b981',c2:'#06b6d4',desc:'Extract pages'},
+      {name:'Remove Pages',    url:'/tools/remove-pages/',    emoji:'🗑️',c1:'#ef4444',c2:'#f97316',desc:'Delete pages'},
+      {name:'Compress PDF',    url:'/tools/compress-pdf/',    emoji:'🗜️',c1:'#f59e0b',c2:'#10b981',desc:'Reduce size'}
     ]
   };
   </script>

@@ -3,18 +3,37 @@ Allow: /
 Disallow: /api/
 Disallow: /tmp/
 Disallow: /_internal/
+Disallow: /static/uploads/
 
-# Sitemaps
-Sitemap: https://ishutools.fun/sitemap.xml
-
-# Crawl-delay for bots
+# Allow all major search engines — no crawl delay for fast indexing
 User-agent: Googlebot
-Crawl-delay: 1
+Allow: /
+Crawl-delay: 0
+
+User-agent: Googlebot-Image
+Allow: /static/icons/
 
 User-agent: Bingbot
-Crawl-delay: 5
+Allow: /
+Crawl-delay: 1
 
-# Block bad bots
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Block aggressive scrapers
 User-agent: AhrefsBot
 Disallow: /
 
@@ -23,3 +42,15 @@ Disallow: /
 
 User-agent: MJ12bot
 Disallow: /
+
+User-agent: dotbot
+Disallow: /
+
+User-agent: Exabot
+Disallow: /
+
+# Sitemap locations
+Sitemap: https://ishutools.fun/sitemap.xml
+
+# Canonical host
+Host: https://ishutools.fun
