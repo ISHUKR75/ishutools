@@ -119,4 +119,22 @@
   <url><loc>https://ishutools.fun/tools/summarize-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
   <url><loc>https://ishutools.fun/tools/translate-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
 
+  <!-- ═══ Author Entity Page — Ishu Kumar (ISHUKR41) ═══ -->
+  <!-- Entity hub: Google Knowledge Graph seed for "Ishu Kumar", "ISHUKR41", "ishu tools" searches -->
+  <url>
+    <loc>https://ishutools.fun/ishu-kumar/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.98</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/ishu-kumar/"/>
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Ishu Kumar (ISHUKR41) — Indian Developer, Creator of IshuTools.fun</image:title>
+      <image:caption>Ishu Kumar (ISHUKR41 / ISHUKR75) — Indian software developer, creator of IshuTools.fun, builder of 36+ free professional PDF tools including Merge PDF, Split PDF, Compress PDF, OCR PDF and more.</image:caption>
+      <image:geo_location>India</image:geo_location>
+    </image:image>
+  </url>
+
 </urlset>

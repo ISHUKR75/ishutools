@@ -191,6 +191,25 @@ def sitemap_tools():
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-tools.xml',
                                mimetype='application/xml')
 
+@app.route('/sitemap-merge-pdf.xml')
+def sitemap_merge_pdf():
+    """Serve the dedicated merge-pdf SEO sitemap."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-merge-pdf.xml',
+                               mimetype='application/xml')
+
+@app.route('/sitemap-index.xml')
+def sitemap_index():
+    """Serve the sitemap index."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-index.xml',
+                               mimetype='application/xml')
+
+@app.route('/ishu-kumar/')
+@app.route('/ishu-kumar')
+def ishu_kumar_page():
+    """Serve the Ishu Kumar author / entity page — for Google Knowledge Graph."""
+    ishu_dir = os.path.join(FRONTEND_DIR, 'ishu-kumar')
+    return send_from_directory(ishu_dir, 'index.html')
+
 @app.route('/robots.txt')
 def robots():
     """Serve robots.txt for SEO crawlers."""

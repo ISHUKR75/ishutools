@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IshuTools.fun — Sitemap Index
+  Built by Ishu Kumar (ISHUKR41 / ISHUKR75)
+  https://ishutools.fun
+  Last updated: 2026-06-18
+-->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Main sitemap (all pages) -->
+  <sitemap>
+    <loc>https://ishutools.fun/sitemap.xml</loc>
+    <lastmod>2026-06-18</lastmod>
+  </sitemap>
+
+  <!-- Tools sitemap -->
+  <sitemap>
+    <loc>https://ishutools.fun/sitemap-tools.xml</loc>
+    <lastmod>2026-06-18</lastmod>
+  </sitemap>
+
+  <!-- Dedicated Merge PDF sitemap (highest priority tool) -->
+  <sitemap>
+    <loc>https://ishutools.fun/sitemap-merge-pdf.xml</loc>
+    <lastmod>2026-06-18</lastmod>
+  </sitemap>
+
+</sitemapindex>

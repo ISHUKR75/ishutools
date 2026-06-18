@@ -11,8 +11,11 @@ Disallow: /api/
 Disallow: /uploads/
 Disallow: /tmp/
 
-# Sitemap
+# Sitemaps
+Sitemap: https://ishutools.fun/sitemap-index.xml
 Sitemap: https://ishutools.fun/sitemap.xml
+Sitemap: https://ishutools.fun/sitemap-tools.xml
+Sitemap: https://ishutools.fun/sitemap-merge-pdf.xml
 
 # ── Google ──────────────────────────────────────────────────
 User-agent: Googlebot

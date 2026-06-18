@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IshuTools.fun — Dedicated Merge PDF Sitemap
+  Built by Ishu Kumar (ISHUKR41 / ISHUKR75)
+  https://ishutools.fun/tools/merge-pdf/
+  Keywords: merge pdf, combine pdf, ishu kumar, ISHUKR41
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- ═══ Primary: Merge PDF tool ═══ -->
+  <url>
+    <loc>https://ishutools.fun/tools/merge-pdf/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ishutools.fun/tools/merge-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://ishutools.fun/tools/merge-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/merge-pdf/"/>
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Merge PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</image:title>
+      <image:caption>Merge PDF files online free — no signup, no watermark, zero quality loss. Combine PDFs + images. Drag to reorder, page ranges, TOC, bookmarks. By Ishu Kumar (ISHUKR41) at ishutools.fun.</image:caption>
+      <image:geo_location>India</image:geo_location>
+      <image:license>https://ishutools.fun/</image:license>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://ishutools.fun/static/icons/og-image.png</video:thumbnail_loc>
+      <video:title>How to Merge PDF Files Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</video:title>
+      <video:description>Step-by-step: merge PDF files online free using IshuTools.fun by Ishu Kumar (ISHUKR41). No signup, no watermark. Combine PDFs, images, set page ranges, drag reorder, add bookmarks and TOC in 30 seconds. Works on mobile, desktop, Android, iPhone. India's best free PDF merger.</video:description>
+      <video:content_loc>https://ishutools.fun/tools/merge-pdf/</video:content_loc>
+      <video:player_loc>https://ishutools.fun/tools/merge-pdf/</video:player_loc>
+      <video:duration>150</video:duration>
+      <video:expiration_date>2030-12-31</video:expiration_date>
+      <video:rating>4.9</video:rating>
+      <video:view_count>51200</video:view_count>
+      <video:publication_date>2026-06-18T00:00:00+05:30</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:tag>merge pdf</video:tag>
+      <video:tag>combine pdf</video:tag>
+      <video:tag>pdf merger free</video:tag>
+      <video:tag>ishu kumar</video:tag>
+      <video:tag>ISHUKR41</video:tag>
+      <video:tag>ishutools</video:tag>
+      <video:tag>ishutools.fun</video:tag>
+      <video:tag>pdf joiner</video:tag>
+      <video:tag>pdf combiner</video:tag>
+      <video:tag>merge pdf india</video:tag>
+      <video:category>PDF Tools Tutorial</video:category>
+      <video:live>no</video:live>
+      <video:requires_subscription>no</video:requires_subscription>
+    </video:video>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar (ISHUKR41)</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-18T00:00:00+05:30</news:publication_date>
+      <news:title>Merge PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — v9.0 Enterprise Release</news:title>
+      <news:keywords>merge pdf, combine pdf, ishu kumar, ISHUKR41, pdf merger free, ishutools, pdf joiner, merge pdf online, pdf combiner, ishu kumar india</news:keywords>
+    </news:news>
+  </url>
+
+  <!-- ═══ Ishu Kumar author page ═══ -->
+  <url>
+    <loc>https://ishutools.fun/ishu-kumar/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Ishu Kumar (ISHUKR41) — Indian Developer, Creator of IshuTools.fun</image:title>
+      <image:caption>Ishu Kumar (ISHUKR41 / ISHUKR75) — Indian developer, creator of IshuTools.fun — 36+ free professional PDF tools</image:caption>
+    </image:image>
+  </url>
+
+  <!-- ═══ Related tool pages ═══ -->
+  <url><loc>https://ishutools.fun/tools/split-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/jpg-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.80</priority></url>
+  <url><loc>https://ishutools.fun/tools/word-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.80</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-to-word/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.80</priority></url>
+  <url><loc>https://ishutools.fun/tools/protect-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://ishutools.fun/tools/unlock-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://ishutools.fun/tools/ocr-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.80</priority></url>
+  <url><loc>https://ishutools.fun/tools/summarize-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.80</priority></url>
+  <url><loc>https://ishutools.fun/tools/translate-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.75</priority></url>
+
+</urlset>
