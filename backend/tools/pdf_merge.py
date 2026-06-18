@@ -49,9 +49,49 @@ QPDF_BIN = shutil.which('qpdf')
 # ── Page range parser ─────────────────────────────────────────────────────────
 
 def _parse_range(range_str: str, total: int) -> list:
-    """Parse '1,3,5-8' into sorted 0-based indices."""
+    """
+    Parse flexible page range strings into sorted 0-based indices.
+
+    Supported formats:
+      '1,3,5-8'         — specific pages / ranges (1-based)
+      'all' / ''        — all pages
+      'odd'             — pages 1,3,5,…
+      'even'            — pages 2,4,6,…
+      'first N'         — first N pages
+      'last N'          — last N pages
+      'first'           — first page only
+      'last'            — last page only
+    """
+    if not range_str or str(range_str).strip().lower() in ('all', ''):
+        return list(range(total))
+
+    rs = str(range_str).strip().lower()
+
+    # Smart keywords
+    if rs == 'odd':
+        return [i for i in range(total) if i % 2 == 0]
+    if rs == 'even':
+        return [i for i in range(total) if i % 2 == 1]
+    if rs == 'first':
+        return [0] if total > 0 else []
+    if rs == 'last':
+        return [total - 1] if total > 0 else []
+    if rs.startswith('first '):
+        try:
+            n = int(rs.split()[1])
+            return list(range(min(n, total)))
+        except (ValueError, IndexError):
+            return list(range(total))
+    if rs.startswith('last '):
+        try:
+            n = int(rs.split()[1])
+            return list(range(max(0, total - n), total))
+        except (ValueError, IndexError):
+            return list(range(total))
+
+    # Standard numeric ranges (1-based)
     indices = set()
-    for part in str(range_str).replace(' ', '').split(','):
+    for part in rs.replace(' ', '').split(','):
         if '-' in part:
             a, b = part.split('-', 1)
             try:

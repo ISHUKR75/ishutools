@@ -195,6 +195,7 @@ def api_merge_pdf():
         merge_method     = request.form.get('merge_method', 'auto')
         out_title        = request.form.get('output_title', '')
         out_author       = request.form.get('output_author', '')
+        out_filename_req = request.form.get('output_filename', '')
 
         # Parse per-file page ranges (JSON array or comma-separated strings)
         try:
@@ -272,8 +273,15 @@ def api_merge_pdf():
             except Exception as lin_e:
                 logger.warning(f'Linearization failed (non-fatal): {lin_e}')
 
-        stems = '_'.join(file_stem(f) for f in files[:3])
-        download_name = f'{stems}_merged.pdf'
+        # Use client-requested filename if provided, else auto-generate from first 3 file stems
+        if out_filename_req:
+            safe = secure_filename(out_filename_req)
+            if not safe.lower().endswith('.pdf'):
+                safe += '.pdf'
+            download_name = safe or 'merged.pdf'
+        else:
+            stems = '_'.join(file_stem(f) for f in files[:3])
+            download_name = f'{stems}_merged.pdf'
         resp = send_result(out, download_name)
         resp.headers['X-Total-Pages']       = str(result.get('total_pages', 0))
         resp.headers['X-Source-Count']      = str(result.get('source_count', len(files)))
