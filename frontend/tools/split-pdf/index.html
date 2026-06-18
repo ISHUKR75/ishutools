@@ -238,12 +238,24 @@
 
   <!-- 3. SPLIT MODES ────────────────────────────────────────────── -->
   <section class="sp-card" id="modesCard" hidden aria-label="Split mode">
-    <div class="sp-card-header">
-      <div class="sp-card-title">
-        <i class="fa fa-cut" aria-hidden="true"></i>
-        Choose Split Mode
+    <div class="sp-modes-header">
+      <div>
+        <div class="sp-card-title">
+          <i class="fa fa-cut" aria-hidden="true"></i>
+          Choose Split Mode
+        </div>
+        <div class="sp-card-sub">Select how you want to split this PDF</div>
       </div>
-      <div class="sp-card-sub">Select how you want to split this PDF</div>
+      <button class="sp-detect-btn" id="detectBtn" type="button" aria-label="Auto-detect best split mode">
+        <i class="fa fa-magic" aria-hidden="true"></i> Auto-Detect
+      </button>
+    </div>
+
+    <!-- Smart recommendation banner — shown after auto-detect -->
+    <div class="sp-recommend-banner" id="recommendBanner" hidden aria-live="polite">
+      <i class="fa fa-lightbulb" aria-hidden="true"></i>
+      <span class="sp-rec-text" id="recText">Analysing PDF structure…</span>
+      <button class="sp-rec-apply-btn" id="recApplyBtn" type="button">Apply</button>
     </div>
 
     <div class="sp-modes-grid" id="modesGrid" role="radiogroup" aria-label="Split modes">
@@ -254,7 +266,7 @@
         <div class="sp-mode-icon" aria-hidden="true">📄</div>
         <div class="sp-mode-title">All Pages</div>
         <div class="sp-mode-desc">1 file per page — max granularity</div>
-        <div class="sp-mode-ex">10-page PDF → 10 files</div>
+        <span class="sp-mode-badge" id="mcount-all" hidden></span>
       </div>
 
       <div class="sp-mode-card" data-mode="range" role="radio" aria-checked="false" tabindex="0"
@@ -263,7 +275,7 @@
         <div class="sp-mode-icon" aria-hidden="true">✂️</div>
         <div class="sp-mode-title">Page Range</div>
         <div class="sp-mode-desc">Extract specific pages or ranges</div>
-        <div class="sp-mode-ex">e.g. 1-5, 8, 12-15</div>
+        <span class="sp-mode-badge" id="mcount-range" hidden></span>
       </div>
 
       <div class="sp-mode-card" data-mode="every_n" role="radio" aria-checked="false" tabindex="0"
@@ -272,7 +284,7 @@
         <div class="sp-mode-icon" aria-hidden="true">🔢</div>
         <div class="sp-mode-title">Every N Pages</div>
         <div class="sp-mode-desc">Split into equal-size chunks</div>
-        <div class="sp-mode-ex">e.g. every 5 pages</div>
+        <span class="sp-mode-badge" id="mcount-every-n" hidden></span>
       </div>
 
       <div class="sp-mode-card" data-mode="bookmarks" role="radio" aria-checked="false" tabindex="0"
@@ -281,7 +293,7 @@
         <div class="sp-mode-icon" aria-hidden="true">📚</div>
         <div class="sp-mode-title">By Bookmarks</div>
         <div class="sp-mode-desc">One file per chapter / TOC entry</div>
-        <div class="sp-mode-ex">Chapter 1, Chapter 2…</div>
+        <span class="sp-mode-badge" id="mcount-bookmarks" hidden></span>
       </div>
 
       <div class="sp-mode-card" data-mode="blank_pages" role="radio" aria-checked="false" tabindex="0"
@@ -290,7 +302,7 @@
         <div class="sp-mode-icon" aria-hidden="true">⬜</div>
         <div class="sp-mode-title">Blank Separator</div>
         <div class="sp-mode-desc">Split at blank pages automatically</div>
-        <div class="sp-mode-ex">perfect for scanned batches</div>
+        <span class="sp-mode-badge" id="mcount-blank-pages" hidden></span>
       </div>
 
       <div class="sp-mode-card" data-mode="size_limit" role="radio" aria-checked="false" tabindex="0"
@@ -299,7 +311,7 @@
         <div class="sp-mode-icon" aria-hidden="true">📦</div>
         <div class="sp-mode-title">By File Size</div>
         <div class="sp-mode-desc">Each part ≤ your size limit</div>
-        <div class="sp-mode-ex">e.g. ≤ 5 MB per part</div>
+        <span class="sp-mode-badge" id="mcount-size-limit" hidden></span>
       </div>
 
       <div class="sp-mode-card" data-mode="odd_even" role="radio" aria-checked="false" tabindex="0"
@@ -308,7 +320,7 @@
         <div class="sp-mode-icon" aria-hidden="true">🎭</div>
         <div class="sp-mode-title">Odd / Even</div>
         <div class="sp-mode-desc">Separate front &amp; back pages</div>
-        <div class="sp-mode-ex">great for duplex scanning</div>
+        <span class="sp-mode-badge" id="mcount-odd-even">→ 2 files</span>
       </div>
 
     </div>
@@ -514,6 +526,12 @@
       </div>
     </div>
   </section>
+
+  <!-- ERROR BANNER ─────────────────────────────────────────────── -->
+  <div class="sp-error-banner" id="errorBanner" hidden>
+    <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+    <span class="sp-err-text">An error occurred. Please try again.</span>
+  </div>
 
   <!-- 6. SPLIT ACTION ──────────────────────────────────────────── -->
   <div class="sp-action-section" id="actionSection" hidden>
@@ -999,7 +1017,7 @@
       <h2 class="sp-section-h2" id="guide-h2">How to Split a PDF: The Complete 2025 Guide</h2>
       <p class="sp-guide-byline">
         By <a href="https://github.com/ISHUKR41" rel="author">Ishu Kumar</a> &bull;
-        <span class="sp-guide-updated">Updated June 2025</span>
+        <span class="sp-guide-updated">Updated June 2026</span>
       </p>
     </div>
     <div class="sp-guide-body">
@@ -1133,7 +1151,7 @@
       </nav>
     </div>
     <p class="sp-footer-copy">
-      © 2025 <a href="https://ishutools.fun">IshuTools.fun</a> by
+      © 2026 <a href="https://ishutools.fun">IshuTools.fun</a> by
       <a href="https://github.com/ISHUKR41" rel="author">Ishu Kumar</a> —
       Free PDF tools, forever. No tracking, no ads.
     </p>
@@ -1152,8 +1170,11 @@
   }
 </script>
 
-<!-- GSAP for animations (defer = safe, all refs wrapped in DOMContentLoaded) -->
+<!-- GSAP for animations -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
+
+<!-- Canvas Confetti for success celebration -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js" defer></script>
 
 <!-- Tool script -->
 <script src="script.js" defer></script>

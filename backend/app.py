@@ -692,6 +692,57 @@ def api_split_pdf_thumbnails():
         logger.exception("split-pdf/thumbnails error")
         return error_response(str(e))
 
+@app.route('/api/split-pdf/validate', methods=['POST'])
+def api_split_pdf_validate():
+    """Pre-flight PDF health check — returns validation report."""
+    try:
+        from tools.pdf_split import validate_pdf
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path = save_uploaded_file(file)
+        report = validate_pdf(path, password=password)
+        return jsonify({'success': True, **report})
+    except Exception as e:
+        logger.exception('split-pdf/validate error')
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/auto-detect', methods=['POST'])
+def api_split_pdf_auto_detect():
+    """Smart split mode recommendation based on PDF structure."""
+    try:
+        from tools.pdf_split import auto_detect_mode
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path = save_uploaded_file(file)
+        result = auto_detect_mode(path, password=password)
+        return jsonify({'success': True, **result})
+    except Exception as e:
+        logger.exception('split-pdf/auto-detect error')
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/analytics', methods=['POST'])
+def api_split_pdf_analytics():
+    """Per-page word count, image count, blank detection analytics."""
+    try:
+        from tools.pdf_split import get_page_analytics
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path = save_uploaded_file(file)
+        analytics = get_page_analytics(path, password=password)
+        return jsonify({'success': True, 'pages': analytics, 'count': len(analytics)})
+    except Exception as e:
+        logger.exception('split-pdf/analytics error')
+        return error_response(str(e))
+
+
 @app.route('/api/compress-pdf', methods=['POST'])
 def api_compress_pdf():
     """Compress and reduce PDF file size."""

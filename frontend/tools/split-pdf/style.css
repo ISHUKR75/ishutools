@@ -1187,3 +1187,141 @@ img { display:block; max-width:100%; }
   .sp-pg-cell { width:27px; height:27px; }
   .sp-qs-btn  { padding:4px 8px; font-size:.7rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   v4.0 NEW COMPONENTS
+   =================================================================== */
+
+/* ── MODE COUNT BADGE ───────────────────────────────────────────── */
+.sp-mode-badge {
+  display:inline-block; margin-top:5px;
+  font-size:.68rem; font-weight:700; letter-spacing:.02em;
+  color:var(--mc1, var(--sp-accent));
+  background:rgba(99,102,241,.12);
+  border:1px solid rgba(99,102,241,.28);
+  padding:2px 8px; border-radius:100px;
+  transition:all .25s;
+}
+.sp-mode-card.active .sp-mode-badge { background:rgba(99,102,241,.22); }
+
+/* ── AUTO-DETECT BUTTON ─────────────────────────────────────────── */
+.sp-detect-btn {
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:.79rem; font-weight:600; padding:7px 16px;
+  border-radius:100px; cursor:pointer;
+  background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.12));
+  border:1px solid rgba(99,102,241,.3); color:var(--sp-accent);
+  transition:all .22s;
+}
+.sp-detect-btn:hover { background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.22)); }
+.sp-detect-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+.sp-modes-header {
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:10px; margin-bottom:16px;
+}
+
+/* ── RECOMMENDATION BANNER ──────────────────────────────────────── */
+.sp-recommend-banner {
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.08));
+  border:1px solid rgba(99,102,241,.28); border-radius:12px;
+  padding:12px 16px; margin-bottom:14px;
+  animation:sp-rec-in .3s ease both;
+}
+@keyframes sp-rec-in { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+.sp-recommend-banner i { color:var(--sp-accent); font-size:1.05rem; flex-shrink:0; }
+.sp-rec-text { flex:1; font-size:.82rem; color:var(--sp-text2); line-height:1.5; }
+.sp-rec-text strong { color:var(--sp-text); }
+.sp-rec-conf { font-size:.75rem; color:var(--sp-text3); font-style:normal; margin-left:6px; }
+.sp-rec-apply-btn {
+  flex-shrink:0; font-size:.76rem; font-weight:700; padding:5px 14px;
+  background:var(--sp-grad); color:#fff; border:none; border-radius:8px;
+  cursor:pointer; transition:opacity .2s;
+}
+.sp-rec-apply-btn:hover { opacity:.85; }
+
+/* ── PROGRESS STEPS ─────────────────────────────────────────────── */
+.sp-progress-step {
+  display:flex; align-items:center; gap:10px;
+  font-size:.78rem; color:var(--sp-text2);
+  padding:5px 0; border-bottom:1px solid var(--sp-card-border);
+  transition:all .3s ease;
+  transform:translateY(0); opacity:1;
+}
+.sp-step-enter { transform:translateY(10px); opacity:0; }
+.sp-progress-step:last-child { border-bottom:none; color:var(--sp-text); font-weight:500; }
+.sp-step-icon { font-size:.9rem; width:22px; text-align:center; flex-shrink:0; }
+.sp-step-text { flex:1; }
+.sp-step-text strong { color:var(--sp-text); }
+
+/* ── TOAST NOTIFICATIONS ────────────────────────────────────────── */
+.sp-toast {
+  position:fixed; bottom:24px; right:24px; z-index:9999;
+  display:flex; align-items:center; gap:10px;
+  padding:12px 20px; border-radius:12px;
+  font-size:.84rem; font-weight:500; color:#fff;
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+  pointer-events:none;
+  transform:translateY(20px); opacity:0;
+  transition:all .3s cubic-bezier(.4,0,.2,1);
+  max-width:340px;
+}
+.sp-toast-in  { transform:translateY(0); opacity:1; }
+.sp-toast-out { transform:translateY(20px); opacity:0; }
+.sp-toast i   { flex-shrink:0; }
+
+.sp-toast-success { background:linear-gradient(135deg,#10b981,#06b6d4); }
+.sp-toast-error   { background:linear-gradient(135deg,#ef4444,#dc2626); }
+.sp-toast-warn    { background:linear-gradient(135deg,#f59e0b,#f97316); }
+.sp-toast-info    { background:linear-gradient(135deg,#6366f1,#8b5cf6); }
+
+/* ── CONFETTI PARTICLES ─────────────────────────────────────────── */
+.sp-confetti-p {
+  position:fixed; top:-10px; border-radius:3px;
+  pointer-events:none; z-index:9990;
+  animation:sp-confetti-fall linear both;
+}
+@keyframes sp-confetti-fall {
+  0%   { transform:translateY(0) rotate(0deg); opacity:1; }
+  100% { transform:translateY(110vh) rotate(720deg); opacity:0; }
+}
+
+/* ── ERROR BANNER ───────────────────────────────────────────────── */
+.sp-error-banner {
+  display:flex; align-items:flex-start; gap:12px;
+  background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3);
+  border-radius:12px; padding:14px 16px; margin-top:12px;
+}
+.sp-error-banner i { color:var(--sp-red); flex-shrink:0; margin-top:2px; }
+.sp-err-text { font-size:.84rem; color:var(--sp-text); line-height:1.55; }
+
+/* ── PROGRESS BAR ANIMATION ─────────────────────────────────────── */
+.sp-progress-fill {
+  transition: width .4s cubic-bezier(.4,0,.2,1);
+  background: linear-gradient(90deg, var(--sp-accent), var(--sp-accent2), var(--sp-cyan));
+  background-size: 200% 100%;
+  animation: sp-bar-shimmer 1.5s linear infinite;
+}
+@keyframes sp-bar-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ── SPLIT BUTTON PULSE ─────────────────────────────────────────── */
+.sp-split-btn:not(:disabled):hover { animation: sp-btn-pulse 1.2s ease infinite; }
+@keyframes sp-btn-pulse {
+  0%,100% { box-shadow: 0 8px 30px rgba(99,102,241,.4); }
+  50%      { box-shadow: 0 12px 45px rgba(99,102,241,.65); }
+}
+
+/* ── THUMB SELECTED ON RANGE MODE ───────────────────────────────── */
+.sp-thumb.pg-selected canvas { outline:2px solid var(--sp-accent); border-radius:4px; }
+.sp-thumb.pg-selected .sp-thumb-sel { opacity:1; }
+
+/* ── RESPONSIVE ADDITIONS ───────────────────────────────────────── */
+@media (max-width:580px) {
+  .sp-recommend-banner { flex-direction:column; gap:8px; }
+  .sp-rec-apply-btn { width:100%; justify-content:center; }
+  .sp-toast { bottom:14px; right:14px; left:14px; max-width:none; }
+}
