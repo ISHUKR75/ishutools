@@ -104,6 +104,7 @@ function makeEntry(file) {
     ext:          extOf(file.name),
     imgConverted: isImage(file.name),
     thumb:        null,
+    thumbUrl:     null,
     pages:        null,
     enc:          false,
     hasForms:     false,
@@ -148,7 +149,13 @@ function addFiles(fileList) {
   });
 
   window.SOUNDS?.playFileAddSound?.();
-  loadPdfJs(); // ensure PDF.js loaded for metadata
+  // Render image thumbs immediately (no PDF.js needed)
+  accepted.forEach(f => {
+    const entry = FILES.find(e => e.file === f);
+    if (entry && entry.imgConverted) renderThumb(entry);
+  });
+
+  loadPdfJs(); // ensure PDF.js loaded for metadata + PDF thumbs
   if (FILES.length >= 2) showSection('files');
   else if (FILES.length === 1) {
     showSection('files');
@@ -192,6 +199,8 @@ function readPdfMeta(entry) {
       } catch(_) {}
       updateStats();
       refreshCard(entry.id);
+      // Render thumbnail with actual PDF object (already loaded)
+      if (!entry.thumbUrl) _renderThumbFromPdf(entry, pdf);
     } catch(err) {
       const msg = String(err).toLowerCase();
       if (msg.includes('password')) {
@@ -233,9 +242,16 @@ function rebuildList() {
   FILES.forEach((entry, idx) => {
     const card = buildCard(entry, idx);
     D.fList.appendChild(card);
-    // Stagger animation
     card.style.animationDelay = `${idx * 0.04}s`;
   });
+
+  // Render thumbnails — images immediately, PDFs when PDF.js is ready
+  setTimeout(() => {
+    FILES.filter(e => e.imgConverted && !e.thumbUrl).forEach(e => renderThumb(e));
+    if (typeof pdfjsLib !== 'undefined') {
+      FILES.filter(e => !e.imgConverted && !e.thumbUrl).forEach(e => renderThumb(e));
+    }
+  }, 0);
 
   // Sortable.js
   if (_sortable) { _sortable.destroy(); _sortable = null; }
@@ -280,7 +296,6 @@ function buildCard(entry, idx) {
   div.setAttribute('aria-label', entry.name);
 
   const isImg = entry.imgConverted;
-  const iconClass = isImg ? 'img' : 'pdf';
   const iconFa    = isImg ? 'fa-image' : 'fa-file-pdf';
   const badgesHtml = [
     entry.enc      ? `<span class="card-badge badge-enc"><i class="fas fa-lock"></i>Encrypted</span>` : '',
@@ -295,7 +310,11 @@ function buildCard(entry, idx) {
     <div class="card-top">
       <span class="drag-handle" aria-hidden="true" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
       <span class="card-num">${idx + 1}</span>
-      <div class="card-icon ${iconClass}" aria-hidden="true"><i class="fas ${iconFa}"></i></div>
+      <div class="card-thumb" id="th-${entry.id}" title="Click to preview" aria-hidden="true">${
+        entry.thumbUrl
+          ? `<img src="${escHtml(entry.thumbUrl)}" alt=""/>${entry.pages ? `<div class="card-thumb-badge">${entry.pages}p</div>` : ''}`
+          : `<div class="card-thumb-ico"><i class="fas ${iconFa}"></i></div>`
+      }</div>
       <div class="card-meta">
         <div class="card-name" title="${escHtml(entry.name)}">${escHtml(entry.name)}</div>
         <div class="card-info">
@@ -318,6 +337,12 @@ function buildCard(entry, idx) {
   const previewBtn = top.querySelector('.preview-btn');
   const expandBtn  = top.querySelector('.expand-btn');
   const delBtn     = top.querySelector('.del-btn');
+
+  // Thumb click → preview
+  const thumbEl = div.querySelector('.card-thumb');
+  if (thumbEl) {
+    thumbEl.addEventListener('click', e => { e.stopPropagation(); openPreview(entry); });
+  }
 
   if (previewBtn) {
     previewBtn.addEventListener('click', e => { e.stopPropagation(); openPreview(entry); });
@@ -1031,6 +1056,91 @@ function closePreview() {
   if (D?.pvBody)  D.pvBody.innerHTML = '';
 }
 
+/* ════ THUMBNAIL RENDERING ════ */
+/**
+ * Render a tiny first-page thumbnail for a file entry.
+ * - Images: instant via URL.createObjectURL
+ * - PDFs: PDF.js canvas → JPEG dataURL cached in entry.thumbUrl
+ */
+async function renderThumb(entry) {
+  if (entry.thumbUrl) {
+    // Already rendered — just update DOM node if it exists
+    _applyThumb(entry);
+    return;
+  }
+  if (entry.imgConverted) {
+    try {
+      const url = URL.createObjectURL(entry.file);
+      const img = new Image();
+      img.onload = () => {
+        // Create small canvas for consistent sizing
+        const cv = document.createElement('canvas');
+        const MAX = 128;
+        const ratio = img.height / img.width;
+        cv.width = MAX; cv.height = Math.round(MAX * ratio);
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url);
+        entry.thumbUrl = cv.toDataURL('image/jpeg', 0.82);
+        _applyThumb(entry);
+      };
+      img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    } catch(_) {}
+    return;
+  }
+  if (typeof pdfjsLib === 'undefined') return;
+  const el = document.getElementById(`th-${entry.id}`);
+  if (el) el.innerHTML = '<div class="card-thumb-spinner"></div>';
+  try {
+    // Read only first 800KB to be fast for large files
+    const slice = entry.file.slice(0, Math.min(entry.file.size, 800 * 1024));
+    const buf = await slice.arrayBuffer();
+    const loadTask = pdfjsLib.getDocument({
+      data: new Uint8Array(buf),
+      password: entry.pwd || '',
+      stopAtErrors: false,
+      disableFontFace: true,
+    });
+    const pdf = await loadTask.promise;
+    await _renderThumbFromPdf(entry, pdf);
+  } catch(err) {
+    const msg = String(err).toLowerCase();
+    if (msg.includes('password')) { entry.enc = true; }
+    _applyThumb(entry); // show fallback icon
+  }
+}
+
+async function _renderThumbFromPdf(entry, pdfDoc) {
+  try {
+    const page = await pdfDoc.getPage(1);
+    const vp = page.getViewport({ scale: 0.45 });
+    const cv = document.createElement('canvas');
+    cv.width  = Math.round(vp.width);
+    cv.height = Math.round(vp.height);
+    const ctx = cv.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    await page.render({ canvasContext: ctx, viewport: vp, intent: 'print' }).promise;
+    entry.thumbUrl = cv.toDataURL('image/jpeg', 0.80);
+    _applyThumb(entry);
+  } catch(_) {
+    _applyThumb(entry); // fallback icon
+  }
+}
+
+function _applyThumb(entry) {
+  const el = document.getElementById(`th-${entry.id}`);
+  if (!el) return;
+  if (entry.thumbUrl) {
+    const pageBadge = entry.pages ? `<div class="card-thumb-badge">${entry.pages}p</div>` : '';
+    el.innerHTML = `<img src="${entry.thumbUrl}" alt=""/>${pageBadge}`;
+  } else {
+    const iconFa = entry.imgConverted ? 'fa-image' : 'fa-file-pdf';
+    el.innerHTML = `<div class="card-thumb-ico"><i class="fas ${iconFa}"></i></div>`;
+  }
+}
+
 /* ════ PDF.JS LAZY LOADER ════ */
 function loadPdfJs() {
   if (typeof pdfjsLib !== 'undefined') return;
@@ -1040,6 +1150,11 @@ function loadPdfJs() {
     if (typeof pdfjsLib !== 'undefined') {
       pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WRK;
       FILES.filter(e => !e.imgConverted && !e._metaRead).forEach(e => readPdfMeta(e));
+      // readPdfMeta will call _renderThumbFromPdf when done
+      // For already-read files that have no thumb yet, render now
+      setTimeout(() => {
+        FILES.filter(e => !e.imgConverted && !e.thumbUrl && e._metaRead).forEach(e => renderThumb(e));
+      }, 200);
     }
   };
   document.head.appendChild(s);

@@ -32,6 +32,7 @@
 - [DOM init timing](dom-init-timing.md) — ALWAYS initialize D={} DOM refs and ALL addEventListener calls inside DOMContentLoaded; let D=null at module scope, populated in DOMContentLoaded
 - [Merge PDF MP3 path](merge-mp3-path.md) — MP3 files must physically exist in frontend/tools/merge-pdf/sounds/; Flask /tools/<tool>/<path:filename> serves them; base href makes relative URL resolve correctly
 - [Merge PDF v9 libraries](merge-v9-libs.md) — Chart.js + Typed.js + anime.js + canvas-confetti + GSAP+ScrollTrigger + Sortable loaded with defer EXCEPT sounds.js (regular script); all module-scope vars null at top, populated in DOMContentLoaded
-- [Hidden attribute CSS override](hidden-attr-override.md) — display:flex overrides HTML hidden attr; fix with [hidden]{display:none!important}; add for every element using both hidden attr and flex/grid class
+- [Hidden attribute CSS override](hidden-attr-override.md) — display:flex overrides HTML hidden attr; fix with [hidden]{display:none!important}; ALREADY added to merge-pdf/style.css globally
+- [Merge PDF thumbnail cards](merge-thumb-cards.md) — .card-thumb replaces .card-icon; renderThumb()/\_renderThumbFromPdf()/\_applyThumb() in script.js; thumbUrl cached in entry; images instant, PDFs via PDF.js slice(800KB); click thumb = openPreview
 - [Per-file server validate](per-file-validate.md) — validateFile(entry) POSTs to /api/merge-pdf/validate; sets hasForms/hasAnnots/pdfTitle/pdfAuthor/pdfVersion; guard with entry._validated flag to avoid double-call
 - [Mobile FAB pattern](mobile-fab.md) — hide FAB on desktop with @media(hover:hover) and (pointer:fine){display:none!important}; show when FILES.length>=2 via hidden attr; FAB clicks mergeBtn if ready, else triggers file input

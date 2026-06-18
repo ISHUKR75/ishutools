@@ -584,32 +584,56 @@ def _normalize_with_fitz(input_path: str, output_path: str,
 def _quality_score(result: dict, input_total_bytes: int) -> tuple:
     """
     Score the merge quality 0–100 and assign a letter grade.
-    Based on: method used, size change, pages count, TOC, bookmarks.
+    Factors: method, compression ratio, TOC, page count, source count, duplicates skipped.
     """
-    score = 100
-    method = result.get('method_used', 'pypdf')
-    out_size = result.get('output_size', 0)
+    score = 97  # Start near perfect — pypdf lossless merge is excellent
+    method    = result.get('method_used', 'pypdf')
+    out_size  = result.get('output_size', 0)
+    pages     = result.get('total_pages', 0)
+    src_count = result.get('source_count', 1)
+    skipped   = result.get('skipped_duplicates', 0)
+    toc_added = result.get('toc_added', False)
 
-    # Penalize if GS was used (might have slight quality differences)
+    # Method quality: pypdf/fitz are lossless; GS may re-encode images
     if method == 'ghostscript':
-        score -= 2
+        score -= 3  # small penalty — GS can re-encode images at high quality
+    elif method == 'fitz':
+        score += 1  # fitz preserves structure very well
 
-    # Reward compression if output is smaller (lossless is always A+)
-    if out_size and input_total_bytes:
-        ratio = out_size / max(input_total_bytes, 1)
-        if ratio < 0.8:
-            score = min(100, score + 2)  # nice compression bonus
+    # Size efficiency: reward compression gains
+    if out_size and input_total_bytes > 0:
+        ratio = out_size / input_total_bytes
+        if ratio < 0.70:
+            score += 4   # excellent compression
+        elif ratio < 0.85:
+            score += 2   # good compression
+        elif ratio < 0.98:
+            score += 1   # slight compression
+        elif ratio > 1.25:
+            score -= 2   # output grew significantly (many images or already-compressed)
 
-    # TOC bonus
-    if result.get('toc_added'):
-        score = min(100, score + 1)
+    # Feature bonuses
+    if toc_added:
+        score += 2  # professional report feature
+    if skipped > 0:
+        score += 1  # dedup is smart
 
-    # Clamp
-    score = max(40, min(100, score))
+    # Scale reward: more sources = more complex, higher value
+    if src_count >= 10:
+        score += 2
+    elif src_count >= 5:
+        score += 1
+
+    # Large merge bonus
+    if pages >= 200:
+        score += 1
+
+    # Clamp to valid range
+    score = max(42, min(100, score))
 
     grade_map = [
-        (97, 'A+'), (92, 'A'), (87, 'B+'), (80, 'B'),
-        (72, 'C+'), (64, 'C'), (55, 'D'), (0, 'F'),
+        (98, 'A+'), (93, 'A'), (88, 'B+'), (82, 'B'),
+        (74, 'C+'), (66, 'C'), (56, 'D'), (0, 'F'),
     ]
     grade = 'F'
     for threshold, g in grade_map:
@@ -862,14 +886,20 @@ def merge_pdfs(
             reader = PdfReader(pdf_path, strict=False)
             if reader.is_encrypted:
                 if not reader.decrypt(pwd or ''):
-                    logger.warning(f'Cannot decrypt {pdf_path} — skipping')
-                    continue
+                    fname = os.path.basename(pdf_path)
+                    raise ValueError(
+                        f'Cannot decrypt "{fname}" — wrong or missing password. '
+                        f'Expand its file card and enter the correct password.'
+                    )
+        except ValueError:
+            raise  # propagate password errors to caller
         except Exception as err:
             logger.warning(f'Cannot read {pdf_path}: {err} — skipping')
             continue
 
         total = len(reader.pages)
         if total == 0:
+            logger.warning(f'{pdf_path} has 0 pages — skipping')
             continue
 
         # Resolve page list
