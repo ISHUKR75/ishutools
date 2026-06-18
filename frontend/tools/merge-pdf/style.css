@@ -1479,3 +1479,76 @@ mark { background: rgba(99,102,241,0.18); color: var(--pL); padding: 0 3px; bord
   .hero-title { font-size: 1.82rem; }
   .kbd-grid { grid-template-columns: 1fr; }
 }
+
+/* ══════════════════════════════════════════════
+   ISHU KUMAR CREATOR STRIP — sticky attribution
+══════════════════════════════════════════════ */
+.creator-strip {
+  background: linear-gradient(135deg,rgba(99,102,241,.18) 0%,rgba(139,92,246,.14) 100%);
+  border-top: 1px solid rgba(99,102,241,.3);
+  padding: 0.62rem 1rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #94a3b8);
+  position: relative;
+  z-index: 10;
+  order: 999;
+}
+[data-theme="light"] .creator-strip {
+  background: linear-gradient(135deg,rgba(99,102,241,.09) 0%,rgba(139,92,246,.07) 100%);
+  border-top-color: rgba(99,102,241,.2);
+}
+.creator-strip-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.creator-strip-label { opacity:.7; }
+.creator-strip-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #a5b4fc;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color .2s;
+}
+.creator-strip-name:hover { color: #818cf8; }
+.creator-strip-icon { border-radius: 4px; vertical-align: middle; }
+.creator-strip-handle {
+  background: rgba(99,102,241,.2);
+  color: #a5b4fc;
+  padding: 0.05rem 0.38rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+.creator-strip-sep { opacity:.35; }
+.creator-strip-gh, .creator-strip-site {
+  color: var(--text-secondary, #94a3b8);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color .2s;
+}
+.creator-strip-gh:hover, .creator-strip-site:hover { color: #a5b4fc; }
+.creator-strip-sep--right { display:none; }
+.creator-strip-free {
+  color: #34d399;
+  font-weight: 500;
+  font-size: 0.73rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+@media (max-width: 600px) {
+  .creator-strip-gh { display: none; }
+  .creator-strip-sep { display: none; }
+  .creator-strip-free { font-size: 0.68rem; }
+}

@@ -12,7 +12,7 @@
 const TOOLS = [
   /* ── ORGANIZE ─────────────────────────────────────────── */
   { id:'merge-pdf',       name:'Merge PDF',           category:'organize',    icon:'fas fa-object-group',         accent:'#6366F1', accent2:'#8B5CF6', badge:'hot',
-    desc:'Combine multiple PDF files into one', endpoint:'/api/merge-pdf',    multiFile:true,  accept:'.pdf', fields:[] },
+    desc:'Combine PDFs & images into one file — Free, by Ishu Kumar (ISHUKR41) · IshuTools.fun', endpoint:'/api/merge-pdf',    multiFile:true,  accept:'.pdf', path:'merge-pdf', fields:[] },
 
   { id:'split-pdf',       name:'Split PDF',           category:'organize',    icon:'fas fa-cut',                  accent:'#8B5CF6', accent2:'#A78BFA', badge:null,
     desc:'Split a PDF into pages or ranges',    endpoint:'/api/split-pdf',    multiFile:false, accept:'.pdf', resultIsZip:true,
