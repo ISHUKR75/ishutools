@@ -342,6 +342,7 @@ def merge_pdfs(
     compress_output: bool = False,
     output_metadata: dict = None,
     file_names: list = None,
+    progress_cb=None,
 ) -> dict:
     """
     Merge multiple PDF files into a single PDF with enterprise features.
@@ -391,12 +392,19 @@ def merge_pdfs(
 
     for file_idx, (pdf_path, pwd, page_range) in enumerate(
             zip(input_paths, passwords, page_ranges)):
+        # Fire progress callback for SSE real-time updates
+        if progress_cb:
+            try:
+                fname = file_names[file_idx] if file_names and file_idx < len(file_names) else os.path.basename(pdf_path)
+                progress_cb(file_idx, fname or os.path.basename(pdf_path))
+            except Exception:
+                pass
         try:
             reader = PdfReader(pdf_path)
             if reader.is_encrypted:
                 reader.decrypt(pwd or '')
-        except Exception as e:
-            logger.warning(f'Cannot read {pdf_path}: {e}')
+        except Exception as read_err:
+            logger.warning(f'Cannot read {pdf_path}: {read_err} — skipping file')
             continue
 
         total = len(reader.pages)

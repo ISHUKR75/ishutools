@@ -7,13 +7,44 @@ Domain: ishutools.fun
 
 import os
 import uuid
+import json
+import queue
+import threading
+import time
 from pathlib import Path
 import tempfile
 import logging
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory, Response, stream_with_context
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
+
+# ── SSE Progress store ────────────────────────────────────────────────────────
+_progress_queues: dict = {}   # job_id → queue.Queue
+_progress_lock = threading.Lock()
+
+def _get_or_create_queue(job_id: str) -> queue.Queue:
+    with _progress_lock:
+        if job_id not in _progress_queues:
+            _progress_queues[job_id] = queue.Queue(maxsize=120)
+        return _progress_queues[job_id]
+
+def _push_progress(job_id: str, pct: int, title: str = '', sub: str = '', done: bool = False):
+    if not job_id:
+        return
+    try:
+        q = _get_or_create_queue(job_id)
+        msg = {'pct': pct, 'title': title, 'sub': sub, 'done': done}
+        try:
+            q.put_nowait(msg)
+        except queue.Full:
+            pass
+    except Exception:
+        pass
+
+def _cleanup_queue(job_id: str):
+    with _progress_lock:
+        _progress_queues.pop(job_id, None)
 
 # ── Import all tool modules ──────────────────────────────────────────────────
 from tools.pdf_merge        import merge_pdfs
@@ -225,8 +256,16 @@ def api_merge_pdf():
         except Exception:
             file_types = []
 
+        # Grab SSE job_id for real-time progress
+        job_id = request.form.get('job_id', '').strip()[:64]
+        def push(pct, title='', sub=''):
+            _push_progress(job_id, pct, title, sub)
+
+        push(8, 'Uploading…', f'Received {len(files)} file{"s" if len(files)!=1 else ""}')
+
         # Save all uploaded files first
         paths = save_uploaded_files(files)
+        push(18, 'Processing files…', 'Checking formats and converting images')
 
         # Pre-convert any image files to PDF
         converted_paths = []
@@ -242,10 +281,11 @@ def api_merge_pdf():
                     logger.info(f'Converted image {fn} → PDF for merge')
                 except Exception as img_e:
                     logger.warning(f'Image conversion failed for {fn}: {img_e}')
-                    converted_paths.append(path)  # fallback: keep original
+                    converted_paths.append(path)
             else:
                 converted_paths.append(path)
         paths = converted_paths
+        push(28, 'Merging…', 'Combining documents')
 
         # Pad lists to match file count
         while len(page_ranges) < len(paths):
@@ -263,11 +303,19 @@ def api_merge_pdf():
         if out_author:
             output_metadata['author'] = out_author
 
+        # Build per-file progress callback for merge_pdfs
+        n_files = len(paths)
+        def file_progress_cb(file_idx, file_name):
+            pct = 28 + int((file_idx / max(n_files, 1)) * 45)
+            push(pct, 'Merging…', f'Processing file {file_idx+1}/{n_files}: {file_name[:40]}')
+
         # Choose merge method
         if merge_method == 'gs':
+            push(32, 'Merging…', 'Using Ghostscript engine')
             from tools.pdf_merge import merge_pdfs_gs
             result = merge_pdfs_gs(paths, out)
         elif merge_method == 'fitz':
+            push(32, 'Merging…', 'Using PyMuPDF engine')
             from tools.pdf_merge import merge_pdfs_fitz
             result = merge_pdfs_fitz(paths, out, passwords=passwords, page_ranges=page_ranges)
         else:
@@ -284,7 +332,10 @@ def api_merge_pdf():
                 compress_output=compress_out,
                 output_metadata=output_metadata if output_metadata else None,
                 file_names=display_names if display_names else None,
+                progress_cb=file_progress_cb,
             )
+
+        push(78, 'Optimizing…', 'Finalizing output PDF')
 
         # Optional linearization for web-optimized viewing (fast open in browser)
         if linearize_out:
@@ -300,15 +351,20 @@ def api_merge_pdf():
             except Exception as lin_e:
                 logger.warning(f'Linearization failed (non-fatal): {lin_e}')
 
-        # Use client-requested filename if provided, else auto-generate from first 3 file stems
+        push(92, 'Almost done…', 'Preparing download')
+
+        # Download name — prefer client-requested, fall back to first file's stem
         if out_filename_req:
             safe = secure_filename(out_filename_req)
             if not safe.lower().endswith('.pdf'):
                 safe += '.pdf'
             download_name = safe or 'merged.pdf'
         else:
-            stems = '_'.join(file_stem(f) for f in files[:3])
-            download_name = f'{stems}_merged.pdf'
+            # Use first file's stem only (as client smartOutputFilename does)
+            download_name = file_stem(files[0]) + '_merged.pdf'
+
+        push(98, 'Done!', 'Download ready')
+        _push_progress(job_id, 100, 'Done!', 'Merge complete', done=True)
         resp = send_result(out, download_name)
         resp.headers['X-Total-Pages']       = str(result.get('total_pages', 0))
         resp.headers['X-Source-Count']      = str(result.get('source_count', len(files)))
@@ -324,6 +380,33 @@ def api_merge_pdf():
     except Exception as e:
         logger.exception("merge-pdf error")
         return error_response(str(e))
+
+
+@app.route('/api/merge-pdf/progress/<job_id>')
+def api_merge_progress(job_id):
+    """SSE endpoint — real-time merge progress stream."""
+    job_id = job_id[:64]  # sanitize length
+    def generate():
+        q = _get_or_create_queue(job_id)
+        deadline = time.time() + 180  # 3-min max
+        while time.time() < deadline:
+            try:
+                msg = q.get(timeout=1.5)
+                yield f"data: {json.dumps(msg)}\n\n"
+                if msg.get('done'):
+                    break
+            except queue.Empty:
+                yield "data: {\"ping\":true}\n\n"
+        _cleanup_queue(job_id)
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Access-Control-Allow-Origin': '*',
+        }
+    )
 
 
 @app.route('/api/merge-pdf/info', methods=['POST'])
