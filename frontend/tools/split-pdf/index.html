@@ -195,13 +195,39 @@
       <div class="sp-opt-group" id="optRange" hidden>
         <label class="sp-opt-label"><i class="fa fa-list-ol"></i> Page Ranges</label>
         <div class="sp-range-input-wrap">
-          <input type="text" id="rangeInput" class="sp-text-input" placeholder="e.g. 1-3, 5, 7-9, 12-15" autocomplete="off" spellcheck="false" />
+          <input type="text" id="rangeInput" class="sp-text-input" placeholder="e.g. 1-3, 5, 7-9, 12-15  (or use the grid below)" autocomplete="off" spellcheck="false" />
           <div class="sp-range-hint">
             <span class="sp-hint-item">Ranges: <code>1-5</code></span>
             <span class="sp-hint-item">Singles: <code>3, 7</code></span>
             <span class="sp-hint-item">Mix: <code>1-3, 5, 8-10</code></span>
+            <span class="sp-hint-item hint-shift"><i class="fa fa-keyboard"></i> Shift+click for ranges in grid</span>
           </div>
-          <div class="sp-range-preview" id="rangePreview"></div>
+          <div class="sp-range-preview" id="rangePreview"><span class="sp-rp-hint">Selected pages will appear here</span></div>
+        </div>
+
+        <!-- Quick-select shortcuts -->
+        <div class="sp-qs-bar">
+          <span class="sp-qs-label">Quick select:</span>
+          <div class="sp-qs-btns">
+            <button type="button" class="sp-qs-btn" id="qsAll" title="Select all pages"><i class="fa fa-check-double"></i> All</button>
+            <button type="button" class="sp-qs-btn" id="qsNone" title="Deselect all"><i class="fa fa-ban"></i> None</button>
+            <button type="button" class="sp-qs-btn" id="qsOdd" title="Select odd pages (1,3,5…)">Odd</button>
+            <button type="button" class="sp-qs-btn" id="qsEven" title="Select even pages (2,4,6…)">Even</button>
+            <div class="sp-qs-n-group">
+              <button type="button" class="sp-qs-btn" id="qsFirst" title="Select first N pages">First</button>
+              <input type="number" id="qsN" class="sp-qs-n" value="5" min="1" max="500" title="N pages" />
+              <button type="button" class="sp-qs-btn" id="qsLast" title="Select last N pages">Last</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual page grid -->
+        <div class="sp-pgrid-wrap" id="pgridWrap">
+          <div class="sp-pgrid-hdr">
+            <span class="sp-pgrid-title"><i class="fa fa-th"></i> Visual Page Selector — click to select, Shift+click for ranges</span>
+            <span class="sp-pgrid-sel" id="pgridSel">None selected</span>
+          </div>
+          <div class="sp-pgrid" id="pgrid"></div>
         </div>
       </div>
 
@@ -294,6 +320,9 @@
 
     <!-- ── SPLIT BUTTON ───────────────────────────────── -->
     <section class="sp-action-section" id="actionSection" hidden>
+      <!-- Live split preview -->
+      <div class="sp-split-preview" id="splitPreview"></div>
+
       <button class="sp-split-btn" id="splitBtn">
         <span class="sp-btn-inner">
           <i class="fa fa-cut sp-btn-icon"></i>
@@ -301,7 +330,7 @@
         </span>
         <div class="sp-btn-shine"></div>
       </button>
-      <p class="sp-action-hint">Your file stays private — processed securely, never stored</p>
+      <p class="sp-action-hint"><i class="fa fa-lock"></i> Your file is processed securely &amp; never stored &nbsp;·&nbsp; <kbd>Enter</kbd> to split</p>
     </section>
 
     <!-- ── PROGRESS ───────────────────────────────────── -->
