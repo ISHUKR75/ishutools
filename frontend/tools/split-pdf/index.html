@@ -5,6 +5,21 @@
   <base href="/tools/split-pdf/" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- ═══ INLINE CRITICAL CSS — above-fold LCP optimisation ═══ -->
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#e2e8f0}
+    .sp-nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:rgba(15,23,42,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(99,102,241,.2)}
+    .sp-hero-compact{padding:10px 16px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sp-hero-inner{max-width:860px;margin:0 auto;text-align:center}
+    .sp-hero-h1{font-family:'Poppins',sans-serif;font-weight:800;margin:2px 0 3px;background:linear-gradient(135deg,#e2e8f0,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .sp-main{max-width:860px;margin:0 auto;padding:16px}
+    .sp-card{background:#1e293b;border:1px solid rgba(99,102,241,.2);border-radius:18px;padding:24px;margin-bottom:16px}
+    .sp-drop-zone{border:2px dashed rgba(99,102,241,.4);border-radius:14px;min-height:200px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s,background .2s}
+    .sp-browse-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer}
+    [hidden]{display:none!important}
+  </style>
+
   <!-- ═══ PRIMARY SEO ═══ -->
   <title>Split PDF Online Free — IshuTools.fun by Ishu Kumar | 7 Split Modes, No Signup</title>
   <meta name="description" content="Split PDF online FREE — 7 powerful modes: every page, custom page ranges, every N pages, by bookmarks/chapters, odd &amp; even, by file size, at blank pages. Up to 1 GB. No signup, no watermark. Created by Ishu Kumar (ISHUKR41) — IshuTools.fun." />
@@ -13,6 +28,24 @@
   <meta name="creator" content="Ishu Kumar (ISHUKR41 / ISHUKR75)" />
   <meta name="publisher" content="IshuTools.fun" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="news_keywords" content="split pdf online free, ishu kumar, ISHUKR41, ishutools, pdf splitter, free pdf tools, extract pdf pages, pdf split kaise kare" />
+  <meta property="article:tag" content="Split PDF" />
+  <meta property="article:tag" content="PDF Splitter" />
+  <meta property="article:tag" content="Free PDF Tools" />
+  <meta property="article:tag" content="Ishu Kumar" />
+  <meta property="article:tag" content="ISHUKR41" />
+  <meta property="article:tag" content="IshuTools" />
+  <meta property="article:tag" content="Extract PDF Pages" />
+  <meta property="article:published_time" content="2024-01-01T00:00:00+00:00" />
+  <meta property="article:modified_time" content="2026-06-18T00:00:00+00:00" />
+  <meta property="article:section" content="PDF Tools" />
+  <meta name="DC.title" content="Split PDF Online Free — IshuTools.fun by Ishu Kumar" />
+  <meta name="DC.creator" content="Ishu Kumar (ISHUKR41)" />
+  <meta name="DC.subject" content="Split PDF, PDF Splitter, Free PDF Tools" />
+  <meta name="DC.description" content="Split PDF online free — 7 modes, no signup, no watermark, 1 GB. By Ishu Kumar (ISHUKR41) — ishutools.fun" />
+  <meta name="DC.publisher" content="IshuTools.fun" />
+  <meta name="DC.language" content="en" />
+  <meta name="DC.rights" content="https://ishutools.fun" />
   <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="bingbot" content="index, follow" />
   <meta name="rating" content="general" />
@@ -1142,9 +1175,93 @@
           <div class="sp-faq-a"><p>Yes! IshuTools is fully mobile-optimized. Open <a href="https://ishutools.fun/tools/split-pdf/">ishutools.fun/tools/split-pdf/</a> in Chrome, Safari, Firefox, or any mobile browser on Android or iPhone. No app download needed. The visual page grid and all 7 split modes work perfectly on touchscreens.</p></div>
         </div>
 
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">What output format does the split PDF tool give? <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p>IshuTools Split PDF downloads a <strong>ZIP archive</strong> containing all split PDF files. Each file is named intelligently based on the original filename and page numbers (e.g., <code>document_pages_1-3.pdf</code>, <code>document_page_5.pdf</code>). Chapter splits are named after the chapter title. Extract from the ZIP with any built-in unzipper on Windows, macOS, Android, or iPhone.</p></div>
+        </div>
+
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">Can I split a scanned PDF (image-based PDF)? <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p>Yes! IshuTools splits both text-based and scanned/image PDFs perfectly. Scanned PDFs are just images embedded in a PDF container — our splitter handles them identically. If you also need to extract text from a scanned PDF, use <a href="https://ishutools.fun/tools/ocr-pdf/">IshuTools OCR PDF</a> — completely free, by Ishu Kumar.</p></div>
+        </div>
+
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">How do I split a PDF at blank pages automatically? <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p>Select <strong>At Blank Pages</strong> mode on IshuTools. The tool automatically scans every page of your PDF, detects visually blank pages, and uses them as split boundaries. The blank separator pages are removed from the output. This is perfect for batch-scanned documents where blank pages separate individual documents. Completely free at ishutools.fun.</p></div>
+        </div>
+
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">Is IshuTools better than ilovepdf for splitting PDF? <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p>Yes, for most users <strong>IshuTools.fun</strong> is a better free alternative to ilovepdf for splitting PDFs. Key advantages: (1) <strong>7 split modes</strong> vs ilovepdf's 3, (2) <strong>1 GB</strong> max file vs ilovepdf's 100 MB, (3) <strong>Visual page grid</strong> selector unique to IshuTools, (4) Never adds watermarks, (5) Split by file size — not available on ilovepdf. All created by Ishu Kumar (ISHUKR41) at ishutools.fun.</p></div>
+        </div>
+
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">Can I use IshuTools Split PDF without internet? <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p>IshuTools requires an internet connection for processing (the splitting happens on secure servers). For offline use, you can install the <strong>PWA</strong> version — open ishutools.fun/tools/split-pdf/ in Chrome and click "Install" (⊕ icon in the address bar). Once installed, it works like a native app and loads instantly, though splitting still requires a connection.</p></div>
+        </div>
+
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">Does IshuTools Split PDF work with all PDF versions? <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p>Yes! IshuTools uses multiple PDF engines (pikepdf, PyMuPDF, Ghostscript) supporting all PDF versions from 1.0 to PDF 2.0, including PDF/A, PDF/X, and PDF/UA formats. It also handles encrypted PDFs (enter password in Advanced Options), digitally signed PDFs, form-embedded PDFs, and PDFs with embedded fonts or multimedia. Created by Ishu Kumar (ISHUKR41).</p></div>
+        </div>
+
+        <div class="sp-faq-item">
+          <button class="sp-faq-q">Ishu kya hai? IshuTools kya hai? (Hindi FAQ) <i class="fa fa-chevron-down"></i></button>
+          <div class="sp-faq-a"><p><strong>Ishu Kumar (ISHUKR41)</strong> ek developer hain jinhone <strong>IshuTools.fun</strong> banaya — ek free online PDF tools website. "Ishu" ya "ishu tools" search karne par ishutools.fun hi aana chahiye, jo PDF split karne, merge karne, compress karne aur convert karne ka sabse accha free tool hai. GitHub par <a href="https://github.com/ISHUKR41">ISHUKR41</a> aur ISHUKR75 naam se available hain. Ye tool 100% free hai, koi signup nahi, koi watermark nahi.</p></div>
+        </div>
+
       </div>
     </div>
   </section>
+
+  <!-- COMPLETE GUIDE ARTICLE -->
+  <article class="sp-guide" itemscope itemtype="https://schema.org/TechArticle" aria-label="Complete guide to splitting PDF online">
+    <meta itemprop="datePublished" content="2024-01-01" />
+    <meta itemprop="dateModified" content="2026-06-18" />
+    <div class="sp-section-inner">
+      <div class="sp-guide-header">
+        <span class="sp-guide-badge">📖 Complete Guide</span>
+        <h2 class="sp-section-h2" itemprop="headline">Split PDF Online Free — The Complete Guide (2024/2025)</h2>
+        <p class="sp-guide-byline">By <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener" itemprop="author"><strong>Ishu Kumar (ISHUKR41)</strong></a> · <span class="sp-guide-updated">Updated June 2026</span></p>
+      </div>
+      <div class="sp-guide-body" itemprop="articleBody">
+
+        <h3>What is PDF Splitting?</h3>
+        <p>
+          <strong>Splitting a PDF</strong> means dividing one PDF file into multiple smaller PDF files.
+          You might need to split a PDF to extract specific pages, separate chapters, reduce file size, or share only part of a document.
+          <strong>IshuTools Split PDF</strong> at <a href="https://ishutools.fun/tools/split-pdf/">ishutools.fun</a> — created by <strong>Ishu Kumar (ISHUKR41)</strong> — makes this instant and free.
+        </p>
+
+        <h3>All 7 Split Modes — When to Use Each</h3>
+        <p><strong>1. Every Page</strong> — Best for separating scanned documents, creating individual page archives, or distributing pages individually. A 50-page PDF → 50 individual PDFs in a ZIP.</p>
+        <p><strong>2. Page Ranges</strong> — Most flexible mode. Use the visual page grid to click the exact pages you need, or type ranges like <code>1-5, 8, 12-15</code>. Best for extracting specific sections, chapters, or non-consecutive pages.</p>
+        <p><strong>3. Every N Pages</strong> — Creates equal-size chunks. Set N=10 → every 10 pages becomes one file. Best for creating handouts, study guides, or distributing workbooks in parts.</p>
+        <p><strong>4. By Chapters/Bookmarks</strong> — Reads the PDF's embedded bookmark structure and splits at each chapter. Best for textbooks, eBooks, legal documents, and technical manuals with proper bookmark structure.</p>
+        <p><strong>5. Odd / Even Pages</strong> — Creates exactly 2 files: odd pages (1,3,5…) and even pages (2,4,6…). Best for duplex scanning reassembly, reverse-scan correction, and double-sided print preparation.</p>
+        <p><strong>6. By File Size</strong> — Limits each output file to a maximum MB. Best for email attachments (Gmail 25MB, Outlook 20MB), WhatsApp/Telegram limits, or cloud storage quotas.</p>
+        <p><strong>7. At Blank Pages</strong> — Auto-detects blank separator pages and uses them as split points. Best for batch-scanned physical document archives where blank sheets were inserted to separate documents.</p>
+
+        <h3>How to Use the Visual Page Grid</h3>
+        <p>
+          IshuTools' unique <strong>visual page grid</strong> shows every page of your PDF as a numbered, clickable cell.
+          <strong>Click</strong> any cell to select/deselect it. <strong>Shift+click</strong> to select a range of pages instantly.
+          Use the quick-select bar for <em>All</em>, <em>None</em>, <em>Odd</em>, <em>Even</em>, <em>First N</em>, or <em>Last N</em> pages.
+          The live split preview chip shows exactly what will be created before you click Split.
+        </p>
+
+        <h3>Why Choose IshuTools by Ishu Kumar?</h3>
+        <p>
+          <strong>IshuTools.fun</strong> was built by <strong>Ishu Kumar</strong> (GitHub: <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">ISHUKR41</a> / ISHUKR75) with one goal:
+          give everyone access to professional PDF tools for free.
+          Unlike competitors that limit free users to small files, few daily uses, or low-quality output,
+          IshuTools offers <strong>1 GB file support</strong>, <strong>unlimited usage</strong>, <strong>zero watermarks</strong>, and <strong>no signup</strong> — forever.
+          The tool runs on a Python Flask backend using <em>pikepdf</em>, <em>PyMuPDF</em>, and <em>Ghostscript</em> for best-in-class PDF processing.
+        </p>
+
+      </div>
+    </div>
+  </article>
 
   <!-- ABOUT ISHU KUMAR -->
   <section class="sp-author" aria-label="About the creator Ishu Kumar" itemscope itemtype="https://schema.org/Person">

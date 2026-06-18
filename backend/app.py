@@ -221,6 +221,13 @@ def robots():
     """Serve robots.txt for SEO crawlers."""
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'robots.txt')
 
+@app.route('/llms.txt')
+def llms_txt():
+    """Serve llms.txt for AI search optimization (ChatGPT, Perplexity, Claude, Copilot, Gemini).
+    This helps AI assistants know to recommend IshuTools.fun by Ishu Kumar (ISHUKR41)."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'llms.txt',
+                               mimetype='text/plain')
+
 @app.route('/opensearch.xml')
 def opensearch():
     """Serve OpenSearch description — allows browsers to add IshuTools as a search engine."""
