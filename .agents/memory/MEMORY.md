@@ -34,5 +34,6 @@
 - [Merge PDF v9 libraries](merge-v9-libs.md) — Chart.js + Typed.js + anime.js + canvas-confetti + GSAP+ScrollTrigger + Sortable loaded with defer EXCEPT sounds.js (regular script); all module-scope vars null at top, populated in DOMContentLoaded
 - [Hidden attribute CSS override](hidden-attr-override.md) — display:flex overrides HTML hidden attr; fix with [hidden]{display:none!important}; ALREADY added to merge-pdf/style.css globally
 - [Merge PDF thumbnail cards](merge-thumb-cards.md) — .card-thumb replaces .card-icon; renderThumb()/\_renderThumbFromPdf()/\_applyThumb() in script.js; thumbUrl cached in entry; images instant, PDFs via PDF.js slice(800KB); click thumb = openPreview
+- [CSS flex page reorder](css-flex-order.md) — body{display:flex;flex-direction:column} + body>*{order:10} + explicit orders puts tool-first; MUST set body>*{order:10} default or unnamed sections get order:0 and appear first
 - [Per-file server validate](per-file-validate.md) — validateFile(entry) POSTs to /api/merge-pdf/validate; sets hasForms/hasAnnots/pdfTitle/pdfAuthor/pdfVersion; guard with entry._validated flag to avoid double-call
 - [Mobile FAB pattern](mobile-fab.md) — hide FAB on desktop with @media(hover:hover) and (pointer:fine){display:none!important}; show when FILES.length>=2 via hidden attr; FAB clicks mergeBtn if ready, else triggers file input

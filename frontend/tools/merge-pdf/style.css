@@ -60,7 +60,18 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   transition: background 0.3s, color 0.3s;
+  display: flex;
+  flex-direction: column;
 }
+/* ── Page flow: tool-first (tool visible above fold) ─────── */
+/* Default all body children to order:10 so unnamed sections fall to end */
+body > * { order: 10; }
+nav#navbar    { order: 1; }
+main#app      { order: 2; }
+header.hero   { order: 3; }
+.trust-bar    { order: 4; }
+.nav-util-bar { order: 5; }
+
 a { color: var(--pL); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
@@ -174,6 +185,48 @@ code {
   transition: all var(--speed);
 }
 .icon-btn:hover { background: var(--p); color: #fff; border-color: var(--p); }
+
+/* ── Compact Tool Mini-Header (H1 — above the fold) ─────── */
+.tool-mini-hdr {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(99,102,241,0.09) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 1.5rem 1.1rem;
+  flex-shrink: 0;
+}
+.tmh-inner {
+  max-width: 860px; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.55rem;
+}
+.tmh-title {
+  font-family: var(--fHead);
+  font-size: clamp(1.55rem, 4.5vw, 2.55rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+.tmh-desc {
+  font-size: clamp(0.8rem, 2vw, 0.93rem);
+  color: var(--t2); max-width: 580px;
+}
+.tmh-desc strong { color: var(--t1); }
+.tmh-desc a { color: var(--pL); font-weight: 600; }
+.tmh-tags {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.38rem;
+  margin-top: 0.18rem;
+}
+.tmh-tags span {
+  display: inline-flex; align-items: center; gap: 0.28rem;
+  padding: 0.2rem 0.65rem; border-radius: 99px;
+  background: var(--bg3); border: 1px solid var(--border);
+  font-size: 0.73rem; color: var(--t2); font-weight: 500;
+}
+.tmh-tags span i { color: var(--pL); font-size: 0.68rem; }
+@media (max-width: 480px) {
+  .tool-mini-hdr { padding: 1.1rem 1rem 0.9rem; }
+  .tmh-tags { gap: 0.28rem; }
+  .tmh-tags span { font-size: 0.68rem; padding: 0.18rem 0.5rem; }
+}
 
 /* ── Hero ───────────────────────────────────────────────── */
 .hero {
