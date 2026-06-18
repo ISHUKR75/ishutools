@@ -1,622 +1,665 @@
 /**
- * IshuTools.fun — Merge PDF v8.0
+ * IshuTools.fun — Merge PDF v9.0
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
- * Libraries: Sortable.js, GSAP + ScrollTrigger, anime.js, canvas-confetti
+ * Libraries: Sortable.js, GSAP+ScrollTrigger, anime.js, canvas-confetti, Chart.js, Typed.js
+ * Sounds: SOUNDS global from sounds/sounds.js (loaded as regular script, not defer)
  */
 'use strict';
 
-/* ════════ CONSTANTS ════════ */
+/* ════ CONSTANTS ════ */
 const MAX_FILES = 50;
-const MAX_BYTES = 1024 * 1024 * 1024;
-const IMG_EXT   = new Set(['.jpg','.jpeg','.png','.webp','.gif','.bmp','.tiff','.tif']);
-const PDF_EXT   = new Set(['.pdf']);
-const CIRC      = 2 * Math.PI * 44;
-const PRESETS   = {
-  quick:   { tip:'Fastest merge — bookmarks on, no extras.',          bm:true,  toc:false, sep:false, comp:false, dd:false },
-  report:  { tip:'Professional doc — TOC + separator pages.',         bm:true,  toc:true,  sep:true,  comp:false, dd:false },
-  compact: { tip:'Smallest file — compress + skip duplicate pages.',  bm:false, toc:false, sep:false, comp:true,  dd:true  },
-  archive: { tip:'Maximum quality — all features enabled.',           bm:true,  toc:true,  sep:true,  comp:true,  dd:false },
-};
+const MAX_BYTES = 1024 * 1024 * 1024; // 1 GB
+const LARGE_FILE_WARN = 80 * 1024 * 1024; // 80 MB
+const IMG_EXTS = new Set(['jpg','jpeg','png','webp','gif','bmp','tiff','tif']);
+const CNT_KEY  = 'ishu-merge-count';
+const SET_KEY  = 'ishu-merge-settings-v9';
+const PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WRK = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-/* ════════ STATE ════════ */
-const FILES    = [];
+/* ════ STATE ════ */
+let FILES = [];           // Array of entry objects
+let _sortMode  = 'order';
+let _sortable  = null;    // Sortable.js instance
+let _dlBlob    = null;
 let _dlUrl     = null;
 let _dlName    = '';
-let _dlBlob    = null;
-let _undoStack = [];
-let _undoTimer = null;
-let _sortMode  = 'order';
-let _jobId     = null;
+let _jobId     = '';
 let _sse       = null;
 let _simTimer  = null;
-let _mergeSt   = 0;
-let _sortable  = null;
 let _sizeChart = null;
+let _mergeSt   = 0;
+let _deletedStack = [];   // Undo stack
+let _undoTimer = null;
 let _typedInst = null;
+let _activePreset = null;
+let D = null;             // DOM refs — populated in DOMContentLoaded
 
-/* ════════ DOM helper ════════ */
+/* ════ HELPERS ════ */
 const $ = id => document.getElementById(id);
+const genId = () => `job_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
 
-/* D is populated in DOMContentLoaded */
-let D = null;
-
-/* ════════ UTILS ════════ */
-function fmtSize(b) {
-  if (!b || b < 0) return '—';
-  if (b < 1024)    return b + ' B';
-  if (b < 1 << 20) return (b / 1024).toFixed(1) + ' KB';
-  if (b < 1 << 30) return (b / (1 << 20)).toFixed(2) + ' MB';
-  return (b / (1 << 30)).toFixed(2) + ' GB';
+function fmtSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+  return (bytes / 1073741824).toFixed(2) + ' GB';
 }
-function fileExt(n)   { return (n.match(/\.[^.]+$/) || [''])[0].toLowerCase(); }
-function isImg(n)     { return IMG_EXT.has(fileExt(n)); }
-function genId()      { return Math.random().toString(36).slice(2, 10); }
-function clamp(v,a,b) { return Math.max(a, Math.min(b, v)); }
-function fileStem(f)  { return f.name.replace(/\.[^.]+$/, ''); }
 
-/* ════════ TOAST ════════ */
-let _toastT = null;
-function toast(msg, type = 'info', dur = 3400) {
-  if (!D) return;
-  const ic = {
-    success:'fa-circle-check', error:'fa-circle-xmark',
-    warn:'fa-triangle-exclamation', info:'fa-circle-info'
-  }[type] || 'fa-circle-info';
-  D.toast.innerHTML = `<i class="fas ${ic}"></i>${msg}`;
+function extOf(name) {
+  return (name.split('.').pop() || '').toLowerCase();
+}
+
+function isImage(name) {
+  return IMG_EXTS.has(extOf(name));
+}
+
+function stemOf(name) {
+  const parts = name.split('.');
+  if (parts.length > 1) parts.pop();
+  return parts.join('.');
+}
+
+/* ════ OUTPUT FILENAME ════ */
+function smartName() {
+  const override = D?.optFilename?.value?.trim();
+  if (override) {
+    const clean = override.replace(/\.pdf$/i, '').replace(/[^\w\s\-_.()[\]]/g, '').trim();
+    return (clean || 'merged') + '.pdf';
+  }
+  const first = FILES[0];
+  if (!first) return 'merged.pdf';
+  const stem = stemOf(first.name).replace(/[^\w\s\-_.()[\]]/g, '').trim().slice(0, 60);
+  return (stem || 'merged') + '_merged.pdf';
+}
+
+/* ════ TOAST ════ */
+let _toastTimer = null;
+function toast(msg, type = 'info', dur = 4200) {
+  if (!D?.toast) return;
+  clearTimeout(_toastTimer);
+  D.toast.textContent = msg;
   D.toast.className = `toast show ${type}`;
-  clearTimeout(_toastT);
-  _toastT = setTimeout(() => { D.toast.className = 'toast'; }, dur);
+  _toastTimer = setTimeout(() => D.toast.classList.remove('show'), dur);
 }
 
-/* ════════ UNDO ════════ */
-function pushUndo(entry, idx) {
-  _undoStack.unshift({ entry, idx });
-  if (_undoStack.length > 5) _undoStack.pop();
-  D.undoName.textContent = entry.name.length > 32
-    ? entry.name.slice(0, 30) + '…' : entry.name;
-  D.undoBar.classList.add('show');
-  clearTimeout(_undoTimer);
-  _undoTimer = setTimeout(() => D.undoBar.classList.remove('show'), 5500);
+/* ════ SECTION VISIBILITY ════ */
+function showSection(name) {
+  const map = { upload: 'sUp', files: 'sFi', progress: 'sPr', result: 'sRe' };
+  Object.entries(map).forEach(([k, ref]) => {
+    const el = D?.[ref];
+    if (!el) return;
+    el.hidden = (k !== name);
+    el.setAttribute('aria-hidden', String(k !== name));
+  });
 }
 
-/* ════════ ADD FILES ════════ */
+/* ════ FILE ENTRY ════ */
+function makeEntry(file) {
+  return {
+    id:           genId(),
+    file,
+    name:         file.name,
+    size:         file.size,
+    ext:          extOf(file.name),
+    imgConverted: isImage(file.name),
+    thumb:        null,
+    pages:        null,
+    enc:          false,
+    hasForms:     false,
+    hasAnnots:    false,
+    pdfVersion:   '',
+    pdfTitle:     '',
+    range:        '',
+    pwd:          '',
+    displayName:  '',
+    _validated:   false,
+  };
+}
+
+/* ════ ADD FILES ════ */
 function addFiles(fileList) {
-  let added = 0, skipped = 0, bigFile = false;
-  for (const f of Array.from(fileList)) {
-    if (FILES.length >= MAX_FILES) {
-      toast(`Maximum ${MAX_FILES} files reached`, 'warn'); break;
+  window.SOUNDS?.resume?.();
+  const raw = Array.from(fileList);
+  const accepted = [];
+  const skipped  = [];
+
+  for (const f of raw) {
+    const ext = extOf(f.name);
+    if (ext !== 'pdf' && !IMG_EXTS.has(ext)) { skipped.push(f.name); continue; }
+    if (f.size > MAX_BYTES)       { toast(`${f.name} is too large (max 1 GB)`, 'warn'); continue; }
+    if (FILES.length + accepted.length >= MAX_FILES) {
+      toast(`Maximum ${MAX_FILES} files allowed`, 'warn');
+      window.SOUNDS?.playWarningSound?.();
+      break;
     }
-    if (f.size > MAX_BYTES) {
-      toast(`"${f.name}" is too large (max 1 GB)`, 'error'); continue;
-    }
-    const ex = fileExt(f.name);
-    if (!IMG_EXT.has(ex) && !PDF_EXT.has(ex)) {
-      toast(`Unsupported: ${ex || 'unknown file'}`, 'warn'); continue;
-    }
-    if (FILES.some(e => e.file.name === f.name && e.file.size === f.size)) {
-      skipped++; continue;
-    }
-    const entry = {
-      id: genId(), file: f, name: f.name, size: f.size,
-      pages: null, enc: false, pwd: '', range: '', displayName: '',
-      imgConverted: isImg(f.name), thumb: null,
-    };
+    accepted.push(f);
+  }
+
+  if (skipped.length) {
+    toast(`Skipped ${skipped.length} unsupported file${skipped.length > 1 ? 's' : ''} (use PDF or images)`, 'warn');
+  }
+
+  if (!accepted.length) return;
+
+  accepted.forEach(f => {
+    const entry = makeEntry(f);
     FILES.push(entry);
-    added++;
-    if (f.size > 80 * 1024 * 1024) bigFile = true;
-    window.SOUNDS?.playFileAddSound?.();
-    if (entry.imgConverted) genImgThumb(entry);
-    else readPdfMeta(entry);
-  }
-  if (skipped > 0) toast(`${skipped} duplicate${skipped > 1 ? 's' : ''} skipped`, 'info', 2200);
-  if (bigFile) window.SOUNDS?.playWarningSound?.();
-  if (added > 0) {
-    bumpBadge();
+  });
+
+  window.SOUNDS?.playFileAddSound?.();
+  loadPdfJs(); // ensure PDF.js loaded for metadata
+  if (FILES.length >= 2) showSection('files');
+  else if (FILES.length === 1) {
     showSection('files');
-    rebuildList();
-    updateStats();
-    setTimeout(() => D.sFi?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 120);
+    toast('Add at least one more file to merge', 'info', 3500);
   }
-  return added;
+
+  rebuildList();
+  updateStats();
+  updatePreviewStrip();
+  checkLargeBanner();
+  syncMergeBtn();
+  updateHeroCnt();
+
+  // Read PDF metadata for newly added non-image files
+  accepted.forEach(f => {
+    const entry = FILES.find(e => e.file === f);
+    if (entry && !entry.imgConverted) {
+      readPdfMeta(entry);
+    }
+  });
 }
 
-/* ════════ PDF META / THUMB ════════ */
-async function readPdfMeta(entry) {
+/* ════ PDF META ════ */
+function readPdfMeta(entry) {
   if (typeof pdfjsLib === 'undefined') return;
-  try {
-    const buf = await entry.file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({
-      data: new Uint8Array(buf),
-      password: entry.pwd || '',
-    }).promise;
-    entry.pages = pdf.numPages;
-    const pg1 = await pdf.getPage(1);
-    const vp  = pg1.getViewport({ scale: .72 });
-    const cv  = document.createElement('canvas');
-    cv.width = vp.width; cv.height = vp.height;
-    await pg1.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-    entry.thumb = cv.toDataURL('image/jpeg', .76);
-    refreshCard(entry); updateStats(); updatePreviewStrip();
-    // Kick off server-side validation in background (non-blocking)
-    validateFile(entry);
-  } catch (err) {
-    const isPass = err?.name === 'PasswordException' ||
-      String(err).toLowerCase().includes('password');
-    if (isPass) entry.enc = true;
-    refreshCard(entry);
-  }
+  if (entry._metaRead) return;
+  entry._metaRead = true;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const buf = e.target.result;
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+      entry.pages = pdf.numPages;
+      // Try metadata
+      try {
+        const meta = await pdf.getMetadata();
+        if (meta?.info) {
+          entry.pdfTitle   = meta.info.Title  || '';
+          entry.pdfVersion = meta.info.PDFFormatVersion || '';
+        }
+      } catch(_) {}
+      updateStats();
+      refreshCard(entry.id);
+    } catch(err) {
+      const msg = String(err).toLowerCase();
+      if (msg.includes('password')) {
+        entry.enc = true;
+        refreshCard(entry.id);
+      }
+    }
+  };
+  reader.readAsArrayBuffer(entry.file.slice(0, Math.min(entry.file.size, 1024 * 1024)));
 }
 
+/* ════ VALIDATE FILE (server) ════ */
 async function validateFile(entry) {
-  if (entry.imgConverted || entry._validated) return;
+  if (entry._validated) return;
   entry._validated = true;
   try {
     const fd = new FormData();
-    fd.append('file', entry.file);
-    if (entry.pwd) fd.append('password', entry.pwd);
-    const r = await fetch('/api/merge-pdf/validate', { method:'POST', body: fd });
+    fd.append('file', entry.file, entry.name);
+    fd.append('password', entry.pwd || '');
+    const r = await fetch('/api/merge-pdf/validate', { method: 'POST', body: fd });
     if (!r.ok) return;
-    const d = await r.json();
-    if (!d.success) return;
-    entry.hasForms   = d.has_forms   || false;
-    entry.hasAnnots  = d.has_annotations || false;
-    entry.pdfTitle   = (d.title || '').trim();
-    entry.pdfAuthor  = (d.author || '').trim();
-    entry.pdfVersion = d.version || '';
-    entry.warnings   = d.warnings || [];
-    refreshCard(entry);
-    // Show warning toast for forms
-    if (d.has_forms)
-      toast(`"${entry.name.slice(0,28)}" has form fields — they may not merge perfectly`, 'warn', 5000);
-  } catch (_) { /* silent — network validation is best-effort */ }
-}
-
-async function genImgThumb(entry) {
-  try {
-    const url = URL.createObjectURL(entry.file);
-    await new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => {
-        const s  = 120 / Math.max(img.naturalWidth, img.naturalHeight, 120);
-        const cv = document.createElement('canvas');
-        cv.width  = img.naturalWidth  * s;
-        cv.height = img.naturalHeight * s;
-        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        entry.thumb = cv.toDataURL('image/jpeg', .76);
-        URL.revokeObjectURL(url);
-        refreshCard(entry); updatePreviewStrip(); res();
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); rej(); };
-      img.src = url;
-    });
-  } catch (_) {}
-}
-
-/* ════════ OUTPUT FILENAME ════════ */
-function smartName() {
-  const manual = (D?.optFilename?.value || '').trim();
-  if (manual) return manual.replace(/\.pdf$/i, '').trim() + '.pdf';
-  if (FILES.length > 0) return fileStem(FILES[0].file) + '_merged.pdf';
-  return 'merged.pdf';
-}
-
-/* ════════ MERGE PREVIEW STRIP ════════ */
-function updatePreviewStrip() {
-  if (!D?.mpStrip || !D?.mergePreview) return;
-  if (FILES.length < 2) { D.mergePreview.hidden = true; return; }
-
-  D.mergePreview.hidden = false;
-  const frag = document.createDocumentFragment();
-  FILES.forEach((e, i) => {
-    if (i > 0) {
-      const arr = document.createElement('span');
-      arr.className = 'mp-arrow';
-      arr.innerHTML = '<i class="fas fa-chevron-right"></i>';
-      frag.appendChild(arr);
+    const j = await r.json();
+    if (j.success) {
+      if (j.has_forms)       entry.hasForms  = true;
+      if (j.has_annotations) entry.hasAnnots = true;
+      if (j.title)           entry.pdfTitle  = j.title;
+      if (j.version)         entry.pdfVersion = j.version;
+      if (!entry.pages && j.page_count) entry.pages = j.page_count;
+      refreshCard(entry.id);
     }
-    const item = document.createElement('div');
-    item.className = `mp-item ${e.imgConverted ? 'mp-img' : 'mp-pdf'}`;
-    item.title = e.name;
-    if (e.thumb) {
-      item.innerHTML = `<img src="${e.thumb}" alt="" loading="lazy"/>`;
-    } else {
-      const ico = e.imgConverted ? 'fa-image' : 'fa-file-pdf';
-      item.innerHTML = `<i class="fas ${ico}"></i>`;
-    }
-    frag.appendChild(item);
+  } catch(_) {}
+}
+
+/* ════ REBUILD FILE LIST ════ */
+function rebuildList() {
+  if (!D?.fList) return;
+  D.fList.innerHTML = '';
+
+  FILES.forEach((entry, idx) => {
+    const card = buildCard(entry, idx);
+    D.fList.appendChild(card);
+    // Stagger animation
+    card.style.animationDelay = `${idx * 0.04}s`;
   });
-  D.mpStrip.innerHTML = '';
-  D.mpStrip.appendChild(frag);
-}
 
-/* ════════ CARD BUILD ════════ */
-function buildCard(entry, idx) {
-  const div = document.createElement('div');
-  div.className = `fc entering ${entry.imgConverted ? 'is-img' : 'is-pdf'}`;
-  div.dataset.id = entry.id;
-  div.setAttribute('role', 'listitem');
-  div.setAttribute('tabindex', '0');
-  div.setAttribute('aria-label', entry.name);
-
-  let thumbHtml = '';
-  if (entry.thumb) {
-    thumbHtml = `<img src="${entry.thumb}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:5px" loading="lazy"/>`;
-  } else {
-    const cls = entry.imgConverted ? 'img' : 'pdf';
-    const ico = entry.imgConverted ? 'fa-image' : 'fa-file-pdf';
-    const lbl = entry.imgConverted
-      ? (fileExt(entry.name).slice(1).toUpperCase() || 'IMG') : 'PDF';
-    thumbHtml = `<div class="fc-th-inner ${cls}"><i class="fas ${ico}"></i><span>${lbl}</span></div>`;
-    if (!entry.enc) thumbHtml += `<div class="fc-spin"></div>`;
+  // Sortable.js
+  if (_sortable) { _sortable.destroy(); _sortable = null; }
+  if (D.fList.children.length > 1) {
+    _sortable = Sortable.create(D.fList, {
+      animation: 180,
+      handle: '.drag-handle',
+      ghostClass: 'sortable-ghost',
+      dragClass: 'sortable-drag',
+      onStart: () => window.SOUNDS?.playDragStartSound?.(),
+      onEnd: ev => {
+        const [moved] = FILES.splice(ev.oldIndex, 1);
+        FILES.splice(ev.newIndex, 0, moved);
+        window.SOUNDS?.playDragDropSound?.();
+        rebuildList();
+        updateStats();
+        updatePreviewStrip();
+        syncMergeBtn();
+      },
+    });
   }
 
-  let pills = `<span class="fp"><i class="fas fa-database"></i>${fmtSize(entry.size)}</span>`;
-  if (entry.pages !== null)  pills += `<span class="fp"><i class="fas fa-book-open"></i>${entry.pages}p</span>`;
-  if (entry.enc)             pills += `<span class="fp enc"><i class="fas fa-lock"></i>Locked</span>`;
-  if (entry.imgConverted)    pills += `<span class="fp fp-img"><i class="fas fa-image"></i>→PDF</span>`;
-  if (entry.hasForms)        pills += `<span class="fp fp-warn" title="Has fillable form fields"><i class="fas fa-wpforms"></i>Forms</span>`;
-  if (entry.hasAnnots && !entry.hasForms)
-    pills += `<span class="fp fp-info" title="Has comments or annotations"><i class="fas fa-comment"></i>Annots</span>`;
-  if (entry.pdfVersion)      pills += `<span class="fp fp-ver" title="PDF version"><i class="fas fa-tag"></i>v${entry.pdfVersion}</span>`;
-  if (entry.pages !== null && !entry.enc)
-    pills += `<span class="fp ok"><i class="fas fa-circle-check"></i>Ready</span>`;
+  // File badge
+  if (D.fileBadge) D.fileBadge.textContent = `${FILES.length} file${FILES.length !== 1 ? 's' : ''}`;
 
-  // PDF title/author subtitle (show only if title differs from filename)
-  const stem = entry.name.replace(/\.[^.]+$/, '').toLowerCase();
-  const titleSub = (entry.pdfTitle && entry.pdfTitle.toLowerCase() !== stem)
-    ? `<div class="fc-meta-sub" title="${entry.pdfTitle}${entry.pdfAuthor ? ' · ' + entry.pdfAuthor : ''}">
-        <i class="fas fa-circle-info" style="font-size:.68rem;opacity:.5"></i>
-        ${entry.pdfTitle.slice(0,42)}${entry.pdfTitle.length > 42 ? '…' : ''}
-        ${entry.pdfAuthor ? `<span style="opacity:.55"> · ${entry.pdfAuthor.slice(0,28)}</span>` : ''}
-       </div>` : '';
+  // Mobile FAB
+  if (D.mobileFab) {
+    if (FILES.length >= 2) {
+      D.mobileFab.hidden = false;
+    } else {
+      D.mobileFab.hidden = true;
+    }
+  }
+}
 
-  const rangeHtml = entry.imgConverted
-    ? `<div class="img-note"><i class="fas fa-info-circle"></i> Image auto-converted to PDF at full quality.</div>`
-    : `<div class="fc-field"><label><i class="fas fa-list-ol"></i>Page Range</label>
-       <input type="text" class="fc-range-inp"
-         placeholder="all / 1-3,5 / odd / even / first 2 / last 3"
-         value="${entry.range || ''}" autocomplete="off"/>
-       <div class="range-btns">
-         <button class="rb" data-r="all">All</button>
-         <button class="rb" data-r="odd">Odd</button>
-         <button class="rb" data-r="even">Even</button>
-         <button class="rb" data-r="first">First</button>
-         <button class="rb" data-r="last">Last</button>
-       </div></div>`;
+/* ════ BUILD CARD ════ */
+function buildCard(entry, idx) {
+  const div = document.createElement('div');
+  div.className = 'file-card';
+  div.dataset.id = entry.id;
+  div.setAttribute('role', 'listitem');
+  div.setAttribute('aria-label', entry.name);
 
-  const pwdHtml = entry.enc
-    ? `<div class="fc-field"><label><i class="fas fa-lock"></i>Password</label>
-       <input type="password" class="fc-pwd-inp"
-         placeholder="Enter PDF password" value="${entry.pwd || ''}"
-         autocomplete="new-password"/></div>`
-    : '';
+  const isImg = entry.imgConverted;
+  const iconClass = isImg ? 'img' : 'pdf';
+  const iconFa    = isImg ? 'fa-image' : 'fa-file-pdf';
+  const badgesHtml = [
+    entry.enc      ? `<span class="card-badge badge-enc"><i class="fas fa-lock"></i>Encrypted</span>` : '',
+    entry.imgConverted ? `<span class="card-badge badge-img"><i class="fas fa-image"></i>Image→PDF</span>` : '',
+    entry.hasForms ? `<span class="card-badge badge-form"><i class="fas fa-pen"></i>Forms</span>` : '',
+  ].filter(Boolean).join('');
+
+  const pagesStr = entry.pages != null ? `${entry.pages}p` : '';
+  const infoStr  = [fmtSize(entry.size), pagesStr, entry.pdfVersion].filter(Boolean).join(' · ');
 
   div.innerHTML = `
-    <div class="fc-handle" title="Drag to reorder" aria-hidden="true"><i class="fas fa-grip-vertical"></i></div>
-    <div class="fc-thumb" title="Preview file">
-      <div class="fc-eye"><i class="fas fa-eye"></i></div>${thumbHtml}
-    </div>
-    <div class="fc-info">
-      <div class="fc-name" title="${entry.name}">${entry.displayName || entry.name}</div>
-      ${titleSub}
-      <div class="fc-pills">${pills}</div>
-      <div class="fc-expand">
-        <div class="fc-row">
-          ${rangeHtml}${pwdHtml}
-          <div class="fc-field"><label><i class="fas fa-tag"></i>Display Name <small>(TOC)</small></label>
-          <input type="text" class="fc-dname-inp"
-            placeholder="Name in TOC / separator"
-            value="${entry.displayName || ''}" autocomplete="off"/></div>
+    <div class="card-top">
+      <span class="drag-handle" aria-hidden="true" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
+      <span class="card-num">${idx + 1}</span>
+      <div class="card-icon ${iconClass}" aria-hidden="true"><i class="fas ${iconFa}"></i></div>
+      <div class="card-meta">
+        <div class="card-name" title="${escHtml(entry.name)}">${escHtml(entry.name)}</div>
+        <div class="card-info">
+          <span>${escHtml(infoStr)}</span>
+          ${badgesHtml}
         </div>
       </div>
-    </div>
-    <div class="fc-acts">
-      <span class="fc-num" aria-label="File ${idx + 1}">${idx + 1}</span>
-      <div class="fc-btns">
-        <button class="fc-btn exp" title="Options"><i class="fas fa-sliders"></i></button>
-        <button class="fc-btn del" title="Remove file"><i class="fas fa-trash"></i></button>
+      <div class="card-actions">
+        ${!isImg ? `<button class="ca-btn preview-btn" title="Preview" aria-label="Preview ${escHtml(entry.name)}"><i class="fas fa-eye"></i></button>` : ''}
+        <button class="ca-btn expand-btn" title="Options" aria-label="Options for ${escHtml(entry.name)}" aria-expanded="false"><i class="fas fa-sliders"></i></button>
+        <button class="ca-btn del-btn" title="Remove" aria-label="Remove ${escHtml(entry.name)}"><i class="fas fa-xmark"></i></button>
       </div>
     </div>
-    <div class="swipe-reveal" aria-hidden="true"><i class="fas fa-trash-alt"></i>Remove</div>`;
+    <div class="card-expand" id="exp-${entry.id}">
+      ${buildExpandHtml(entry)}
+    </div>`;
 
-  /* Preview */
-  div.querySelector('.fc-thumb').addEventListener('click', () => openPreview(entry));
+  // Wire actions
+  const top = div.querySelector('.card-top');
+  const previewBtn = top.querySelector('.preview-btn');
+  const expandBtn  = top.querySelector('.expand-btn');
+  const delBtn     = top.querySelector('.del-btn');
 
-  /* Expand/collapse */
-  div.querySelector('.fc-btn.exp').addEventListener('click', e => {
+  if (previewBtn) {
+    previewBtn.addEventListener('click', e => { e.stopPropagation(); openPreview(entry); });
+  }
+  expandBtn.addEventListener('click', e => {
     e.stopPropagation();
-    const isOpen = div.classList.toggle('open');
-    div.querySelector('.fc-btn.exp i').className = isOpen ? 'fas fa-chevron-up' : 'fas fa-sliders';
-    window.SOUNDS?.[isOpen ? 'playExpandSound' : 'playCollapseSound']?.();
-  });
-
-  /* Delete */
-  div.querySelector('.fc-btn.del').addEventListener('click', e => {
-    e.stopPropagation(); removeFile(entry.id);
-  });
-
-  /* Range quick buttons */
-  div.querySelectorAll('.rb').forEach(btn => {
-    if (btn.dataset.r === (entry.range || 'all')) btn.classList.add('on');
-    btn.addEventListener('click', () => {
-      const ri = div.querySelector('.fc-range-inp'); if (!ri) return;
-      entry.range = ri.value = btn.dataset.r;
-      div.querySelectorAll('.rb').forEach(b => b.classList.toggle('on', b.dataset.r === entry.range));
-    });
-  });
-
-  /* Range input */
-  const ri = div.querySelector('.fc-range-inp');
-  if (ri) ri.addEventListener('input', () => {
-    entry.range = ri.value.trim();
-    div.querySelectorAll('.rb').forEach(b => b.classList.toggle('on', b.dataset.r === entry.range));
-  });
-
-  /* Password */
-  const pi = div.querySelector('.fc-pwd-inp');
-  if (pi) pi.addEventListener('input', () => { entry.pwd = pi.value; });
-
-  /* Display name */
-  const di = div.querySelector('.fc-dname-inp');
-  if (di) di.addEventListener('input', () => {
-    entry.displayName = di.value.trim();
-    div.querySelector('.fc-name').textContent = entry.displayName || entry.name;
-  });
-
-  /* Keyboard reorder + delete */
-  div.addEventListener('keydown', e => {
-    const i = FILES.findIndex(x => x.id === entry.id);
-    if (e.altKey && e.key === 'ArrowUp' && i > 0) {
-      e.preventDefault();
-      [FILES[i], FILES[i-1]] = [FILES[i-1], FILES[i]];
-      rebuildList(); updateStats(); updatePreviewStrip();
-      window.SOUNDS?.playSortSound?.();
-      setTimeout(() => D.fList.querySelectorAll('.fc')[i-1]?.focus(), 40);
-    } else if (e.altKey && e.key === 'ArrowDown' && i < FILES.length - 1) {
-      e.preventDefault();
-      [FILES[i], FILES[i+1]] = [FILES[i+1], FILES[i]];
-      rebuildList(); updateStats(); updatePreviewStrip();
-      window.SOUNDS?.playSortSound?.();
-      setTimeout(() => D.fList.querySelectorAll('.fc')[i+1]?.focus(), 40);
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement === div) {
-      e.preventDefault(); removeFile(entry.id);
+    const isOpen = div.classList.toggle('expanded');
+    expandBtn.setAttribute('aria-expanded', String(isOpen));
+    expandBtn.classList.toggle('active', isOpen);
+    if (isOpen) {
+      window.SOUNDS?.playExpandSound?.();
+      wireExpandFields(div, entry);
+      if (!entry._validated && !entry.imgConverted) validateFile(entry);
+    } else {
+      window.SOUNDS?.playCollapseSound?.();
     }
   });
+  delBtn.addEventListener('click', e => { e.stopPropagation(); removeFile(entry.id, idx); });
 
-  /* Mobile swipe */
-  addSwipe(div, entry.id);
+  // Touch swipe to delete (mobile)
+  addTouchSwipe(div, entry.id);
+
   return div;
 }
 
-function refreshCard(entry) {
-  const old = D?.fList?.querySelector(`[data-id="${entry.id}"]`);
-  if (!old) return;
-  const idx  = FILES.findIndex(x => x.id === entry.id);
-  const wasOpen = old.classList.contains('open');
-  const nu = buildCard(entry, idx);
-  nu.classList.remove('entering');
-  if (wasOpen) nu.classList.add('open');
-  old.replaceWith(nu);
+function buildExpandHtml(entry) {
+  if (entry.imgConverted) {
+    return `<div class="expand-grid">
+      <div class="img-converted-msg"><i class="fas fa-check-circle"></i>Image auto-converted to PDF at full quality (lossless)</div>
+      <div class="exp-field">
+        <label><i class="fas fa-tag"></i>Display Name <small>(for TOC)</small></label>
+        <input type="text" class="exp-display-name" value="${escHtml(entry.displayName)}" placeholder="${escHtml(stemOf(entry.name))}"/>
+      </div>
+    </div>`;
+  }
+  return `<div class="expand-grid">
+    <div class="exp-field">
+      <label><i class="fas fa-book-open"></i>Page Range</label>
+      <input type="text" class="exp-range" value="${escHtml(entry.range)}" placeholder="all" maxlength="120"
+        aria-label="Page range for ${escHtml(entry.name)}"/>
+      <div class="range-hint">e.g. 1-3,5 · odd · even · first 3 · last 2</div>
+      <div class="range-btns">
+        <button class="rbtn" data-r="all">All</button>
+        <button class="rbtn" data-r="odd">Odd</button>
+        <button class="rbtn" data-r="even">Even</button>
+        <button class="rbtn" data-r="first 2">First 2</button>
+        <button class="rbtn" data-r="last 2">Last 2</button>
+      </div>
+    </div>
+    <div class="exp-field">
+      <label><i class="fas fa-lock"></i>Password <small>(if encrypted)</small></label>
+      <input type="password" class="exp-pwd" value="${escHtml(entry.pwd)}" placeholder="Leave blank if none"
+        autocomplete="current-password" aria-label="Password for ${escHtml(entry.name)}"/>
+    </div>
+    <div class="exp-field">
+      <label><i class="fas fa-tag"></i>Display Name <small>(for TOC)</small></label>
+      <input type="text" class="exp-display-name" value="${escHtml(entry.displayName)}" placeholder="${escHtml(stemOf(entry.name))}"/>
+    </div>
+  </div>`;
 }
 
-function rebuildList() {
-  const frag = document.createDocumentFragment();
-  FILES.forEach((e, i) => frag.appendChild(buildCard(e, i)));
-  D.fList.innerHTML = '';
-  D.fList.appendChild(frag);
-  D.fileBadge.textContent = `${FILES.length} file${FILES.length !== 1 ? 's' : ''}`;
-  initSortable();
-  updateMergeBtn();
-  updatePreviewStrip();
-}
+function wireExpandFields(div, entry) {
+  const rangeIn  = div.querySelector('.exp-range');
+  const pwdIn    = div.querySelector('.exp-pwd');
+  const nameIn   = div.querySelector('.exp-display-name');
+  const rBtns    = div.querySelectorAll('.rbtn');
 
-/* ════════ SORTABLE ════════ */
-function initSortable() {
-  if (_sortable) { try { _sortable.destroy(); } catch (_) {} _sortable = null; }
-  if (typeof Sortable === 'undefined') return;
-  _sortable = Sortable.create(D.fList, {
-    handle:      '.fc-handle',
-    animation:   220,
-    ghostClass:  'sortable-ghost',
-    chosenClass: 'sortable-chosen',
-    easing:      'cubic-bezier(.34,1.56,.64,1)',
-    onStart: ()  => window.SOUNDS?.playDragStartSound?.(),
-    onEnd: ev => {
-      if (ev.oldIndex === ev.newIndex) return;
-      window.SOUNDS?.playDragDropSound?.();
-      const reordered = [];
-      D.fList.querySelectorAll('.fc[data-id]').forEach(c => {
-        const e = FILES.find(x => x.id === c.dataset.id);
-        if (e) reordered.push(e);
-      });
-      FILES.length = 0; FILES.push(...reordered);
-      D.fList.querySelectorAll('.fc-num').forEach((el, i) => el.textContent = i + 1);
-      updateStats(); updatePreviewStrip(); _sortMode = 'order';
-      document.querySelectorAll('.sb').forEach(b =>
-        b.classList.toggle('active', b.dataset.sort === 'order'));
-    },
+  if (rangeIn) {
+    rangeIn.value = entry.range;
+    rangeIn.oninput = () => { entry.range = rangeIn.value.trim(); };
+  }
+  if (pwdIn) {
+    pwdIn.value = entry.pwd;
+    pwdIn.oninput = () => { entry.pwd = pwdIn.value; };
+  }
+  if (nameIn) {
+    nameIn.value = entry.displayName;
+    nameIn.oninput = () => { entry.displayName = nameIn.value.trim(); };
+  }
+  rBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (rangeIn) { rangeIn.value = btn.dataset.r; entry.range = btn.dataset.r; }
+    });
   });
 }
 
-/* ════════ MOBILE SWIPE ════════ */
-function addSwipe(card, id) {
-  const reveal = card.querySelector('.swipe-reveal');
-  if (!reveal) return;
-  let x0 = 0, dx = 0, swiping = false;
-  const mq = window.matchMedia('(hover:none)');
-  if (!mq.matches) return;
-
-  card.addEventListener('touchstart', e => {
-    x0 = e.touches[0].clientX; dx = 0; swiping = true;
-  }, { passive: true });
-
-  card.addEventListener('touchmove', e => {
-    if (!swiping) return;
-    dx = e.touches[0].clientX - x0;
-    if (dx < -4) {
-      e.preventDefault();
-      const off = Math.min(-dx, 80);
-      card.style.transform = `translateX(${-off}px)`;
-      reveal.style.opacity = String(Math.min(1, off / 70));
+function refreshCard(entryId) {
+  const existing = D?.fList?.querySelector(`[data-id="${entryId}"]`);
+  if (!existing) return;
+  const idx = FILES.findIndex(e => e.id === entryId);
+  if (idx < 0) return;
+  const entry = FILES[idx];
+  const wasExpanded = existing.classList.contains('expanded');
+  const newCard = buildCard(entry, idx);
+  if (wasExpanded) {
+    newCard.classList.add('expanded');
+    const eb = newCard.querySelector('.expand-btn');
+    if (eb) { eb.classList.add('active'); eb.setAttribute('aria-expanded', 'true'); }
+    const expand = newCard.querySelector('.card-expand');
+    if (expand) {
+      expand.style.display = 'block';
+      wireExpandFields(newCard, entry);
     }
-  }, { passive: false });
+  }
+  D.fList.replaceChild(newCard, existing);
+  updateStats();
+}
 
+function escHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ════ TOUCH SWIPE DELETE ════ */
+function addTouchSwipe(card, entryId) {
+  let startX = 0, moved = false, dx = 0;
+  card.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX; moved = false; dx = 0;
+    card.style.transition = 'none';
+  }, { passive: true });
+  card.addEventListener('touchmove', e => {
+    dx = e.touches[0].clientX - startX;
+    if (dx < -20) {
+      moved = true;
+      card.style.transform = `translateX(${Math.max(dx, -160)}px)`;
+      card.style.opacity = String(1 + dx / 240);
+    }
+  }, { passive: true });
   card.addEventListener('touchend', () => {
-    swiping = false;
-    if (dx < -120) {
-      card.style.transform = 'translateX(-100%)';
-      card.style.opacity = '0';
-      setTimeout(() => removeFile(id), 220);
+    card.style.transition = '';
+    if (moved && dx < -120) {
+      const idx = FILES.findIndex(e => e.id === entryId);
+      if (idx >= 0) removeFile(entryId, idx);
     } else {
       card.style.transform = '';
-      reveal.style.opacity = '0';
+      card.style.opacity = '';
     }
-    dx = 0;
+    moved = false;
   });
 }
 
-/* ════════ REMOVE FILE ════════ */
-function removeFile(id) {
-  const idx = FILES.findIndex(x => x.id === id); if (idx === -1) return;
-  const [entry] = FILES.splice(idx, 1);
-  pushUndo(entry, idx);
-  bumpBadge();
+/* ════ REMOVE FILE ════ */
+function removeFile(entryId, idx) {
+  const entry = FILES[idx];
+  if (!entry) return;
+  const card = D?.fList?.querySelector(`[data-id="${entryId}"]`);
+  if (card) card.classList.add('removing');
+
+  // Undo stack
+  _deletedStack.push({ entry, idx: idx < FILES.length ? idx : FILES.length - 1 });
+  if (_deletedStack.length > 5) _deletedStack.shift();
+  showUndoBar(entry.name);
+
+  setTimeout(() => {
+    FILES.splice(FILES.findIndex(e => e.id === entryId), 1);
+    rebuildList();
+    updateStats();
+    updatePreviewStrip();
+    checkLargeBanner();
+    syncMergeBtn();
+    if (FILES.length < 2) {
+      showSection('upload');
+    }
+  }, 260);
+
   window.SOUNDS?.playFileRemoveSound?.();
-  const card = D.fList.querySelector(`[data-id="${id}"]`);
-  if (card) {
-    card.style.cssText =
-      'opacity:0;transform:translateX(16px) scale(.93);pointer-events:none;transition:.22s ease';
-    setTimeout(() => card.remove(), 230);
-  }
-  updateStats(); updatePreviewStrip();
-  D.fileBadge.textContent = `${FILES.length} file${FILES.length !== 1 ? 's' : ''}`;
-  if (FILES.length === 0) showSection('upload');
-  else updateMergeBtn();
 }
 
-/* ════════ STATS ════════ */
+/* ════ UNDO ════ */
+function showUndoBar(name) {
+  if (!D?.undoBar) return;
+  if (D.undoName) D.undoName.textContent = name.slice(0, 40);
+  D.undoBar.classList.add('show');
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(() => D.undoBar.classList.remove('show'), 4500);
+}
+
+function hideUndoBar() {
+  if (!D?.undoBar) return;
+  clearTimeout(_undoTimer);
+  D.undoBar.classList.remove('show');
+}
+
+function undoLastDelete() {
+  if (!_deletedStack.length) return;
+  const { entry, idx } = _deletedStack.pop();
+  const safeIdx = Math.min(idx, FILES.length);
+  FILES.splice(safeIdx, 0, entry);
+  rebuildList();
+  updateStats();
+  updatePreviewStrip();
+  checkLargeBanner();
+  syncMergeBtn();
+  if (FILES.length >= 2) showSection('files');
+  hideUndoBar();
+  window.SOUNDS?.playToggleOnSound?.();
+  toast(`Restored: ${entry.name}`, 'success', 2500);
+}
+
+/* ════ STATS ════ */
 function updateStats() {
-  if (!D) return;
-  const tp = FILES.reduce((a, f) => a + (f.pages || 0), 0);
-  D.stPages.textContent = tp > 0 ? tp : '—';
-  D.stPages.classList.toggle('hi', tp > 0);
-  const ts = FILES.reduce((a, f) => a + f.size, 0);
-  D.stSize.textContent  = ts > 0 ? fmtSize(ts) : '—';
-  const est = (ts / 1024 / 1024) * 0.38 + FILES.length * 0.28;
-  D.stEst.textContent   = FILES.length > 0
-    ? (est < 60 ? `~${Math.max(1, Math.round(est))}s` : `~${Math.round(est / 60)}m`) : '—';
-  const big = FILES.filter(f => f.size > 100 * 1024 * 1024);
-  D.largeBanner.hidden  = big.length === 0;
-  if (big.length > 0)
-    D.largeBanner.innerHTML =
-      `<i class="fas fa-triangle-exclamation"></i> ${big.length} large file${big.length > 1 ? 's' : ''} detected — merge may take a moment`;
-  updateMergeBtn();
+  const totalSize  = FILES.reduce((a, f) => a + f.size, 0);
+  const totalPages = FILES.reduce((a, f) => a + (f.pages || 0), 0);
+  const estSec     = Math.max(1, Math.ceil(totalSize / (1024 * 1024 * 2.4)));
+  const estStr     = estSec < 10  ? `~${estSec}s`
+                   : estSec < 60  ? `~${estSec}s`
+                   : `~${Math.ceil(estSec/60)}m`;
+
+  if (D?.stSize)  D.stSize.textContent  = fmtSize(totalSize);
+  if (D?.stPages) D.stPages.textContent = totalPages > 0 ? totalPages.toString() : '—';
+  if (D?.stEst)   D.stEst.textContent   = totalSize > 0 ? estStr : '—';
 }
 
-function updateMergeBtn() {
-  if (!D) return;
-  const can = FILES.length >= 2;
-  D.mergeBtn.disabled = !can;
-  D.mergeBtn.classList.toggle('ready', can);
-  D.mCount.textContent   = can ? `${FILES.length} files` : '';
-  D.mCount.style.display = can ? '' : 'none';
-  if (D.mobileFab) D.mobileFab.hidden = FILES.length < 1;
-}
-
-function bumpBadge() {
-  const b = $('fileBadge'); if (!b) return;
-  b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
-}
-
-/* ════════ SECTIONS ════════ */
-function showSection(which) {
-  if (!D) return;
-  D.sUp.hidden = which !== 'upload';
-  D.sFi.hidden = which !== 'files';
-  D.sPr.hidden = which !== 'progress';
-  D.sRe.hidden = which !== 'result';
-  if (which === 'progress') resetProgress();
-  if (which === 'upload' || which === 'files') {
-    if (_sizeChart) { _sizeChart.destroy(); _sizeChart = null; }
-    const cw = $('chartWrap'); if (cw) cw.hidden = true;
-    const qs = $('qScore');    if (qs) qs.hidden = true;
-    const rd = $('rDupes');    if (rd) rd.hidden = true;
-    const rf = $('resFn');     if (rf) rf.hidden = true;
+/* ════ LARGE FILE BANNER ════ */
+function checkLargeBanner() {
+  if (!D?.largeBanner) return;
+  const large = FILES.filter(f => f.size >= LARGE_FILE_WARN);
+  if (large.length) {
+    D.largeBanner.hidden = false;
+    D.largeBanner.innerHTML = `<strong>${large.length} large file${large.length > 1 ? 's' : ''}</strong>: merge may take longer. ${large.map(f => f.name.slice(0,30)).join(', ')}`;
+    window.SOUNDS?.playWarningSound?.();
+  } else {
+    D.largeBanner.hidden = true;
   }
 }
 
-/* ════════ PROGRESS ════════ */
-function resetProgress() {
-  setProg(0, 'Preparing…', 'Initializing merge engine');
-  [D.ps1, D.ps2, D.ps3, D.ps4].forEach(s => s.classList.remove('active', 'done'));
-  D.ps1.classList.add('active');
-  if (D.progFileInfo) D.progFileInfo.textContent = '';
+/* ════ MERGE ORDER PREVIEW ════ */
+function updatePreviewStrip() {
+  if (!D?.mergePreview || !D?.mpStrip) return;
+  if (FILES.length < 2) { D.mergePreview.hidden = true; return; }
+  D.mergePreview.hidden = false;
+  D.mpStrip.innerHTML = FILES.map((f, i) => `
+    <span class="op-chip" title="${escHtml(f.name)}">${escHtml(stemOf(f.name).slice(0,14))}</span>
+    ${i < FILES.length - 1 ? '<span class="op-chip arrow" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>' : ''}
+  `).join('');
 }
 
-function setProg(pct, title, sub) {
-  pct = clamp(pct, 0, 100);
-  if (D.ring) D.ring.style.strokeDashoffset = CIRC - CIRC * pct / 100;
-  if (D.pbar) D.pbar.style.width = pct + '%';
-  if (D.pbarWrap) D.pbarWrap.setAttribute('aria-valuenow', pct);
-  if (D.ringPct) D.ringPct.textContent = Math.round(pct) + '%';
-  if (title && D.progTitle) D.progTitle.textContent = title;
-  if (sub   && D.progSub)   D.progSub.textContent   = sub;
+/* ════ MERGE BUTTON SYNC ════ */
+function syncMergeBtn() {
+  if (!D?.mergeBtn) return;
+  const ready = FILES.length >= 2;
+  D.mergeBtn.disabled = !ready;
+  D.mergeBtn.classList.toggle('ready', ready);
+  if (D.mCount) {
+    if (FILES.length >= 2) {
+      D.mCount.textContent = `${FILES.length} files`;
+      D.mCount.hidden = false;
+    } else {
+      D.mCount.hidden = true;
+    }
+  }
 }
 
-function stepProg(n) {
-  [D.ps1, D.ps2, D.ps3, D.ps4].forEach((s, i) => {
-    s.classList.toggle('done',   i < n);
-    s.classList.toggle('active', i === n);
-    if (i > n) s.classList.remove('active', 'done');
+/* ════ PRESETS ════ */
+const PRESETS = {
+  quick:   { toc: false, sep: false, bookmarks: true,  compress: false, dedup: false, norm: false, method: 'auto',  tip: '⚡ Fastest merge — all pages, all bookmarks, no extras.' },
+  report:  { toc: true,  sep: true,  bookmarks: true,  compress: true,  dedup: true,  norm: true,  method: 'auto',  tip: '📊 Professional report — TOC, separators, normalized pages.' },
+  compact: { toc: false, sep: false, bookmarks: false, compress: true,  dedup: true,  norm: false, method: 'auto',  tip: '📦 Smallest file — lossless compression + duplicate removal.' },
+  archive: { toc: true,  sep: false, bookmarks: true,  compress: true,  dedup: false, norm: false, method: 'fitz',  tip: '🗄️ Archive quality — bookmarks + TOC + lossless compression.' },
+};
+
+function applyPreset(key) {
+  const p = PRESETS[key];
+  if (!p || !D) return;
+  window.SOUNDS?.playPresetSound?.();
+  _activePreset = key;
+
+  // Toggle active class
+  document.querySelectorAll('.pre-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.p === key);
+    b.setAttribute('aria-pressed', String(b.dataset.p === key));
   });
+
+  if (D.optToc)       { D.optToc.checked       = p.toc;       D.optToc.dispatchEvent(new Event('change')); }
+  if (D.optSep)       { D.optSep.checked       = p.sep;       }
+  if (D.optBookmarks) { D.optBookmarks.checked = p.bookmarks; }
+  if (D.optCompress)  { D.optCompress.checked  = p.compress;  }
+  if (D.optDedup)     { D.optDedup.checked     = p.dedup;     }
+  if (D.optNorm)      {
+    D.optNorm.checked = p.norm;
+    if (D.normSzField) D.normSzField.hidden = !p.norm;
+  }
+  if (D.optMethod)    { D.optMethod.value = p.method;  }
+  if (D.preTip)       { D.preTip.textContent = p.tip;   }
+  // Expand advanced options to show what changed
+  if (D.optsBody && D.optsToggle) {
+    D.optsBody.hidden = false;
+    D.optsToggle.setAttribute('aria-expanded', 'true');
+  }
+  saveSettings();
 }
 
-/* ════════ SETTINGS PERSISTENCE ════════ */
-const OPTS_KEY = 'ishu-merge-opts-v2';
+/* ════ SETTINGS PERSISTENCE ════ */
 function saveSettings() {
+  if (!D) return;
   try {
     const s = {
-      toc:       D.optToc?.checked,
-      sep:       D.optSep?.checked,
-      bm:        D.optBookmarks?.checked,
-      comp:      D.optCompress?.checked,
-      dd:        D.optDedup?.checked,
-      norm:      D.optNorm?.checked,
-      method:    D.optMethod?.value,
-      tgtSz:     D.optTargetSize?.value,
+      toc:      D.optToc?.checked,
+      sep:      D.optSep?.checked,
+      bookmarks:D.optBookmarks?.checked,
+      compress: D.optCompress?.checked,
+      dedup:    D.optDedup?.checked,
+      norm:     D.optNorm?.checked,
+      method:   D.optMethod?.value,
+      tgtSz:    D.optTargetSize?.value,
     };
-    localStorage.setItem(OPTS_KEY, JSON.stringify(s));
-  } catch (_) {}
+    localStorage.setItem(SET_KEY, JSON.stringify(s));
+  } catch(_) {}
 }
+
 function loadSettings() {
+  if (!D) return;
   try {
-    const s = JSON.parse(localStorage.getItem(OPTS_KEY) || 'null');
-    if (!s) return;
-    if (D.optToc      && s.toc      != null) D.optToc.checked      = s.toc;
-    if (D.optSep      && s.sep      != null) D.optSep.checked       = s.sep;
-    if (D.optBookmarks&& s.bm       != null) D.optBookmarks.checked = s.bm;
-    if (D.optCompress && s.comp     != null) D.optCompress.checked  = s.comp;
-    if (D.optDedup    && s.dd       != null) D.optDedup.checked     = s.dd;
-    if (D.optNorm     && s.norm     != null) {
+    const raw = localStorage.getItem(SET_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (D.optToc       && s.toc       != null) D.optToc.checked       = s.toc;
+    if (D.optSep       && s.sep       != null) D.optSep.checked       = s.sep;
+    if (D.optBookmarks && s.bookmarks != null) D.optBookmarks.checked = s.bookmarks;
+    if (D.optCompress  && s.compress  != null) D.optCompress.checked  = s.compress;
+    if (D.optDedup     && s.dedup     != null) D.optDedup.checked     = s.dedup;
+    if (D.optNorm      && s.norm      != null) {
       D.optNorm.checked = s.norm;
       if (D.normSzField) D.normSzField.hidden = !s.norm;
     }
-    if (D.optMethod   && s.method)           D.optMethod.value      = s.method;
-    if (D.optTargetSize && s.tgtSz)         D.optTargetSize.value  = s.tgtSz;
-  } catch (_) {}
+    if (D.optMethod     && s.method)  D.optMethod.value     = s.method;
+    if (D.optTargetSize && s.tgtSz)   D.optTargetSize.value = s.tgtSz;
+  } catch(_) {}
 }
 
-/* ════════ MERGE COUNTER ════════ */
-const CNT_KEY = 'ishu-merge-count';
+/* ════ MERGE COUNT ════ */
 function getMergeCount() {
-  try { return parseInt(localStorage.getItem(CNT_KEY) || '0', 10); } catch (_) { return 0; }
+  try { return parseInt(localStorage.getItem(CNT_KEY) || '0', 10); } catch(_) { return 0; }
 }
 function incMergeCount() {
   try {
     const n = getMergeCount() + 1;
     localStorage.setItem(CNT_KEY, String(n));
     return n;
-  } catch (_) { return 1; }
+  } catch(_) { return 1; }
 }
 function updateHeroCnt() {
   const n = getMergeCount();
@@ -624,7 +667,7 @@ function updateHeroCnt() {
   if (el && num && n > 0) { num.textContent = n.toLocaleString(); el.hidden = false; }
 }
 
-/* ════════ MERGE ════════ */
+/* ════ MERGE ════ */
 async function startMerge() {
   if (FILES.length < 2) { toast('Add at least 2 files to merge', 'warn'); return; }
   window.SOUNDS?.resume?.();
@@ -633,7 +676,7 @@ async function startMerge() {
   _mergeSt = Date.now();
   window.SOUNDS?.playMergeStartSound?.();
   showSection('progress');
-  $('secProgress')?.scrollIntoView({ behavior:'smooth', block:'center' });
+  $('secProgress')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const fd = new FormData();
   FILES.forEach(e => fd.append('files', e.file, e.name));
@@ -641,16 +684,16 @@ async function startMerge() {
   fd.append('passwords',           JSON.stringify(FILES.map(e => e.pwd || '')));
   fd.append('display_names',       JSON.stringify(FILES.map(e => e.displayName || '')));
   fd.append('file_types',          JSON.stringify(FILES.map(e => e.imgConverted ? 'img' : 'pdf')));
-  fd.append('add_toc',             String(D.optToc.checked));
-  fd.append('add_separators',      String(D.optSep.checked));
-  fd.append('preserve_bookmarks',  String(D.optBookmarks.checked));
-  fd.append('compress_output',     String(D.optCompress.checked));
-  fd.append('skip_duplicates',     String(D.optDedup.checked));
-  fd.append('normalize_page_size', String(D.optNorm.checked));
-  fd.append('target_page_size',    D.optTargetSize.value);
-  fd.append('merge_method',        D.optMethod.value);
-  fd.append('output_title',        (D.optTitle.value || '').trim());
-  fd.append('output_author',       (D.optAuthor.value || '').trim());
+  fd.append('add_toc',             String(D.optToc?.checked ?? false));
+  fd.append('add_separators',      String(D.optSep?.checked ?? false));
+  fd.append('preserve_bookmarks',  String(D.optBookmarks?.checked ?? true));
+  fd.append('compress_output',     String(D.optCompress?.checked ?? false));
+  fd.append('skip_duplicates',     String(D.optDedup?.checked ?? false));
+  fd.append('normalize_page_size', String(D.optNorm?.checked ?? false));
+  fd.append('target_page_size',    D.optTargetSize?.value || 'A4');
+  fd.append('merge_method',        D.optMethod?.value || 'auto');
+  fd.append('output_title',        (D.optTitle?.value || '').trim());
+  fd.append('output_author',       (D.optAuthor?.value || '').trim());
   fd.append('output_filename',     smartName());
   _jobId = genId();
   fd.append('job_id', _jobId);
@@ -660,18 +703,19 @@ async function startMerge() {
   setProg(5, 'Uploading…', `Sending ${FILES.length} file${FILES.length > 1 ? 's' : ''}`);
 
   try {
-    const resp = await fetch('/api/merge-pdf', { method:'POST', body:fd });
+    const resp = await fetch('/api/merge-pdf', { method: 'POST', body: fd });
     closeSSE();
     if (!resp.ok) {
       let msg = `Server error (${resp.status})`;
-      try { const j = await resp.json(); msg = j.error || msg; } catch (_) {}
+      try { const j = await resp.json(); msg = j.error || msg; } catch(_) {}
       throw new Error(msg);
     }
-    const totalPages   = parseInt(resp.headers.get('X-Total-Pages')   || '0') || 0;
-    const srcCount     = parseInt(resp.headers.get('X-Source-Count')  || '0') || FILES.length;
+
+    const totalPages   = parseInt(resp.headers.get('X-Total-Pages')   || '0', 10) || 0;
+    const srcCount     = parseInt(resp.headers.get('X-Source-Count')  || '0', 10) || FILES.length;
     const methodUsed   = resp.headers.get('X-Method-Used')            || 'pypdf';
-    const outputSize   = parseInt(resp.headers.get('X-Output-Size')   || '0') || 0;
-    const skippedDups  = parseInt(resp.headers.get('X-Skipped-Dupes') || '0') || 0;
+    const outputSize   = parseInt(resp.headers.get('X-Output-Size')   || '0', 10) || 0;
+    const skippedDups  = parseInt(resp.headers.get('X-Skipped-Dupes') || '0', 10) || 0;
     const qualityScore = parseInt(resp.headers.get('X-Quality-Score') || '100', 10);
     const qualityGrade = resp.headers.get('X-Quality-Grade')          || 'A+';
 
@@ -684,30 +728,29 @@ async function startMerge() {
     saveSettings();
     setProg(100, 'Done!', 'Merge complete — ready to download');
     stepProg(3);
-    await new Promise(r => setTimeout(r, 350));
+    await new Promise(r => setTimeout(r, 380));
     showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, _dlBlob.size, qualityScore, qualityGrade);
-  } catch (err) {
+    updateHeroCnt();
+
+  } catch(err) {
     closeSSE();
     window.SOUNDS?.playErrorSound?.();
     const raw = err.message || '';
     let msg = raw || 'Merge failed — check your files and try again';
-    // Smart recovery hint
     let hint = '';
-    if (/password/i.test(raw))     hint = 'Expand the locked file card and enter its password.';
-    else if (/corrupt/i.test(raw)) hint = 'Try the "Repair" merge method in Advanced Options.';
-    else if (/encrypt/i.test(raw)) hint = 'Expand the file card → enter PDF password.';
-    else if (/memory|ram/i.test(raw)) hint = 'Try compressing files first, or merge in smaller batches.';
-    else if (/timeout/i.test(raw)) hint = 'Large files may time out. Try splitting into smaller batches.';
-    else if (/unsupported|format/i.test(raw)) hint = 'Try re-saving the PDF with your PDF reader before uploading.';
-    if (hint) msg += ` · ${hint}`;
-    toast(msg, 'error', 11000);
+    if (/password|decrypt/i.test(raw))    hint = 'Expand the locked file card and enter its password.';
+    else if (/corrupt|invalid/i.test(raw)) hint = 'Try a different merge engine in Advanced Options.';
+    else if (/memory|ram/i.test(raw))      hint = 'Merge smaller batches to reduce memory usage.';
+    else if (/timeout/i.test(raw))         hint = 'Large files may time out. Try splitting into batches.';
+    else if (/format|unsupported/i.test(raw)) hint = 'Re-save the PDF with your PDF reader, then re-upload.';
+    if (hint) msg += ` — ${hint}`;
+    toast(msg, 'error', 12000);
     showSection('files');
-    D.mergeBtn.disabled = FILES.length < 2;
-    D.mergeBtn.classList.toggle('ready', FILES.length >= 2);
+    syncMergeBtn();
   }
 }
 
-/* ════════ SSE ════════ */
+/* ════ SSE ════ */
 function openSSE(jobId) {
   simProgress();
   try {
@@ -717,17 +760,17 @@ function openSSE(jobId) {
         const d = JSON.parse(e.data);
         if (d.ping || d.done) return;
         const pct = typeof d.pct === 'number' ? d.pct : 0;
-        const cur = parseFloat(D.pbar?.style.width || '0');
+        const cur = parseFloat(D?.pbar?.style.width || '0');
         if (pct > cur) {
           setProg(pct, d.title || undefined, d.sub || undefined);
-          stepProg(pct < 20 ? 0 : pct < 58 ? 1 : pct < 85 ? 2 : 3);
+          stepProg(pct < 20 ? 0 : pct < 55 ? 1 : pct < 85 ? 2 : 3);
           window.SOUNDS?.playProgressTick?.();
-          if (d.sub && D.progFileInfo) D.progFileInfo.textContent = d.sub;
+          if (d.sub && D?.progFileInfo) D.progFileInfo.textContent = d.sub;
         }
-      } catch (_) {}
+      } catch(_) {}
     };
     _sse.onerror = () => closeSSE();
-  } catch (_) {}
+  } catch(_) {}
 }
 
 function closeSSE() {
@@ -738,203 +781,223 @@ function closeSSE() {
 function simProgress() {
   let pct = 8; clearInterval(_simTimer);
   const steps = [
-    { at: 15, t:'Reading files…',   s:'Parsing PDF structure' },
-    { at: 30, t:'Processing…',      s:'Merging pages' },
-    { at: 55, t:'Optimizing…',      s:'Rebuilding structure' },
-    { at: 75, t:'Finalizing…',      s:'Writing output PDF' },
+    { at: 15, t: 'Reading files…',   s: 'Parsing PDF structure' },
+    { at: 30, t: 'Processing…',      s: 'Merging pages' },
+    { at: 55, t: 'Optimizing…',      s: 'Rebuilding structure' },
+    { at: 78, t: 'Finalizing…',      s: 'Writing output PDF' },
   ];
   let si = 0;
   _simTimer = setInterval(() => {
-    const cur = parseFloat(D.pbar?.style.width || '0');
-    if (cur < pct && pct < 84) {
+    const cur = parseFloat(D?.pbar?.style.width || '0');
+    if (cur < pct && pct < 85) {
       const st = si < steps.length && pct >= steps[si].at ? steps[si++] : null;
       setProg(pct, st?.t, st?.s);
-      stepProg(pct < 22 ? 0 : pct < 58 ? 1 : 2);
+      stepProg(pct < 22 ? 0 : pct < 55 ? 1 : 2);
     }
-    pct = Math.min(pct + (Math.random() * 3.2 + 0.4), 84);
-    if (pct >= 84) clearInterval(_simTimer);
-  }, 420);
+    pct = Math.min(pct + (Math.random() * 3 + 0.5), 85);
+    if (pct >= 85) clearInterval(_simTimer);
+  }, 440);
 }
 
-/* ════════ RESULT ════════ */
+function setProg(pct, title, sub) {
+  if (!D) return;
+  pct = Math.min(100, Math.max(0, pct));
+  // Progress bar
+  if (D.pbar) {
+    D.pbar.style.width = pct + '%';
+    D.pbar.parentElement?.setAttribute('aria-valuenow', String(Math.round(pct)));
+  }
+  // Ring
+  if (D.ring) {
+    const circ = 326.7;
+    D.ring.style.strokeDashoffset = String(circ - (pct / 100) * circ);
+  }
+  if (D.ringPct) D.ringPct.textContent = Math.round(pct) + '%';
+  if (title && D.progTitle) D.progTitle.textContent = title;
+  if (sub   && D.progSub)   D.progSub.textContent   = sub;
+}
+
+function stepProg(step) {
+  // 0=upload, 1=process, 2=optimize, 3=done
+  [D?.ps1, D?.ps2, D?.ps3, D?.ps4].forEach((el, i) => {
+    if (!el) return;
+    el.classList.remove('active', 'done');
+    if (i < step)  el.classList.add('done');
+    if (i === step) el.classList.add('active');
+  });
+}
+
+/* ════ RESULT ════ */
 function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, blobSize, qualityScore = 100, qualityGrade = 'A+') {
   window.SOUNDS?.playSuccessChime?.();
   showSection('result');
-  $('secResult')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  $('secResult')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const elapsed = ((Date.now() - _mergeSt) / 1000).toFixed(1) + 's';
   const totalIn = FILES.reduce((a, f) => a + f.size, 0);
   const sz      = outputSize || blobSize;
   const chg     = totalIn > 0 ? ((sz - totalIn) / totalIn * 100) : 0;
 
-  const box = document.querySelector('.res-box');
-  if (box) {
-    box.classList.add('ready');
-    setTimeout(() => {
-      // Canvas-confetti celebration
-      if (typeof confetti !== 'undefined') {
-        confetti({ particleCount: 130, spread: 72, origin: { y: 0.55 },
-          colors: ['#6366f1', '#8b5cf6', '#a78bfa', '#22c55e', '#ffffff', '#f59e0b'] });
-        setTimeout(() => confetti({ particleCount: 60, spread: 48, origin: { x:0.1, y: 0.6 },
-          colors: ['#6366f1','#8b5cf6','#22c55e'] }), 280);
-        setTimeout(() => confetti({ particleCount: 60, spread: 48, origin: { x:0.9, y: 0.6 },
-          colors: ['#6366f1','#a78bfa','#ffffff'] }), 450);
-      }
-    }, 900);
-  }
+  // Confetti 🎉
+  setTimeout(() => {
+    if (typeof confetti !== 'undefined') {
+      confetti({ particleCount: 120, spread: 70, origin: { y: 0.55 },
+        colors: ['#6366f1','#8b5cf6','#a78bfa','#22c55e','#ffffff','#f59e0b'] });
+      setTimeout(() => confetti({ particleCount: 55, spread: 46, origin: { x: 0.1, y: 0.6 },
+        colors: ['#6366f1','#8b5cf6','#22c55e'] }), 280);
+      setTimeout(() => confetti({ particleCount: 55, spread: 46, origin: { x: 0.9, y: 0.6 },
+        colors: ['#6366f1','#a78bfa','#ffffff'] }), 460);
+    }
+  }, 700);
 
-  // Animate 3 stats in with anime.js
-  const animateVal = (el, target, suffix = '') => {
+  // Animate stats
+  const animVal = (el, target, suffix = '') => {
+    if (!el) return;
     if (typeof anime !== 'undefined' && typeof target === 'number') {
       const obj = { val: 0 };
-      anime({ targets: obj, val: target, duration: 900, easing:'easeOutExpo',
+      anime({ targets: obj, val: target, duration: 1000, easing: 'easeOutExpo',
         update: () => { el.textContent = Math.round(obj.val) + suffix; } });
     } else {
       el.textContent = target + suffix;
     }
   };
 
-  animateVal($('rFiles'), srcCount);
-  animateVal($('rPages'), totalPages);
-  $('rSize').textContent = fmtSize(sz);
+  animVal($('rFiles'), srcCount);
+  animVal($('rPages'), totalPages);
+  if ($('rSize')) $('rSize').textContent = fmtSize(sz);
 
-  // Meta row
-  $('rTime').innerHTML = `<i class="fas fa-stopwatch"></i>${elapsed}`;
-  $('rEngine').innerHTML = `<i class="fas fa-cogs"></i>${methodUsed}`;
-  const chgStr = chg > 0
-    ? `+${chg.toFixed(1)}% larger`
-    : chg < -1 ? `${Math.abs(chg).toFixed(1)}% smaller`
-    : 'Same size';
-  $('rSaved').innerHTML = `<i class="fas fa-scale-balanced"></i>${chgStr}`;
+  // Meta
+  if ($('rTime'))   $('rTime').innerHTML   = `<i class="fas fa-stopwatch"></i>${elapsed}`;
+  if ($('rEngine')) $('rEngine').innerHTML = `<i class="fas fa-cogs"></i>${methodUsed}`;
+  const chgStr = chg > 0.5  ? `+${chg.toFixed(1)}% larger`
+               : chg < -0.5 ? `${Math.abs(chg).toFixed(1)}% smaller`
+               : 'Same size';
+  if ($('rSaved')) $('rSaved').innerHTML = `<i class="fas fa-scale-balanced"></i>${chgStr}`;
+  if ($('rDupes') && skippedDups > 0) {
+    $('rDupes').innerHTML = `<i class="fas fa-clone"></i>${skippedDups} dup${skippedDups>1?'s':''} skipped`;
+    $('rDupes').hidden = false;
+  }
 
-  // Quality score badge
-  const qEl = $('qScore'), qGr = $('qGrade'), qNm = $('qNum'), qLb = $('qLabel');
+  // Quality badge
+  const qEl = $('qScore'), qGr = $('qGrade'), qNm = $('qNum');
   if (qEl && qGr && qNm) {
-    const GRADE_COLOR = { 'A+':'#22c55e','A':'#22c55e','B+':'#84cc16','B':'#eab308','C':'#f97316','D':'#ef4444','F':'#ef4444' };
+    const GRADE_COL = { 'A+':'#22c55e','A':'#22c55e','B+':'#84cc16','B':'#eab308','C+':'#f97316','C':'#f97316','D':'#ef4444','F':'#ef4444' };
+    const col = GRADE_COL[qualityGrade] || '#22c55e';
     qGr.textContent = qualityGrade;
     qNm.textContent = `${qualityScore}/100`;
-    qEl.style.setProperty('--qc', GRADE_COLOR[qualityGrade] || '#22c55e');
+    qEl.style.setProperty('--qc', col);
+    qEl.style.borderColor = col;
     qEl.hidden = false;
     if (typeof anime !== 'undefined') {
-      anime({ targets: qEl, opacity:[0,1], scale:[0.85,1], duration:600, easing:'easeOutBack', delay:500 });
+      anime({ targets: qEl, opacity: [0, 1], scale: [0.8, 1], duration: 550, easing: 'easeOutBack', delay: 500 });
     }
   }
 
-  // Filename display
+  // Filename
   const fn = $('resFn'), fnTx = $('resFnTx');
   if (fn && fnTx) { fnTx.textContent = _dlName; fn.hidden = false; }
 
-  // Skipped dupes
-  const rDupes = $('rDupes');
-  if (rDupes && skippedDups > 0) {
-    rDupes.innerHTML = `<i class="fas fa-clone"></i>${skippedDups} duplicate${skippedDups > 1 ? 's' : ''} skipped`;
-    rDupes.hidden = false;
-  }
+  // Sub text
+  const sub = $('resSub');
+  if (sub) sub.textContent = `${srcCount} files merged into ${_dlName}`;
 
-  // Chart.js — before / after size comparison
-  const inputSzCh = FILES.reduce((a,f) => a + f.size, 0);
+  // Chart
+  const inputSzCh = FILES.reduce((a, f) => a + f.size, 0);
   const outSzCh   = outputSize || blobSize;
   const ctxEl = $('sizeChart'), cw = $('chartWrap');
   if (ctxEl && cw && typeof Chart !== 'undefined') {
     if (_sizeChart) { _sizeChart.destroy(); _sizeChart = null; }
-    const isDark    = document.documentElement.dataset.theme !== 'light';
-    const tickColor = isDark ? '#64748b' : '#94a3b8';
-    const gridColor = isDark ? 'rgba(99,102,241,.07)' : 'rgba(99,102,241,.05)';
-    const smaller   = outSzCh <= inputSzCh;
+    const isDark = document.documentElement.dataset.theme !== 'light';
+    const tickCol  = isDark ? '#64748b' : '#94a3b8';
+    const gridCol  = isDark ? 'rgba(99,102,241,.07)' : 'rgba(99,102,241,.05)';
+    const smaller  = outSzCh <= inputSzCh;
     _sizeChart = new Chart(ctxEl, {
       type: 'bar',
       data: {
-        labels: [`Input (${FILES.length} file${FILES.length > 1 ? 's' : ''})`, 'Merged Output'],
+        labels: [`Input (${FILES.length} file${FILES.length>1?'s':''})`, 'Merged Output'],
         datasets: [{
           data: [inputSzCh, outSzCh],
-          backgroundColor: ['rgba(99,102,241,.32)', smaller ? 'rgba(34,197,94,.32)' : 'rgba(245,158,11,.32)'],
-          borderColor: ['rgb(99,102,241)', smaller ? 'rgb(34,197,94)' : 'rgb(245,158,11)'],
-          borderWidth: 1.6, borderRadius: 7,
-        }]
+          backgroundColor: ['rgba(99,102,241,.28)', smaller ? 'rgba(34,197,94,.28)' : 'rgba(245,158,11,.28)'],
+          borderColor:     ['rgb(99,102,241)', smaller ? 'rgb(34,197,94)' : 'rgb(245,158,11)'],
+          borderWidth: 1.5, borderRadius: 6,
+        }],
       },
       options: {
         responsive: true, indexAxis: 'y',
-        animation: { duration: 860, easing: 'easeOutQuart' },
+        animation: { duration: 800, easing: 'easeOutQuart' },
         plugins: {
           legend: { display: false },
           tooltip: { callbacks: { label: c => '  ' + fmtSize(c.raw) } },
         },
         scales: {
-          x: {
-            ticks: { callback: v => fmtSize(v), color: tickColor, font: { size: 9 } },
-            grid:  { color: gridColor },
-          },
-          y: {
-            ticks: { color: tickColor, font: { size: 9 } },
-            grid:  { display: false },
-          },
+          x: { ticks: { callback: v => fmtSize(v), color: tickCol, font: { size: 9 } }, grid: { color: gridCol } },
+          y: { ticks: { color: tickCol, font: { size: 9 } }, grid: { display: false } },
         },
       },
     });
     cw.hidden = false;
     if (typeof anime !== 'undefined') {
-      anime({ targets: cw, opacity: [0, 1], translateY: [10, 0], duration: 600, easing:'easeOutCubic', delay: 300 });
+      anime({ targets: cw, opacity: [0, 1], translateY: [10, 0], duration: 580, easing: 'easeOutCubic', delay: 320 });
     }
   }
 
-  // Show result tip
-  const tipEl = $('resToolTip');
+  // Tip
+  const tipEl = $('resTip');
   if (tipEl) {
     const tips = [
-      'Tip: Use <kbd>Ctrl+S</kbd> to download anytime after merging.',
-      'Tip: Click "Merge Again" to add more files to your next merge.',
-      'Tip: Share this tool with a friend using the WhatsApp button!',
+      'Tip: Press <kbd>Ctrl+S</kbd> to download anytime after merging.',
+      'Tip: Click "Merge Again" to start a new merge.',
+      'Tip: Use page ranges like <kbd>odd</kbd> or <kbd>1-3,5</kbd> in Advanced Options.',
       'Tip: Enable "Table of Contents" for professional report merges.',
-      'Tip: Use page ranges like <kbd>1-3, odd</kbd> for custom selections.',
-      'Tip: Password-protected PDFs? Expand the file card to enter passwords.',
+      'Tip: Share this tool on WhatsApp — your friends will love it!',
+      'Tip: Password-protected PDFs? Expand the file card to enter the password.',
     ];
-    $('resToolTipTx').innerHTML = tips[Math.floor(Math.random() * tips.length)];
+    if ($('resTipTx')) $('resTipTx').innerHTML = tips[Math.floor(Math.random() * tips.length)];
     tipEl.hidden = false;
   }
 
-  // Animate the result box in with GSAP
+  // GSAP entrance
   if (typeof gsap !== 'undefined') {
-    gsap.from('.res-box', { y: 30, duration: .6, ease:'back.out(1.4)' });
-    gsap.from('.rs', { y: 20, stagger: .08, duration: .5, ease:'back.out(1.2)', delay:.3 });
+    gsap.from('.result-card', { y: 28, duration: 0.55, ease: 'back.out(1.4)' });
   }
 }
 
-/* ════════ DOWNLOAD ════════ */
+/* ════ DOWNLOAD ════ */
 function doDownload() {
   if (!_dlUrl) return;
-  window.SOUNDS?.playDownloadWhoosh?.();
+  window.SOUNDS?.playDownloadWhoosh?.(); // fahhhhh.mp3
   const a = document.createElement('a');
   a.href = _dlUrl; a.download = _dlName;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
-  toast(`Downloading: ${_dlName}`, 'success', 3000);
+  toast(`Downloading: ${_dlName}`, 'success', 3500);
 }
 
-/* ════════ PREVIEW MODAL ════════ */
+/* ════ PREVIEW MODAL ════ */
 function openPreview(entry) {
+  if (!D?.pvModal) return;
   D.pvModal.removeAttribute('hidden');
-  $('pvTitle').textContent = entry.name;
-  D.pvBody.innerHTML = `<div class="pv-loading"><i class="fas fa-spinner fa-spin"></i> Loading preview…</div>`;
+  if ($('pvTitle')) $('pvTitle').textContent = entry.name;
+  if (D.pvBody) D.pvBody.innerHTML = `<div class="pv-loading"><i class="fas fa-spinner fa-spin fa-2x"></i><span>Loading preview…</span></div>`;
   renderPreviewContent(entry);
 }
 
 async function renderPreviewContent(entry) {
+  if (!D?.pvBody) return;
   if (entry.imgConverted) {
     const url = URL.createObjectURL(entry.file);
     D.pvBody.innerHTML = `<div class="pv-img-wrap"><img src="${url}" alt="Preview" onload="URL.revokeObjectURL(this.src)"/></div>`;
     return;
   }
   if (typeof pdfjsLib === 'undefined') {
-    D.pvBody.innerHTML = `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i>PDF.js not loaded — preview unavailable</div>`;
+    D.pvBody.innerHTML = `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i><span>PDF.js not loaded — preview unavailable</span></div>`;
     return;
   }
   try {
     const buf = await entry.file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({
-      data: new Uint8Array(buf), password: entry.pwd || '',
-    }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf), password: entry.pwd || '' }).promise;
     const metaHtml = `<div class="pv-doc-meta">
-      <span><i class="fas fa-book-open"></i>${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}</span>
+      <span><i class="fas fa-book-open"></i>${pdf.numPages} page${pdf.numPages>1?'s':''}</span>
       <span><i class="fas fa-database"></i>${fmtSize(entry.size)}</span>
     </div>`;
     const grid = document.createElement('div');
@@ -942,7 +1005,7 @@ async function renderPreviewContent(entry) {
     const limit = Math.min(pdf.numPages, 12);
     for (let p = 1; p <= limit; p++) {
       const page = await pdf.getPage(p);
-      const vp   = page.getViewport({ scale: .65 });
+      const vp   = page.getViewport({ scale: 0.65 });
       const cv   = document.createElement('canvas');
       cv.width = vp.width; cv.height = vp.height;
       await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
@@ -952,64 +1015,67 @@ async function renderPreviewContent(entry) {
     }
     D.pvBody.innerHTML = metaHtml;
     D.pvBody.appendChild(grid);
-    if (pdf.numPages > 12)
+    if (pdf.numPages > 12) {
       D.pvBody.insertAdjacentHTML('beforeend', `<div class="pv-more">Showing 12 of ${pdf.numPages} pages</div>`);
-  } catch (err) {
+    }
+  } catch(err) {
     const isPass = String(err).toLowerCase().includes('password');
     D.pvBody.innerHTML = isPass
-      ? `<div class="pv-err"><i class="fas fa-lock"></i>Password-protected PDF — enter password in the file card first</div>`
-      : `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i>Could not render preview</div>`;
+      ? `<div class="pv-err"><i class="fas fa-lock"></i><span>Password-protected PDF — expand the file card and enter the password first</span></div>`
+      : `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i><span>Could not render preview</span></div>`;
   }
 }
 
 function closePreview() {
-  D.pvModal.hidden = true;
-  D.pvBody.innerHTML = '';
+  if (D?.pvModal) D.pvModal.hidden = true;
+  if (D?.pvBody)  D.pvBody.innerHTML = '';
 }
 
-/* ════════ CANVAS PARTICLES ════════ */
+/* ════ PDF.JS LAZY LOADER ════ */
+function loadPdfJs() {
+  if (typeof pdfjsLib !== 'undefined') return;
+  const s = document.createElement('script');
+  s.src = PDFJS_CDN;
+  s.onload = () => {
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WRK;
+      FILES.filter(e => !e.imgConverted && !e._metaRead).forEach(e => readPdfMeta(e));
+    }
+  };
+  document.head.appendChild(s);
+}
+
+/* ════ CANVAS PARTICLES ════ */
 function initCanvas() {
   const cv = $('bgCanvas'); if (!cv) return;
   const ctx = cv.getContext('2d');
   let W, H, pts = [];
-  const resize = () => {
-    W = cv.width  = window.innerWidth;
-    H = cv.height = window.innerHeight;
-  };
+  const resize = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
   resize();
-  window.addEventListener('resize', resize);
-  const N = Math.min(Math.floor(window.innerWidth / 14), 80);
+  window.addEventListener('resize', resize, { passive: true });
+  const N = Math.min(Math.floor(window.innerWidth / 16), 70);
   for (let i = 0; i < N; i++) {
-    pts.push({
-      x: Math.random() * 1000, y: Math.random() * 1000,
-      vx: (Math.random() - .5) * .28, vy: (Math.random() - .5) * .28,
-      r: Math.random() * 1.4 + .4, a: Math.random(),
-    });
+    pts.push({ x: Math.random()*1100, y: Math.random()*900, vx:(Math.random()-.5)*.26, vy:(Math.random()-.5)*.26, r:Math.random()*1.3+.4, a:Math.random() });
   }
-  const theme = () => document.documentElement.dataset.theme === 'light';
+  const isDark = () => document.documentElement.dataset.theme !== 'light';
   const draw = () => {
     ctx.clearRect(0, 0, W, H);
-    const col = theme() ? '99,102,241' : '139,92,246';
+    const col = isDark() ? '139,92,246' : '99,102,241';
     pts.forEach(p => {
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0 || p.x > W) p.vx *= -1;
       if (p.y < 0 || p.y > H) p.vy *= -1;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${col},${p.a * .5})`;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${col},${p.a*.45})`; ctx.fill();
     });
     for (let i = 0; i < pts.length; i++) {
-      for (let j = i + 1; j < pts.length; j++) {
-        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        if (d < 110) {
-          ctx.strokeStyle = `rgba(${col},${(.12 - d/110*.12)})`;
-          ctx.lineWidth = .5;
-          ctx.beginPath();
-          ctx.moveTo(pts[i].x, pts[i].y);
-          ctx.lineTo(pts[j].x, pts[j].y);
-          ctx.stroke();
+      for (let j = i+1; j < pts.length; j++) {
+        const dx = pts[i].x-pts[j].x, dy = pts[i].y-pts[j].y;
+        const d = Math.sqrt(dx*dx+dy*dy);
+        if (d < 105) {
+          ctx.strokeStyle = `rgba(${col},${.1-d/105*.1})`;
+          ctx.lineWidth = .45;
+          ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke();
         }
       }
     }
@@ -1018,38 +1084,78 @@ function initCanvas() {
   draw();
 }
 
-/* ════════ PDF.JS loader ════════ */
-function loadPdfJs() {
-  if (typeof pdfjsLib !== 'undefined') return;
-  const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-  s.onload = () => {
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      FILES.filter(e => !e.imgConverted && !e.thumb && !e.enc)
-        .forEach(e => readPdfMeta(e));
-    }
-  };
-  document.head.appendChild(s);
+/* ════ TYPED.JS ════ */
+function initTyped() {
+  const el = $('heroTyped'); if (!el) return;
+  if (typeof Typed !== 'undefined') {
+    if (_typedInst) { _typedInst.destroy(); _typedInst = null; }
+    _typedInst = new Typed(el, {
+      strings: [
+        'Drag &amp; drop to reorder',
+        'Select specific page ranges',
+        'Merge password-protected PDFs',
+        'Add Table of Contents automatically',
+        'Mix PDFs with images — all formats',
+        'Lossless compression, zero quality loss',
+        'Up to 50 files at once',
+        '100% free, no signup needed',
+      ],
+      typeSpeed: 36, backSpeed: 18, backDelay: 1800,
+      loop: true, smartBackspace: true, cursorChar: '|',
+    });
+  }
 }
 
-/* ════════ DRAG DROP SETUP ════════ */
+/* ════ FAQ ACCORDION ════ */
+function initFaq() {
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(it => {
+        it.classList.remove('open');
+        it.querySelector('.faq-q')?.setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+}
+
+/* ════ ANIMATIONS ════ */
+function initAnimations() {
+  // Navbar scroll effect
+  window.addEventListener('scroll', () => {
+    $('navbar')?.classList.toggle('scrolled', window.scrollY > 16);
+  }, { passive: true });
+
+  // GSAP ScrollTrigger for info sections
+  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.feat-card, .step-card, .rel-card').forEach((el, i) => {
+      gsap.from(el, {
+        scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
+        y: 18, duration: 0.5, ease: 'power2.out', delay: (i % 4) * 0.06,
+      });
+    });
+  }
+}
+
+/* ════ DRAG AND DROP SETUP ════ */
 function setupDrop() {
   const dz = D.dz;
-  const pick = dz.querySelector('.dz-pick');
+  const browse = dz.querySelector('.dz-browse');
 
-  // Click on zone or "browse" text
-  const openPicker = () => D.fi.click();
-  dz.addEventListener('click', e => {
-    if (e.target === pick || e.target.closest('.dz-pick')) { D.fi.click(); return; }
-    openPicker();
-  });
-  dz.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
-  });
+  // Browse button
+  if (browse) browse.addEventListener('click', e => { e.stopPropagation(); D.fi.click(); });
 
-  // Drag events on drop zone
+  // Click on zone opens picker
+  dz.addEventListener('click', () => D.fi.click());
+  dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fi.click(); } });
+
+  // Drag over zone
   dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('over'); });
   dz.addEventListener('drop', e => {
@@ -1057,87 +1163,50 @@ function setupDrop() {
     if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
   });
 
-  // Global drag
+  // Global drag overlay
   let dragCnt = 0;
-  document.addEventListener('dragenter', e => {
-    e.preventDefault(); dragCnt++;
-    D.globalDrag.classList.add('on');
-  });
-  document.addEventListener('dragleave', e => {
-    dragCnt--; if (dragCnt <= 0) { dragCnt = 0; D.globalDrag.classList.remove('on'); }
-  });
-  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('dragenter', e => { e.preventDefault(); dragCnt++; D.globalDrag?.classList.add('on'); });
+  document.addEventListener('dragleave', () => { dragCnt--; if (dragCnt <= 0) { dragCnt = 0; D.globalDrag?.classList.remove('on'); } });
+  document.addEventListener('dragover',  e => e.preventDefault());
   document.addEventListener('drop', e => {
-    e.preventDefault(); dragCnt = 0; D.globalDrag.classList.remove('on');
+    e.preventDefault(); dragCnt = 0; D.globalDrag?.classList.remove('on');
     if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
   });
 
-  // File input change
-  D.fi.addEventListener('change', () => {
-    if (D.fi.files.length) addFiles(D.fi.files);
-    D.fi.value = '';
-  });
+  // File input
+  D.fi.addEventListener('change', () => { if (D.fi.files.length) addFiles(D.fi.files); D.fi.value = ''; });
 }
 
-/* ════════ ANIMATIONS ════════ */
-function initAnimations() {
-  // GSAP hero elements
-  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-    gsap.registerPlugin(ScrollTrigger);
-    // Info sections reveal
-    gsap.utils.toArray('.info-section').forEach(sec => {
-      gsap.from(sec.querySelectorAll('.hw-card, .fc2, .rel-card, .faq'), {
-        scrollTrigger: { trigger: sec, start:'top 82%', toggleActions:'play none none none' },
-        y: 22, stagger: .06, duration: .6, ease:'power2.out',
-      });
-    });
-  }
-
-  // Anime.js — navbar scroll glass effect
-  window.addEventListener('scroll', () => {
-    const nb = $('navbar');
-    if (nb) nb.classList.toggle('scrolled', window.scrollY > 18);
-  }, { passive: true });
-}
-
-/* ════════ DOMContentLoaded ════════ */
+/* ════ DOMContentLoaded ════ */
 document.addEventListener('DOMContentLoaded', () => {
 
+  /* ── DOM refs ── */
   D = {
-    // Sections
-    sUp: $('secUpload'), sFi: $('secFiles'),
+    sUp: $('secUpload'),   sFi: $('secFiles'),
     sPr: $('secProgress'), sRe: $('secResult'),
     mobileFab: $('mobileFab'),
-    // Upload
     dz: $('dropZone'), fi: $('fileInput'),
     globalDrag: $('globalDrag'),
-    // Files
     fList: $('fileList'), fileBadge: $('fileBadge'),
     stPages: $('stPages'), stSize: $('stSize'), stEst: $('stEst'),
     largeBanner: $('largeBanner'),
-    // Merge preview
     mergePreview: $('mergePreview'), mpStrip: $('mpStrip'),
-    // Presets
     preTip: $('preTip'),
-    // Options
-    optsToggle: $('optsToggle'), optsBody: $('optsBody'),
+    optsToggle: $('optsToggle'), optsBody: $('optsBody'), optsArr: $('optsArr'),
     optMethod: $('optMethod'), optFilename: $('optFilename'),
     optTitle: $('optTitle'), optAuthor: $('optAuthor'),
     optToc: $('optToc'), optSep: $('optSep'),
     optBookmarks: $('optBookmarks'), optCompress: $('optCompress'),
     optDedup: $('optDedup'), optNorm: $('optNorm'),
     optTargetSize: $('optTargetSize'), normSzField: $('normSzField'),
-    // Merge
     mergeBtn: $('mergeBtn'), mCount: $('mCount'),
-    // Progress
     ring: $('ringFg'), pbar: $('pbar'), pbarWrap: $('pbarWrap'),
     ringPct: $('ringPct'), progTitle: $('progTitle'),
     progSub: $('progSub'), progFileInfo: $('progFileInfo'),
     ps1: $('ps1'), ps2: $('ps2'), ps3: $('ps3'), ps4: $('ps4'),
-    // Result
     dlBtn: $('dlBtn'), copyNameBtn: $('copyNameBtn'),
-    shareBtn: $('shareBtn'), mergeAgainBtn: $('mergeAgainBtn'),
-    // Utils
+    printBtn: $('printBtn'), shareBtn: $('shareBtn'),
+    waShareBtn: $('waShareBtn'), mergeAgainBtn: $('mergeAgainBtn'),
     toast: $('toast'),
     undoBar: $('undoBar'), undoName: $('undoName'), undoBtn: $('undoBtn'),
     addMoreBtn: $('addMoreBtn'), addMore: $('addMoreInput'), clearBtn: $('clearBtn'),
@@ -1147,269 +1216,243 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggle: $('themeToggle'), themeIcon: $('themeIcon'),
   };
 
+  /* ── Initial section ── */
+  showSection('upload');
+
+  /* ── Setup ── */
+  setupDrop();
+  loadSettings();
+  initFaq();
+  initAnimations();
+  initCanvas();
+  setTimeout(initTyped, 900);
+  updateHeroCnt();
+
   /* ── Sort buttons ── */
-  document.querySelectorAll('.sb').forEach(btn => {
+  document.querySelectorAll('.sort-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const s = btn.dataset.sort;
       if (s === _sortMode) return;
       _sortMode = s;
-      document.querySelectorAll('.sb').forEach(b => b.classList.toggle('active', b.dataset.sort === s));
-      if (s === 'name')  FILES.sort((a,b) => a.name.localeCompare(b.name));
-      if (s === 'size')  FILES.sort((a,b) => b.size - a.size);
-      if (s === 'order') {} // keep current order
+      document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === s));
+      if (s === 'name') FILES.sort((a, b) => a.name.localeCompare(b.name));
+      if (s === 'size') FILES.sort((a, b) => b.size - a.size);
       if (s !== 'order') { rebuildList(); updatePreviewStrip(); window.SOUNDS?.playSortSound?.(); }
     });
   });
 
-  /* ── Sound toggle ── */
-  const syncSound = () => {
-    const on = window.SOUNDS?.isEnabled?.() ?? true;
-    D.soundToggle.classList.toggle('muted', !on);
-    D.soundIcon.className = on ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
-  };
-  syncSound();
-  D.soundToggle.addEventListener('click', () => {
-    window.SOUNDS?.toggle?.(); syncSound();
-  });
-
-  /* ── Theme toggle ── */
-  const savedTheme = (() => { try { return localStorage.getItem('ishu-theme'); } catch (_) {} return null; })();
-  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  const syncTheme = () => {
-    const dark = document.documentElement.dataset.theme !== 'light';
-    D.themeIcon.className = dark ? 'fas fa-moon' : 'fas fa-sun';
-  };
-  syncTheme();
-  D.themeToggle.addEventListener('click', () => {
-    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('ishu-theme', next); } catch (_) {}
-    syncTheme();
-  });
-
-  /* ── Presets ── */
+  /* ── Preset buttons ── */
   document.querySelectorAll('.pre-btn').forEach(btn => {
-    btn.addEventListener('mouseenter', () => {
-      const p = PRESETS[btn.dataset.p]; if (p) D.preTip.textContent = p.tip;
-    });
-    btn.addEventListener('mouseleave', () => { D.preTip.textContent = ''; });
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.pre-btn').forEach(b => {
-        b.classList.remove('on'); b.setAttribute('aria-pressed','false');
-      });
-      btn.classList.add('on'); btn.setAttribute('aria-pressed','true');
-      const p = PRESETS[btn.dataset.p]; if (!p) return;
-      D.optBookmarks.checked = p.bm; D.optToc.checked = p.toc;
-      D.optSep.checked = p.sep; D.optCompress.checked = p.comp;
-      D.optDedup.checked = p.dd;
-      window.SOUNDS?.playPresetSound?.();
-      const name = btn.dataset.p.charAt(0).toUpperCase() + btn.dataset.p.slice(1);
-      toast(`Preset: ${name}`, 'info', 1800);
-    });
+    btn.addEventListener('click', () => applyPreset(btn.dataset.p));
   });
 
-  /* ── Options accordion ── */
-  D.optsToggle.addEventListener('click', () => {
-    const open = D.optsToggle.getAttribute('aria-expanded') === 'true';
-    D.optsToggle.setAttribute('aria-expanded', String(!open));
-    D.optsBody.hidden = open;
-    window.SOUNDS?.[open ? 'playCollapseSound' : 'playExpandSound']?.();
-  });
-  D.optNorm.addEventListener('change', () => {
-    D.normSzField.hidden = !D.optNorm.checked;
-  });
-  [D.optToc, D.optSep, D.optBookmarks, D.optCompress, D.optDedup, D.optNorm].forEach(el => {
-    el?.addEventListener('change', () =>
-      window.SOUNDS?.[el.checked ? 'playToggleOnSound' : 'playToggleOffSound']?.());
+  /* ── Advanced options toggle ── */
+  if (D.optsToggle && D.optsBody) {
+    D.optsToggle.addEventListener('click', () => {
+      const open = D.optsBody.hidden;
+      D.optsBody.hidden = !open;
+      D.optsToggle.setAttribute('aria-expanded', String(open));
+    });
+  }
+
+  /* ── Normalize page size toggle ── */
+  if (D.optNorm && D.normSzField) {
+    D.optNorm.addEventListener('change', () => {
+      D.normSzField.hidden = !D.optNorm.checked;
+    });
+  }
+
+  /* ── Options save on change ── */
+  ['optToc','optSep','optBookmarks','optCompress','optDedup','optNorm','optMethod','optTargetSize'].forEach(id => {
+    $(id)?.addEventListener('change', saveSettings);
   });
 
   /* ── Merge button ── */
-  D.mergeBtn.addEventListener('click', startMerge);
-
-  /* ── Add more / Clear ── */
-  D.addMoreBtn.addEventListener('click', () => D.addMore.click());
-  D.addMore.addEventListener('change', () => {
-    if (D.addMore.files.length) addFiles(D.addMore.files);
-    D.addMore.value = '';
-  });
-  D.clearBtn.addEventListener('click', () => {
-    if (!FILES.length) return;
-    const count = FILES.length;
-    FILES.forEach((e, i) => _undoStack.push({ entry:e, idx:i }));
-    FILES.length = 0; rebuildList(); updateStats();
-    updatePreviewStrip(); showSection('upload');
-    window.SOUNDS?.playFileRemoveSound?.();
-    toast(`${count} file${count > 1 ? 's' : ''} cleared`, 'info', 2400);
-  });
-
-  /* ── Undo ── */
-  D.undoBtn.addEventListener('click', () => {
-    const item = _undoStack.shift(); if (!item) return;
-    FILES.splice(item.idx, 0, item.entry);
-    D.undoBar.classList.remove('show');
-    clearTimeout(_undoTimer);
-    rebuildList(); updateStats(); updatePreviewStrip();
-    if (D.sFi.hidden) showSection('files');
-    window.SOUNDS?.playFileAddSound?.();
-    toast(`Restored: ${item.entry.name}`, 'success', 2200);
-  });
+  if (D.mergeBtn) D.mergeBtn.addEventListener('click', startMerge);
 
   /* ── Download ── */
-  D.dlBtn.addEventListener('click', doDownload);
+  if (D.dlBtn) D.dlBtn.addEventListener('click', doDownload);
 
-  /* ── Copy name ── */
-  D.copyNameBtn.addEventListener('click', async () => {
-    if (!_dlName) return;
-    try { await navigator.clipboard.writeText(_dlName); } catch (_) {}
-    window.SOUNDS?.playCopySound?.();
-    toast(`Copied: ${_dlName}`, 'success', 1800);
-  });
+  /* ── Copy filename ── */
+  if (D.copyNameBtn) {
+    D.copyNameBtn.addEventListener('click', () => {
+      if (!_dlName) return;
+      navigator.clipboard?.writeText(_dlName).then(() => {
+        toast(`Copied: ${_dlName}`, 'success', 2500);
+        window.SOUNDS?.playCopySound?.();
+      }).catch(() => toast('Copy failed', 'warn'));
+    });
+  }
+
+  /* ── Print ── */
+  if (D.printBtn) {
+    D.printBtn.addEventListener('click', () => {
+      if (!_dlUrl) return;
+      const w = window.open(_dlUrl, '_blank');
+      if (w) { w.onload = () => { w.focus(); w.print(); }; }
+    });
+  }
 
   /* ── Share ── */
-  D.shareBtn.addEventListener('click', async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title:'Merge PDF — IshuTools.fun', url });
-      } catch (_) {}
-    } else {
-      try { await navigator.clipboard.writeText(url); } catch (_) {}
-      window.SOUNDS?.playCopySound?.();
-      toast('Link copied to clipboard!', 'success', 2200);
-    }
-  });
-
-  /* ── Print PDF ── */
-  const printBtn = $('printBtn');
-  if (printBtn) {
-    printBtn.addEventListener('click', () => {
-      if (!_dlUrl) return;
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
-      iframe.src = _dlUrl;
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        try { iframe.contentWindow.print(); } catch (_) {
-          // Fallback: open in new tab so user can print from there
-          window.open(_dlUrl, '_blank', 'noopener');
-          toast('Opened in new tab — use Ctrl+P to print', 'info', 4000);
-        }
-        setTimeout(() => document.body.removeChild(iframe), 3000);
-      };
-      window.SOUNDS?.playExpandSound?.();
+  if (D.shareBtn) {
+    D.shareBtn.addEventListener('click', async () => {
+      const url = 'https://ishutools.fun/tools/merge-pdf/';
+      if (navigator.share) {
+        try { await navigator.share({ title: 'Merge PDF Free — IshuTools', url }); } catch(_) {}
+      } else {
+        await navigator.clipboard?.writeText(url);
+        toast('Link copied!', 'success', 2200);
+      }
     });
   }
 
   /* ── WhatsApp share ── */
-  const waBtn = $('waShareBtn');
-  if (waBtn) {
-    waBtn.addEventListener('click', () => {
-      const txt = encodeURIComponent(
-        `🔥 I just merged my PDFs using IshuTools.fun — FREE Merge PDF tool by Ishu Kumar!\n` +
-        `✅ No signup, no watermark, works on phone too!\n` +
-        `👉 https://ishutools.fun/tools/merge-pdf/`
-      );
-      window.open(`https://wa.me/?text=${txt}`, '_blank', 'noopener');
-      window.SOUNDS?.playCopySound?.();
-    });
-  }
-
-  /* ── Mobile FAB ── */
-  if (D.mobileFab) {
-    D.mobileFab.addEventListener('click', () => {
-      if (!D.mergeBtn.disabled) D.mergeBtn.click();
-      else { D.fi.click(); }
+  if (D.waShareBtn) {
+    D.waShareBtn.addEventListener('click', () => {
+      const url = encodeURIComponent('https://ishutools.fun/tools/merge-pdf/');
+      const text = encodeURIComponent('✅ Free PDF Merger — No signup, no watermark! Combine PDFs + images instantly: ');
+      window.open(`https://wa.me/?text=${text}${url}`, '_blank');
     });
   }
 
   /* ── Merge Again ── */
-  D.mergeAgainBtn.addEventListener('click', () => {
-    // Revoke old blob
-    if (_dlUrl) { URL.revokeObjectURL(_dlUrl); _dlUrl = null; }
-    _dlBlob = null; _dlName = '';
-    document.querySelector('.res-box')?.classList.remove('ready');
-    window.SOUNDS?.playMergeAgainSound?.();
-    showSection('files');
-  });
+  if (D.mergeAgainBtn) {
+    D.mergeAgainBtn.addEventListener('click', () => {
+      FILES = []; _dlBlob = null; _dlUrl = null; _dlName = '';
+      _deletedStack = []; _activePreset = null;
+      if (_sizeChart) { _sizeChart.destroy(); _sizeChart = null; }
+      window.SOUNDS?.playMergeAgainSound?.();
+      showSection('upload');
+    });
+  }
 
-  /* ── Preview modal ── */
-  D.pvClose.addEventListener('click', closePreview);
-  D.pvModal.addEventListener('click', e => { if (e.target === D.pvModal) closePreview(); });
+  /* ── Add more files ── */
+  if (D.addMoreBtn && D.addMore) {
+    D.addMoreBtn.addEventListener('click', () => D.addMore.click());
+    D.addMore.addEventListener('change', () => { if (D.addMore.files.length) addFiles(D.addMore.files); D.addMore.value = ''; });
+  }
+
+  /* ── Clear all ── */
+  if (D.clearBtn) {
+    D.clearBtn.addEventListener('click', () => {
+      if (!FILES.length) return;
+      FILES = []; _deletedStack = [];
+      rebuildList(); updateStats(); updatePreviewStrip(); checkLargeBanner(); syncMergeBtn();
+      showSection('upload');
+      window.SOUNDS?.playFileRemoveSound?.();
+    });
+  }
+
+  /* ── Sound toggle ── */
+  const syncSound = () => {
+    const on = window.SOUNDS?.isEnabled?.() ?? true;
+    if (D.soundIcon) {
+      D.soundIcon.className = on ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
+    }
+    if (D.soundToggle) D.soundToggle.setAttribute('aria-label', on ? 'Mute sounds' : 'Unmute sounds');
+  };
+  syncSound();
+  if (D.soundToggle) {
+    D.soundToggle.addEventListener('click', () => {
+      window.SOUNDS?.toggle?.();
+      syncSound();
+      const on = window.SOUNDS?.isEnabled?.() ?? true;
+      if (on) window.SOUNDS?.playToggleOnSound?.();
+    });
+  }
+
+  /* ── Theme toggle ── */
+  const syncTheme = () => {
+    const isDark = document.documentElement.dataset.theme !== 'light';
+    if (D.themeIcon) D.themeIcon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+    if (D.themeToggle) D.themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    try { localStorage.setItem('ishu-theme', isDark ? 'dark' : 'light'); } catch(_) {}
+  };
+  // Load saved theme
+  try {
+    const saved = localStorage.getItem('ishu-theme');
+    if (saved === 'light') document.documentElement.dataset.theme = 'light';
+  } catch(_) {}
+  syncTheme();
+  if (D.themeToggle) {
+    D.themeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.dataset.theme;
+      document.documentElement.dataset.theme = cur === 'light' ? 'dark' : 'light';
+      syncTheme();
+    });
+  }
 
   /* ── Keyboard shortcuts modal ── */
-  D.kbdBtn.addEventListener('click', () => {
-    D.kbdModal.removeAttribute('hidden');
-    window.SOUNDS?.playExpandSound?.();
-  });
-  D.kbdClose.addEventListener('click', () => { D.kbdModal.hidden = true; });
-  D.kbdModal.addEventListener('click', e => {
-    if (e.target === D.kbdModal) D.kbdModal.hidden = true;
-  });
+  if (D.kbdBtn)   D.kbdBtn.addEventListener('click',   () => { D.kbdModal.hidden = false; });
+  if (D.kbdClose) D.kbdClose.addEventListener('click', () => { D.kbdModal.hidden = true;  });
 
-  /* ── Global keyboard shortcuts ── */
-  document.addEventListener('keydown', e => {
-    const tag = document.activeElement?.tagName;
-    const editing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ||
-                    document.activeElement?.contentEditable === 'true';
-    if (e.key === 'Escape') { D.kbdModal.hidden = true; closePreview(); return; }
-    if (editing) return;
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); D.undoBtn.click(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'o') { e.preventDefault(); D.fi.click(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'm') { e.preventDefault(); if (!D.mergeBtn.disabled) D.mergeBtn.click(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (_dlUrl) doDownload(); return; }
-    if (e.key === '?') { D.kbdModal.removeAttribute('hidden'); window.SOUNDS?.playExpandSound?.(); }
-  });
+  /* ── Preview modal close ── */
+  if (D.pvClose) D.pvClose.addEventListener('click', closePreview);
+  if (D.pvModal) {
+    D.pvModal.addEventListener('click', e => { if (e.target === D.pvModal) closePreview(); });
+  }
 
-  /* ── FAQ accordion ── */
-  document.querySelectorAll('.faq-q').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const item = btn.parentElement;
-      const open = item.classList.contains('open');
-      document.querySelectorAll('.faq.open').forEach(i => {
-        i.classList.remove('open');
-        i.querySelector('.faq-q').setAttribute('aria-expanded','false');
-      });
-      if (!open) {
-        item.classList.add('open');
-        btn.setAttribute('aria-expanded','true');
-      }
+  /* ── Undo ── */
+  if (D.undoBtn) D.undoBtn.addEventListener('click', undoLastDelete);
+
+  /* ── Mobile FAB ── */
+  if (D.mobileFab) {
+    D.mobileFab.addEventListener('click', () => {
+      if (FILES.length >= 2) startMerge();
+      else D.fi.click();
     });
+  }
+
+  /* ── Keyboard shortcuts ── */
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    const inInput = ['input','textarea','select'].includes(tag);
+
+    if (e.key === 'Escape') {
+      if (D.kbdModal && !D.kbdModal.hidden) { D.kbdModal.hidden = true; return; }
+      if (D.pvModal && !D.pvModal.hidden)   { closePreview(); return; }
+    }
+    if (inInput) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'o' || e.key === 'O') { e.preventDefault(); D.fi.click(); return; }
+      if (e.key === 'm' || e.key === 'M') { e.preventDefault(); if (FILES.length >= 2) startMerge(); return; }
+      if (e.key === 's' || e.key === 'S') { e.preventDefault(); doDownload(); return; }
+      if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); undoLastDelete(); return; }
+    }
+    if (e.key === '?') { D.kbdModal.hidden = false; return; }
+
+    // Alt + Arrow to move focused file
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      const focused = document.activeElement?.closest('.file-card');
+      if (!focused) return;
+      e.preventDefault();
+      const id  = focused.dataset.id;
+      const idx = FILES.findIndex(f => f.id === id);
+      if (idx < 0) return;
+      const newIdx = e.key === 'ArrowUp' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= FILES.length) return;
+      [FILES[idx], FILES[newIdx]] = [FILES[newIdx], FILES[idx]];
+      rebuildList(); updatePreviewStrip();
+      const cards = D.fList.querySelectorAll('.file-card');
+      if (cards[newIdx]) cards[newIdx].focus();
+      window.SOUNDS?.playSortSound?.();
+      return;
+    }
+
+    // Delete key on focused card
+    if (e.key === 'Delete') {
+      const focused = document.activeElement?.closest('.file-card');
+      if (!focused) return;
+      const id  = focused.dataset.id;
+      const idx = FILES.findIndex(f => f.id === id);
+      if (idx >= 0) removeFile(id, idx);
+    }
   });
 
-  /* ── Init ── */
-  showSection('upload');
-  setupDrop();
-  initCanvas();
-  loadPdfJs();
-  setTimeout(() => initAnimations(), 150);
+  /* ── Click outside modals ── */
+  if (D.kbdModal) {
+    D.kbdModal.addEventListener('click', e => { if (e.target === D.kbdModal) D.kbdModal.hidden = true; });
+  }
 
-  // Typed.js — hero unique cycling facts (not repeating the badge)
-  setTimeout(() => {
-    if (typeof Typed !== 'undefined' && $('heroTyped')) {
-      if (_typedInst) _typedInst.destroy();
-      _typedInst = new Typed('#heroTyped', {
-        strings: [
-          'Merge up to 50 PDFs at once.',
-          'Mix PDFs + JPG + PNG freely.',
-          'Page ranges per file: <code>1-3, odd</code>.',
-          'Password-protected PDFs? Supported.',
-          'Smart auto Table of Contents.',
-          'Zero quality loss. Guaranteed.',
-          'Named after your first file.',
-          'Works on phone, tablet, desktop.',
-          'Ghostscript + pypdf + PyMuPDF.',
-          'Enterprise-grade. 100% free.',
-        ],
-        typeSpeed: 44, backSpeed: 24, loop: true, backDelay: 2400,
-        smartBackspace: true, showCursor: true, cursorChar: '|',
-        contentType: 'html',
-      });
-    }
-  }, 800);
-
-  // Hero counter update
-  updateHeroCnt();
-
-  // Persist settings on load
-  loadSettings();
 });
