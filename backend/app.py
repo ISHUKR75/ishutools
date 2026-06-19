@@ -647,15 +647,18 @@ def api_split_pdf():
 
         download_name = f'{stem}_split.zip'
         resp = send_result(result_zip, download_name, 'application/zip')
+        out_files = result.get('output_files', [])
         resp.headers['X-File-Count']     = str(result.get('file_count', 0))
         resp.headers['X-Total-Pages']    = str(result.get('total_pages', 0))
         resp.headers['X-Skipped-Blanks'] = str(result.get('skipped_blanks', 0))
         resp.headers['X-Mode-Used']      = result.get('mode_used', split_mode)
         resp.headers['X-Zip-Size-KB']    = str(result.get('zip_size_kb', 0))
         resp.headers['X-Download-Name']  = download_name
+        resp.headers['X-File-Names']     = '|'.join(out_files[:40])
+        resp.headers['X-Processing-Ms']  = str(result.get('processing_time_ms', 0))
         resp.headers['Access-Control-Expose-Headers'] = (
             'X-File-Count,X-Total-Pages,X-Skipped-Blanks,'
-            'X-Mode-Used,X-Zip-Size-KB,X-Download-Name'
+            'X-Mode-Used,X-Zip-Size-KB,X-Download-Name,X-File-Names,X-Processing-Ms'
         )
 
         _push_progress(job_id, 100, 'Done! ✓', '', done=True)

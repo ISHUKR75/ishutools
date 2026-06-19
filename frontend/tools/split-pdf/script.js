@@ -1,5 +1,5 @@
 /**
- * split-pdf/script.js  v6.0 — IshuTools.fun
+ * split-pdf/script.js  v8.0 — IshuTools.fun
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
  *
  * Enterprise Split PDF Engine — Full UX Overhaul
@@ -22,6 +22,7 @@ let BOOKMARKS      = [];
 let BLANK_COUNT    = 0;
 let RESULT_BLOB    = null;
 let RESULT_NAME    = '';
+let RESULT_FILES   = [];    // output filenames from last split
 let PAGE_SEL       = new Set();
 let SELECTED_MODE  = 'all';
 let _shiftStart    = -1;
@@ -29,6 +30,54 @@ let _simTimer      = null;
 let _sseSource     = null;
 let _splitStartTime = 0;    // for elapsed timer
 let D              = {};     // DOM refs
+
+/* ═══════════════════════════════════════════════════════════
+   QUICK PRESETS
+═══════════════════════════════════════════════════════════ */
+const PRESETS = [
+  { key:'all',      label:'All Pages',    icon:'📄', mode:'all',       opts:{} },
+  { key:'odd_even', label:'Odd & Even',   icon:'↕️', mode:'odd_even',  opts:{} },
+  { key:'every10',  label:'Every 10 Pgs', icon:'📦', mode:'every_n',   opts:{n:10} },
+  { key:'first5',   label:'First 5 Pgs',  icon:'✂️', mode:'range',     opts:{range:'first 5'} },
+  { key:'half',     label:'First Half',   icon:'⬆️', mode:'range',     opts:{range_fn:'firsthalf'} },
+  { key:'chapters', label:'By Chapters',  icon:'📚', mode:'bookmarks', opts:{} },
+];
+
+function applyPreset(p) {
+  if (typeof p === 'string') p = PRESETS.find(x => x.key === p);
+  if (!p) return;
+
+  applyMode(p.mode);
+
+  if (p.opts.n && D.everyNInput) {
+    D.everyNInput.value = p.opts.n;
+    updateChunksPreview();
+  }
+  if ('range' in p.opts || p.opts.range_fn) {
+    if (D.rangeInput) {
+      if (p.opts.range_fn === 'firsthalf' && TOTAL_PAGES) {
+        D.rangeInput.value = `1-${Math.floor(TOTAL_PAGES / 2)}`;
+      } else if (p.opts.range) {
+        D.rangeInput.value = p.opts.range;
+      }
+      updateRangeFromInput();
+    }
+  }
+
+  updateSplitPreview(); updateModeBadges(); updateSplitBtn(); updateFab();
+  S('toggle');
+  showToast(`Preset: ${p.label}`, 'info');
+
+  document.querySelectorAll('.sp-preset-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.preset === p.key);
+  });
+}
+
+function initPresets() {
+  document.querySelectorAll('.sp-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+  });
+}
 
 /* ═══════════════════════════════════════════════════════════
    SOUND WRAPPER
@@ -139,6 +188,12 @@ document.addEventListener('DOMContentLoaded', () => {
     resTimerWrap:    document.getElementById('resTimerWrap'),
     resTimer:        document.getElementById('resTimer'),
     copyRangeBtn:    document.getElementById('copyRangeBtn'),
+    // Presets & output files
+    presetsRow:      document.getElementById('presetsRow'),
+    resFilesWrap:    document.getElementById('resFilesWrap'),
+    resFilesList:    document.getElementById('resFilesList'),
+    resFilesToggle:  document.getElementById('resFilesToggle'),
+    resFilesToggleLabel: document.getElementById('resFilesToggleLabel'),
   };
 
   initTheme();
@@ -167,10 +222,34 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('splitBtn')?.addEventListener('click', doSplit);
   D.copyRangeBtn?.addEventListener('click', copyRangeToClipboard);
 
+  // Output files toggle
+  D.resFilesToggle?.addEventListener('click', () => {
+    const open = D.resFilesToggle.classList.toggle('open');
+    D.resFilesToggle.setAttribute('aria-expanded', open);
+    if (D.resFilesList) D.resFilesList.hidden = !open;
+    if (D.resFilesToggleLabel) {
+      D.resFilesToggleLabel.textContent = open
+        ? 'Hide output files'
+        : `Show output files (${RESULT_FILES.length})`;
+    }
+    S(open ? 'expand' : 'collapse');
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!D.splitBtn?.disabled && FILE) doSplit();
+    }
+  });
+
+  initPresets();
+
   // Expose globals for HTML onclick attrs
   window.downloadResult       = downloadResult;
   window.resetTool            = resetTool;
   window.copyRangeToClipboard = copyRangeToClipboard;
+  window.applyPreset          = applyPreset;
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -395,6 +474,11 @@ async function loadFile(file) {
   D.resultsCard.hidden     = true;
   D.progressCard.hidden    = true;
   if (D.recommendBanner)   D.recommendBanner.hidden = true;
+
+  // Show presets row
+  if (D.presetsRow) D.presetsRow.removeAttribute('hidden');
+  // Clear active preset highlight
+  document.querySelectorAll('.sp-preset-btn').forEach(b => b.classList.remove('active'));
 
   // Default mode = all
   SELECTED_MODE = 'all';
@@ -882,22 +966,38 @@ function initSizeSlider() {
 ═══════════════════════════════════════════════════════════ */
 function updateSplitPreview() {
   const el = D.splitPreview; if (!el || !TOTAL_PAGES) return;
-  const n = Math.max(1, parseInt(D.everyNInput?.value||5));
+  const n  = Math.max(1, parseInt(D.everyNInput?.value || 5));
+  const mb = D.sizeSlider?.value || 5;
 
-  if (SELECTED_MODE === 'range') {
-    const cnt = PAGE_SEL.size;
-    el.innerHTML = cnt
-      ? `<i class="fa fa-scissors"></i> Extracting <strong>${cnt} page${cnt!==1?'s':''}</strong> → 1 PDF file`
-      : `<i class="fa fa-info-circle"></i> Select pages to extract`;
-  } else if (SELECTED_MODE === 'every_n') {
-    const chunks = Math.ceil(TOTAL_PAGES/n);
-    el.innerHTML = `<i class="fa fa-layer-group"></i> <strong>${TOTAL_PAGES} pages</strong> → <strong>${chunks} file${chunks!==1?'s':''}</strong> of ${n} pages each`;
-  } else if (SELECTED_MODE === 'size_limit') {
-    const mb = D.sizeSlider?.value || 5;
-    el.innerHTML = `<i class="fa fa-compress-arrows-alt"></i> Each part will be ≤ <strong>${mb} MB</strong> — no quality loss`;
-  } else {
-    el.innerHTML = '';
-  }
+  const MSG = {
+    all:         () => `<i class="fa fa-layer-group"></i> <strong>${TOTAL_PAGES} pages</strong> → <strong>${TOTAL_PAGES} PDF files</strong> (one per page)`,
+    range:       () => {
+                   const cnt = PAGE_SEL.size;
+                   return cnt
+                     ? `<i class="fa fa-scissors"></i> Extracting <strong>${cnt} page${cnt!==1?'s':''}</strong> → <strong>1 PDF file</strong>`
+                     : `<i class="fa fa-info-circle"></i> Select pages to extract below`;
+                 },
+    every_n:     () => {
+                   const chunks = Math.ceil(TOTAL_PAGES / n);
+                   return `<i class="fa fa-layer-group"></i> <strong>${TOTAL_PAGES} pages</strong> → <strong>${chunks} file${chunks!==1?'s':''}</strong> of max ${n} pages each`;
+                 },
+    bookmarks:   () => BOOKMARKS.length
+                   ? `<i class="fa fa-bookmark"></i> <strong>${BOOKMARKS.length} chapters</strong> → <strong>${BOOKMARKS.length} PDF files</strong>`
+                   : `<i class="fa fa-info-circle"></i> No bookmarks found — will split every 5 pages`,
+    blank_pages: () => BLANK_COUNT >= 2
+                   ? `<i class="fa fa-align-justify"></i> <strong>${BLANK_COUNT} blank pages</strong> detected → <strong>~${BLANK_COUNT + 1} sections</strong>`
+                   : `<i class="fa fa-info-circle"></i> No blank pages detected — will not create any splits`,
+    size_limit:  () => `<i class="fa fa-balance-scale"></i> Each output part will be ≤ <strong>${mb} MB</strong> — zero quality loss`,
+    odd_even:    () => `<i class="fa fa-exchange-alt"></i> <strong>${TOTAL_PAGES} pages</strong> → <strong>2 PDF files</strong> (odd pages + even pages)`,
+    range_groups: () => {
+                   const grps = (D.rangeGroupsInput?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+                   return grps.length
+                     ? `<i class="fa fa-th-list"></i> <strong>${grps.length} range${grps.length!==1?'s':''}</strong> → <strong>${grps.length} separate PDF file${grps.length!==1?'s':''}</strong>`
+                     : `<i class="fa fa-info-circle"></i> Enter ranges above — e.g. 1-10, 11-20, 21-end`;
+                 },
+  };
+
+  el.innerHTML = (MSG[SELECTED_MODE]?.() || '');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1079,6 +1179,8 @@ async function doSplit() {
     const skipped    = parseInt(resp.headers.get('X-Skipped-Blanks') || '0');
     const zipSizeKB  = parseFloat(resp.headers.get('X-Zip-Size-KB') || '0');
     const dlName     = resp.headers.get('X-Download-Name') || '';
+    const fileNames  = resp.headers.get('X-File-Names') || '';
+    RESULT_FILES = fileNames ? fileNames.split('|').filter(Boolean) : [];
 
     RESULT_BLOB = await resp.blob();
 
@@ -1195,6 +1297,32 @@ function showResults(fileCount, totalPages, skipped, zipSizeKB) {
     if (D.resTimerWrap) D.resTimerWrap.classList.remove('sp-res-stat-hidden');
   }
 
+  // Output files list
+  if (D.resFilesWrap && D.resFilesList) {
+    if (RESULT_FILES.length > 0) {
+      D.resFilesWrap.classList.remove('sp-rfw-hidden');
+      // Reset toggle state
+      D.resFilesToggle?.classList.remove('open');
+      D.resFilesToggle?.setAttribute('aria-expanded', 'false');
+      if (D.resFilesList) D.resFilesList.hidden = true;
+      if (D.resFilesToggleLabel) {
+        D.resFilesToggleLabel.textContent = `Show output files (${RESULT_FILES.length})`;
+      }
+      // Build list HTML
+      const MAX_SHOW = 50;
+      D.resFilesList.innerHTML = RESULT_FILES.slice(0, MAX_SHOW).map(n =>
+        `<div class="sp-res-file">
+          <i class="fa fa-file-pdf" aria-hidden="true"></i>
+          <span class="sp-res-file-name">${n}</span>
+         </div>`
+      ).join('') + (RESULT_FILES.length > MAX_SHOW
+        ? `<div class="sp-res-file sp-res-file-more">+ ${RESULT_FILES.length - MAX_SHOW} more files…</div>`
+        : '');
+    } else {
+      D.resFilesWrap.classList.add('sp-rfw-hidden');
+    }
+  }
+
   D.progressCard.hidden = true;
   D.resultsCard.hidden  = false;
   updateFab();
@@ -1302,7 +1430,11 @@ function resetTool() {
   if (D.progressSteps)     D.progressSteps.innerHTML = '';
   if (D.rangeGroupsPreview) D.rangeGroupsPreview.innerHTML = '<span class="sp-rp-hint">Each comma-separated range → its own PDF file</span>';
   if (D.resTimerWrap)      D.resTimerWrap.classList.add('sp-res-stat-hidden');
+  if (D.resFilesWrap)      D.resFilesWrap.classList.add('sp-rfw-hidden');
+  if (D.presetsRow)        D.presetsRow.setAttribute('hidden', '');
   _splitStartTime = 0;
+  RESULT_FILES = [];
+  document.querySelectorAll('.sp-preset-btn').forEach(b => b.classList.remove('active'));
 
   updateFab();
 

@@ -237,6 +237,19 @@
       </div>
     </div>
 
+    <!-- Quick Presets Row -->
+    <div class="sp-presets-row" id="presetsRow" hidden>
+      <span class="sp-presets-label"><i class="fa fa-bolt" aria-hidden="true"></i> Quick:</span>
+      <div class="sp-presets-btns" role="group" aria-label="Quick split presets">
+        <button class="sp-preset-btn" data-preset="all"      type="button" title="One PDF per page"><span aria-hidden="true">📄</span> All Pages</button>
+        <button class="sp-preset-btn" data-preset="odd_even" type="button" title="Odd pages &amp; Even pages"><span aria-hidden="true">↕️</span> Odd &amp; Even</button>
+        <button class="sp-preset-btn" data-preset="every10"  type="button" title="Split every 10 pages"><span aria-hidden="true">📦</span> Every 10</button>
+        <button class="sp-preset-btn" data-preset="first5"   type="button" title="Extract first 5 pages"><span aria-hidden="true">✂️</span> First 5 Pgs</button>
+        <button class="sp-preset-btn" data-preset="half"     type="button" title="Extract first half of PDF"><span aria-hidden="true">⬆️</span> First Half</button>
+        <button class="sp-preset-btn" data-preset="chapters" type="button" title="Split at chapter bookmarks"><span aria-hidden="true">📚</span> Chapters</button>
+      </div>
+    </div>
+
     <div class="sp-modes-grid" id="modesGrid" role="radiogroup" aria-label="Split mode selection">
 
       <div class="sp-mode-card active" data-mode="all" role="radio" aria-checked="true" tabindex="0">
@@ -539,6 +552,16 @@
       <i class="fa fa-download" aria-hidden="true"></i>
       Download ZIP
     </button>
+
+    <!-- Output files collapsible list -->
+    <div class="sp-res-files-wrap sp-rfw-hidden" id="resFilesWrap">
+      <button class="sp-res-files-toggle" id="resFilesToggle" type="button" aria-expanded="false">
+        <i class="fa fa-list-ul" aria-hidden="true"></i>
+        <span id="resFilesToggleLabel">Show output files</span>
+        <i class="fa fa-chevron-down sp-rft-arrow" aria-hidden="true"></i>
+      </button>
+      <div class="sp-res-files-list" id="resFilesList" hidden></div>
+    </div>
 
     <div class="sp-res-actions">
       <button class="sp-res-again-btn" onclick="resetTool()" type="button">
