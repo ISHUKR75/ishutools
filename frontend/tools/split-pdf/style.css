@@ -1117,7 +1117,49 @@ kbd {
 .sp-footer-nav { display:flex; flex-wrap:wrap; gap:8px 16px; }
 .sp-footer-nav a { font-size:.78rem; color:var(--text3); transition:color var(--t); }
 .sp-footer-nav a:hover { color:var(--accent); opacity:1; }
-.sp-footer-copy { font-size:.74rem; color:var(--text3); text-align:center; padding-top:16px; border-top:1px solid var(--border); }
+.sp-footer-copy { font-size:.74rem; color:var(--text3); text-align:center; }
+.sp-footer-rating { font-size:.72rem; color:#fbbf24; margin-top:6px; }
+.sp-footer-rating span { color:var(--text3); margin-left:4px; }
+.sp-footer-navs { display:flex; gap:28px; flex-wrap:wrap; }
+.sp-footer-nav { display:flex; flex-direction:column; gap:5px; }
+.sp-footer-nav-head { font-size:.7rem; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; }
+.sp-footer-nav a { font-size:.76rem; color:var(--text3); transition:color var(--t); }
+.sp-footer-nav a:hover,
+.sp-footer-nav a[aria-current="page"] { color:var(--accent); opacity:1; }
+.sp-footer-bottom { padding-top:16px; border-top:1px solid var(--border); }
+.sp-footer-schema { font-size:.7rem; color:var(--text3); text-align:center; margin-top:6px; }
+.sp-footer-schema a { color:var(--text3); }
+.sp-footer-schema a:hover { color:var(--accent); }
+
+/* ── ALL TOOLS DIRECTORY ──────────────────────────────────────────── */
+.sp-all-tools-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+  margin:12px 0 16px;
+  padding:18px; background:var(--card2);
+  border:1px solid var(--border); border-radius:14px;
+}
+.sp-tools-col h4 {
+  font-size:.75rem; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.05em;
+  margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sp-tools-col a {
+  display:block; font-size:.74rem; color:var(--text3);
+  padding:3px 0; transition:color var(--t); text-decoration:none;
+}
+.sp-tools-col a:hover { color:var(--accent); }
+.sp-current-tag {
+  display:inline-block; font-size:.64rem;
+  background:rgba(99,102,241,.2); color:var(--accent);
+  border-radius:4px; padding:1px 5px; margin-left:4px; vertical-align:middle;
+}
+@media(max-width:680px) {
+  .sp-all-tools-grid { grid-template-columns:1fr 1fr; }
+  .sp-footer-navs { gap:16px; }
+}
+@media(max-width:420px) {
+  .sp-all-tools-grid { grid-template-columns:1fr; }
+}
 
 /* ── TOAST ───────────────────────────────────────────────────────── */
 .sp-toast {
