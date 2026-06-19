@@ -1064,23 +1064,57 @@ def split_pdf(
             return False
 
     # ══════════════════════════════════════════════════════════════════════════
-    # MODE: all — one file per page (GS burst → pikepdf fallback)
+    # MODE: all — one file per page (pikepdf first = ZERO re-encoding, lossless)
     # ══════════════════════════════════════════════════════════════════════════
     if mode == 'all':
-        gs_pages = _gs_burst(input_path, out_dir) if GS_BIN else []
-        if gs_pages:
-            for i, fp in enumerate(gs_pages):
-                if remove_blanks and i in blank_set:
-                    try: os.remove(fp)
-                    except Exception: pass
-                else:
-                    output_files.append(fp)
-        else:
-            for i in range(total):
-                if remove_blanks and i in blank_set:
-                    continue
-                name = _render_name(naming_pattern, i + 1)
-                _save([i], name)
+        _all_done = False
+        if _HAS_PIKEPDF:
+            try:
+                kw = {'password': password} if password else {}
+                with pikepdf.open(input_path, suppress_warnings=True, **kw) as _pdf_in:
+                    for i in range(total):
+                        if remove_blanks and i in blank_set:
+                            continue
+                        name = _render_name(naming_pattern, i + 1)
+                        safe = _safe_name(name)
+                        dst  = os.path.join(out_dir, safe + '.pdf')
+                        if os.path.exists(dst):
+                            dst = os.path.join(out_dir, f'{safe}_{i+1:04d}.pdf')
+                        try:
+                            _out_pg = pikepdf.new()
+                            _out_pg.pages.append(_pdf_in.pages[i])
+                            _out_pg.save(
+                                dst,
+                                recompress_flate=False,   # NEVER re-encode streams
+                                compress_streams=True,
+                                object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                                linearize=False,
+                            )
+                            if os.path.isfile(dst) and os.path.getsize(dst) > 50:
+                                output_files.append(dst)
+                        except Exception as pg_err:
+                            errors.append(f'Page {i+1}: {pg_err}')
+                _all_done = True
+            except Exception as burst_err:
+                logger.warning('pikepdf all-pages burst failed: %s', burst_err)
+                errors.append(f'Lossless engine fallback: {burst_err}')
+
+        if not _all_done:
+            # Fallback: GS burst (only if pikepdf unavailable/failed)
+            gs_pages = _gs_burst(input_path, out_dir) if GS_BIN else []
+            if gs_pages:
+                for i, fp in enumerate(gs_pages):
+                    if remove_blanks and i in blank_set:
+                        try: os.remove(fp)
+                        except Exception: pass
+                    else:
+                        output_files.append(fp)
+            else:
+                for i in range(total):
+                    if remove_blanks and i in blank_set:
+                        continue
+                    name = _render_name(naming_pattern, i + 1)
+                    _save([i], name)
 
     # ══════════════════════════════════════════════════════════════════════════
     # MODE: range — all selected pages → one merged output file

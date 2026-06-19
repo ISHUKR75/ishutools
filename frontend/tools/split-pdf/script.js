@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFAQ();
   initBgCanvas();
   initGSAP();
+  initStatsCounters();
 
   // Keyboard shortcut
   document.addEventListener('keydown', e => {
@@ -1176,8 +1177,24 @@ function initFAQ() {
 /* ── GSAP ─────────────────────────────────────────────────────────── */
 function initGSAP() {
   if (typeof gsap === 'undefined') return;
-  gsap.from('.sp-tool-header', { y: -14, duration: .5, ease: 'power2.out' });
-  gsap.from('.sp-upload-card', { y: 24, duration: .5, delay: .08, ease: 'power2.out' });
+  gsap.from('.sp-tool-header', { y: -16, duration: .55, ease: 'power3.out' });
+  gsap.from('.sp-upload-card', { y: 28, duration: .55, delay: .1, ease: 'power3.out' });
+  gsap.from('.sp-feature-pills', { y: 12, opacity: 0, duration: .5, delay: .18, ease: 'power2.out' });
+
+  // Animate sections as they enter viewport (ScrollTrigger not loaded — use IO)
+  const sectionIO = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        gsap.to(e.target, { y: 0, opacity: 1, duration: .55, ease: 'power2.out' });
+        sectionIO.unobserve(e.target);
+      }
+    });
+  }, { threshold: .12 });
+
+  document.querySelectorAll('.sp-showcase-card, .sp-step, .sp-faq-item, .sp-stat-card').forEach(el => {
+    gsap.set(el, { y: 18 });
+    sectionIO.observe(el);
+  });
 }
 
 /* ── THEME ───────────────────────────────────────────────────────── */
@@ -1203,6 +1220,51 @@ function updateThemeIcon(theme) {
 /* ── SHOW ERROR ──────────────────────────────────────────────────── */
 function showError(msg) {
   showToast(msg, 'error');
+  // Show recovery hint
+  const hints = {
+    'password': 'Try entering your PDF password in Advanced Options.',
+    'encrypted': 'Open Advanced Options and enter your PDF password.',
+    'no valid pages': 'Check your page range — pages must be between 1 and ' + (TOTAL_PAGES || '?') + '.',
+    'corrupted': 'Your PDF may be damaged. Try using the PDF Repair tool first.',
+    'cannot open': 'The file may be corrupted. Try PDF Repair at ishutools.fun.',
+    'no pages': 'The PDF appears to be empty — no pages found.',
+    'server error (413)': 'The file is too large. Try compressing it first.',
+    'server error (500)': 'Server issue. Please try again in a moment.',
+    'server error (503)': 'Service temporarily unavailable. Please retry shortly.',
+    'failed to fetch': 'Network error. Check your internet connection and retry.',
+  };
+  const lower = msg.toLowerCase();
+  for (const [key, hint] of Object.entries(hints)) {
+    if (lower.includes(key)) {
+      setTimeout(() => showToast('Tip: ' + hint, 'warn'), 800);
+      break;
+    }
+  }
+}
+
+/* ── STATS COUNTER ANIMATION ─────────────────────────────────────── */
+function initStatsCounters() {
+  const observed = new Set();
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting || observed.has(entry.target)) return;
+      observed.add(entry.target);
+      const el = entry.target;
+      const target = parseInt(el.dataset.count || '0');
+      if (!target) return;
+      let current = 0;
+      const steps = 40;
+      const delay = 18;
+      const tick = () => {
+        current = Math.min(target, current + Math.ceil((target - current) / 8 + 1));
+        el.textContent = current + (el.dataset.suffix || '');
+        if (current < target) setTimeout(tick, delay);
+      };
+      setTimeout(tick, 100);
+    });
+  }, { threshold: .5 });
+
+  document.querySelectorAll('.sp-stat-num[data-count]').forEach(el => io.observe(el));
 }
 
 /* ── TOAST ───────────────────────────────────────────────────────── */

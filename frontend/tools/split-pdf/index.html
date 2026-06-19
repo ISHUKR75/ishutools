@@ -12,16 +12,19 @@
   <link rel="canonical" href="https://ishutools.fun/tools/split-pdf/">
   <link rel="alternate" hreflang="en" href="https://ishutools.fun/tools/split-pdf/">
 
-  <meta property="og:title" content="Split PDF Online Free — IshuTools.fun by Ishu Kumar">
-  <meta property="og:description" content="7 professional split modes by Ishu Kumar. Zero quality loss. No signup. No file size limit. ishutools.fun">
+  <meta property="og:title" content="Split PDF Online Free — 8 Modes | IshuTools.fun by Ishu Kumar">
+  <meta property="og:description" content="8 professional split modes by Ishu Kumar (ISHUKR41). Zero quality loss. No signup. No file size limit. Range Groups — each range gets its own file. ishutools.fun">
   <meta property="og:url" content="https://ishutools.fun/tools/split-pdf/">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://ishutools.fun/static/icons/og-split.png">
   <meta property="og:site_name" content="IshuTools.fun — by Ishu Kumar">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Split PDF Free — IshuTools.fun | Ishu Kumar">
-  <meta name="twitter:description" content="7 pro split modes. Zero quality loss. No signup. No size limit. By Ishu Kumar.">
+  <meta name="twitter:title" content="Split PDF Free — 8 Modes | IshuTools.fun | Ishu Kumar">
+  <meta name="twitter:description" content="8 pro split modes. Zero quality loss. No signup. No size limit. By Ishu Kumar (ISHUKR41). Free forever at ishutools.fun">
   <meta name="twitter:creator" content="@ISHUKR41">
+  <meta name="twitter:site" content="@ISHUKR41">
+  <link rel="preload" as="style" href="style.css">
+  <link rel="preload" as="script" href="script.js">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,9 +62,9 @@
     <span class="sp-nav-brand"><span>Ishu</span>Tools<em>.fun</em></span>
   </a>
   <div class="sp-nav-center">
-    <span class="sp-nav-pill"><i class="fa fa-shield-alt"></i> Lossless Quality</span>
-    <span class="sp-nav-pill"><i class="fa fa-lock"></i> No File Size Limit</span>
-    <span class="sp-nav-pill"><i class="fa fa-bolt"></i> Instant ZIP</span>
+    <span class="sp-nav-pill"><i class="fa fa-cut"></i> Split PDF</span>
+    <span class="sp-nav-pill sp-nav-pill-live"><i class="fa fa-circle"></i> 8 Modes</span>
+    <span class="sp-nav-pill"><i class="fa fa-heart"></i> 100% Free Forever</span>
   </div>
   <div class="sp-nav-right">
     <a href="/" class="sp-back-link"><i class="fa fa-th-large"></i> All Tools</a>
@@ -547,7 +550,7 @@
         <div class="sp-step-num">2</div>
         <div class="sp-step-icon"><i class="fa fa-cut"></i></div>
         <h3>Choose Mode</h3>
-        <p>Select from 7 professional split modes. Use the visual page grid to pick exact pages.</p>
+        <p>Select from 8 professional split modes. Use the visual page grid to pick exact pages.</p>
       </div>
       <div class="sp-step-arrow"><i class="fa fa-arrow-right"></i></div>
       <div class="sp-step">
@@ -684,13 +687,77 @@
           What output format is produced?
           <i class="fa fa-chevron-down"></i>
         </button>
-        <div class="sp-faq-a"><p>Each split part is a standard PDF file. All files are packaged in a single <strong>ZIP archive</strong> named after your original PDF. The ZIP also contains a <code>manifest.json</code> with full split metadata.</p></div>
+        <div class="sp-faq-a"><p>Each split part is a standard PDF file. All files are packaged in a single <strong>ZIP archive</strong> named after your original PDF. The ZIP also contains a <code>manifest.json</code> with full split metadata and a <code>README.txt</code> with split details.</p></div>
+      </div>
+
+      <div class="sp-faq-item">
+        <button class="sp-faq-q" aria-expanded="false" type="button">
+          What is Range Groups mode? How is it different from Page Range?
+          <i class="fa fa-chevron-down"></i>
+        </button>
+        <div class="sp-faq-a"><p><strong>Page Range</strong> extracts all selected pages into <em>one</em> file. <strong>Range Groups</strong> gives each range token its own file. Type <code>1-5, 8-12, 20-30</code> → you get <strong>3 separate PDF files</strong> (group_01, group_02, group_03). This is a unique feature not available in most free PDF tools.</p></div>
+      </div>
+
+      <div class="sp-faq-item">
+        <button class="sp-faq-q" aria-expanded="false" type="button">
+          Can I remove blank pages automatically during split?
+          <i class="fa fa-chevron-down"></i>
+        </button>
+        <div class="sp-faq-a"><p>Yes. Open <strong>Advanced Options</strong> and enable <em>Skip Blank Pages</em>. IshuTools uses multi-algorithm blank detection: text density check, image presence check, pixel histogram, and pixel variance — to reliably identify blank separator pages before they appear in your output.</p></div>
+      </div>
+
+      <div class="sp-faq-item">
+        <button class="sp-faq-q" aria-expanded="false" type="button">
+          What technology does IshuTools use for splitting?
+          <i class="fa fa-chevron-down"></i>
+        </button>
+        <div class="sp-faq-a"><p>IshuTools uses a 3-engine cascade: <strong>pikepdf</strong> (primary — zero re-encoding, byte-level page copy), <strong>PyMuPDF / fitz</strong> (fallback — structure-preserving copy), and <strong>pypdf</strong> (last resort). This means images and fonts are never recompressed — your PDF quality is 100% preserved.</p></div>
+      </div>
+
+      <div class="sp-faq-item">
+        <button class="sp-faq-q" aria-expanded="false" type="button">
+          Does splitting work on mobile devices?
+          <i class="fa fa-chevron-down"></i>
+        </button>
+        <div class="sp-faq-a"><p>Yes. IshuTools Split PDF is fully responsive and works on smartphones and tablets. Upload via your phone's file picker, select your mode, and download the ZIP directly to your device. No app installation required.</p></div>
+      </div>
+
+      <div class="sp-faq-item">
+        <button class="sp-faq-q" aria-expanded="false" type="button">
+          How do I split a PDF into equal parts?
+          <i class="fa fa-chevron-down"></i>
+        </button>
+        <div class="sp-faq-a"><p>Use <strong>Every N Pages</strong> mode. Set N to your desired chunk size. A 100-page PDF with N=10 creates 10 files of 10 pages each. IshuTools uses smart content-aware naming — if your pages have headings, each chunk is named after its first page heading.</p></div>
       </div>
 
     </div>
   </div>
 </section>
 
+
+<!-- STATS COUNTERS -->
+<section class="sp-stats-section" aria-label="IshuTools Statistics">
+  <div class="sp-section-inner">
+    <div class="sp-stats-grid">
+      <div class="sp-stat-card">
+        <div class="sp-stat-num" data-count="36" id="statTools">36</div>
+        <div class="sp-stat-label">Free PDF Tools</div>
+      </div>
+      <div class="sp-stat-card">
+        <div class="sp-stat-num" data-count="8" id="statModes">8</div>
+        <div class="sp-stat-label">Split Modes</div>
+      </div>
+      <div class="sp-stat-card">
+        <div class="sp-stat-num sp-stat-zero" id="statQuality">0%</div>
+        <div class="sp-stat-label">Quality Loss</div>
+      </div>
+      <div class="sp-stat-card">
+        <div class="sp-stat-num sp-stat-inf" id="statSize">∞</div>
+        <div class="sp-stat-label">File Size Limit</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- AUTHOR BOX -->
 <aside class="sp-author" aria-label="About Ishu Kumar">
@@ -724,7 +791,7 @@
     <h3>Range Groups Mode — Each Range Gets Its Own File (Unique Feature)</h3>
     <p>IshuTools.fun by Ishu Kumar introduces <strong>Range Groups</strong>: type <code>1-5, 8-12, 20-30</code> and instantly get <strong>3 separate PDF files</strong>. Unlike ordinary page range extractors that merge everything into one file, Range Groups creates independent PDFs for each range token. This is a unique feature exclusive to IshuTools.fun.</p>
     <h3>Split PDF into Individual Pages — All Pages Mode</h3>
-    <p>Use All Pages mode to burst any PDF into individual single-page files. Ishu Kumar's engine uses Ghostscript at <code>-dPDFSETTINGS=/prepress</code> quality first, then falls back to lossless pikepdf byte-copy. No image recompression ever.</p>
+    <p>Use All Pages mode to burst any PDF into individual single-page files. Ishu Kumar's engine uses <strong>pikepdf byte-level page copying</strong> as the primary engine — zero re-encoding, zero quality loss. Images, fonts and embedded objects remain 100% unchanged. Ghostscript is used only as a final fallback.</p>
     <h3>Split PDF by Chapter — Bookmark Mode</h3>
     <p>Ishu Kumar's bookmark-based splitter reads the PDF table of contents using PyMuPDF and creates one file per chapter — named after the bookmark title. Works with textbooks, reports, and academic papers. Multilevel bookmark support included.</p>
     <h3>Split PDF by Blank Page Separators</h3>
