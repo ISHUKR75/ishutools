@@ -1167,3 +1167,30 @@ input, select, textarea { font-family:var(--font); }
 /* ── TOAST WARNING ───────────────────────────────────────────────── */
 .sp-toast.warning { border-color:rgba(251,191,36,.32); }
 .sp-toast.warning i { color:var(--yellow,#fbbf24); }
+
+/* ── SEO TAGS LIST ───────────────────────────────────────────────── */
+.sp-seo-tags {
+  display:flex; flex-wrap:wrap; gap:8px 10px; list-style:none;
+  padding:0; margin:12px 0 20px;
+}
+.sp-seo-tags li a {
+  display:inline-block; padding:5px 13px; border-radius:20px;
+  background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.22);
+  color:var(--accent); font-size:.78rem; font-weight:500;
+  text-decoration:none; transition:background var(--t), border-color var(--t);
+}
+.sp-seo-tags li a:hover {
+  background:rgba(99,102,241,.22); border-color:rgba(99,102,241,.5); color:#fff;
+}
+
+/* ── SEO FAQ DL ───────────────────────────────────────────────────── */
+.sp-seo-faq { margin:12px 0 0; }
+.sp-seo-faq dt {
+  font-size:.93rem; font-weight:700; color:var(--text);
+  margin:16px 0 5px; padding-left:12px;
+  border-left:3px solid var(--accent);
+}
+.sp-seo-faq dd {
+  margin:0 0 6px 16px; font-size:.85rem; color:var(--text2);
+  line-height:1.65;
+}
