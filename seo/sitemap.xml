@@ -82,11 +82,12 @@
   <url>
     <loc>https://ishutools.fun/tools/split-pdf/</loc>
     <lastmod>2026-06-19</lastmod>
-    <changefreq>daily</changefreq>
+    <changefreq>always</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en"        href="https://ishutools.fun/tools/split-pdf/"/>
     <xhtml:link rel="alternate" hreflang="en-IN"     href="https://ishutools.fun/tools/split-pdf/"/>
     <xhtml:link rel="alternate" hreflang="en-US"     href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-GB"     href="https://ishutools.fun/tools/split-pdf/"/>
     <xhtml:link rel="alternate" hreflang="hi"        href="https://ishutools.fun/tools/split-pdf/"/>
     <xhtml:link rel="alternate" hreflang="hi-IN"     href="https://ishutools.fun/tools/split-pdf/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/split-pdf/"/>

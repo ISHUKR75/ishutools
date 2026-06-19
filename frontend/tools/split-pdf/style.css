@@ -2906,3 +2906,155 @@ body::after {
 @media (max-width:768px) {
   .sp-ishu-tags-block { grid-column: 1; }
 }
+
+/* ══ v13 TOOL-FIRST LAYOUT — Drop zone ABOVE hero text ══════════════════ */
+/* The upload card is already flex-column; we just flip visual order       */
+.sp-upload-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+/* Drop zone → order -1 so it renders FIRST */
+.sp-drop-zone {
+  order: -1 !important;
+  margin-bottom: 0 !important;
+}
+/* Hero block → slides to BELOW the drop zone */
+.sp-upload-hero {
+  order: 1 !important;
+  padding-top: 28px !important;
+  padding-bottom: 12px !important;
+}
+/* Divider no longer acts as intro separator — hide it */
+.sp-upload-hero-divider {
+  display: none !important;
+}
+/* Compact the hero text since it now lives BELOW the tool */
+.sp-hero-h1 {
+  font-size: clamp(1.4rem, 4.5vw, 2.1rem) !important;
+  margin-bottom: 7px !important;
+}
+.sp-hero-sub {
+  font-size: .88rem !important;
+  margin-bottom: 10px !important;
+}
+.sp-hero-badge {
+  margin-bottom: 10px !important;
+}
+.sp-hero-pills span {
+  font-size: .68rem !important;
+  padding: 4px 10px !important;
+}
+/* Ensure file-info row (hidden initially) also stays after drop zone */
+#fileInfoWrap { order: 0 !important; }
+
+/* ══ LONG-FORM ARTICLE SECTION ══════════════════════════════════════════ */
+.sp-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+  font-size: .8rem;
+  color: var(--text2);
+}
+.sp-article-meta span { display: flex; align-items: center; gap: 5px; }
+.sp-article-meta i { color: var(--accent); font-size: .75rem; }
+.sp-article-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+  gap: 20px;
+  margin-top: 28px;
+}
+.sp-article-block {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+.sp-article-block h3 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-article-block h3 i { color: var(--accent); font-size: .85rem; }
+.sp-article-block p {
+  font-size: .88rem;
+  line-height: 1.72;
+  color: var(--text2);
+  margin: 0 0 10px;
+}
+.sp-article-block p:last-child { margin-bottom: 0; }
+.sp-article-block a { color: var(--accent3); font-weight: 600; }
+.sp-article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sp-article-list li {
+  font-size: .86rem;
+  color: var(--text2);
+  line-height: 1.6;
+  padding-left: 18px;
+  position: relative;
+}
+.sp-article-list li::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+.sp-article-ishu-quote {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(99,102,241,.1), rgba(139,92,246,.08));
+  border-color: rgba(99,102,241,.3) !important;
+}
+.sp-big-quote {
+  margin: 0;
+  font-style: italic;
+  font-size: .96rem;
+  color: var(--text);
+  line-height: 1.75;
+  position: relative;
+  padding-left: 24px;
+}
+.sp-big-quote .fa-quote-left {
+  color: var(--accent);
+  font-size: 1.4rem;
+  position: absolute;
+  left: 0;
+  top: 2px;
+  opacity: .7;
+}
+.sp-big-quote cite {
+  display: block;
+  font-style: normal;
+  margin-top: 12px;
+  font-size: .82rem;
+  color: var(--accent3);
+  font-weight: 600;
+}
+/* Reviews grid — up to 3 columns */
+.sp-reviews-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr)) !important;
+}
+/* Article section hover */
+.sp-article-block:hover {
+  border-color: var(--border-h);
+  transform: translateY(-2px);
+  transition: var(--t-slow);
+}
+@media (max-width:600px) {
+  .sp-article-body { grid-template-columns: 1fr; }
+  .sp-article-ishu-quote { grid-column: 1; }
+}
