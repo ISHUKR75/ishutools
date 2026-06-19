@@ -839,15 +839,81 @@ def pdf_info_fast(path: str, password: str = '') -> dict:
     return info
 
 
-# Aliases required by app.py
-def get_split_preview(path, mode='all', ranges='', every_n=1,
-                      max_size_mb=5.0, password=''):
+# ── Aliases required by app.py ────────────────────────────────────────────────
+
+def get_split_preview(path: str, mode: str = 'all', ranges: str = '',
+                      every_n: int = 1, max_size_mb: float = 5.0,
+                      password: str = '') -> dict:
+    """Alias: delegates to split_preview()."""
     return split_preview(path, mode, ranges, every_n, max_size_mb, password)
 
-def generate_page_thumbnails(path, password='', max_pages=20, dpi=72):
-    return _generate_thumbnails(path, password, max_pages, dpi)
 
-def get_page_analytics(path, password=''):
+def generate_page_thumbnails(path: str, out_dir: str,
+                              pages: list = None,
+                              dpi: int = 72,
+                              password: str = '') -> List[str]:
+    """
+    Generate JPEG thumbnail FILES in out_dir and return their paths.
+
+    Signature matches app.py call:
+        generate_page_thumbnails(path, thumb_dir, pages=pages, dpi=dpi, password=password)
+
+    Each output file is named  thumb_NNNN.jpg  (zero-padded page index).
+    Returns list of absolute file paths for existing thumbnail files.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    result_paths: List[str] = []
+
+    if not _HAS_FITZ:
+        logger.debug('generate_page_thumbnails: PyMuPDF not available')
+        return result_paths
+
+    try:
+        doc = fitz.open(path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+
+        total = doc.page_count
+        if pages is None:
+            pages = list(range(min(20, total)))
+
+        render_dpi = max(36, min(300, dpi))
+        scale     = render_dpi / 72.0
+        mat       = fitz.Matrix(scale, scale)
+
+        for i in pages:
+            if not (0 <= i < total):
+                continue
+            try:
+                pg  = doc[i]
+                pix = pg.get_pixmap(matrix=mat, colorspace=fitz.csRGB, alpha=False)
+                dst = os.path.join(out_dir, f'thumb_{i:04d}.jpg')
+                # PyMuPDF ≥ 1.23 supports pix.save with JPEG quality
+                try:
+                    pix.save(dst, 'JPEG', jpg_quality=82)
+                except TypeError:
+                    # Older API: pix.writePNG / fallback to PIL
+                    if _HAS_PIL:
+                        img = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
+                        img.save(dst, 'JPEG', quality=82, optimize=True)
+                    else:
+                        png_dst = dst.replace('.jpg', '.png')
+                        pix.save(png_dst)
+                        dst = png_dst
+                if os.path.isfile(dst) and os.path.getsize(dst) > 0:
+                    result_paths.append(dst)
+            except Exception as pg_err:
+                logger.debug('thumbnail page %d error: %s', i, pg_err)
+
+        doc.close()
+    except Exception as e:
+        logger.warning('generate_page_thumbnails failed: %s', e)
+
+    return result_paths
+
+
+def get_page_analytics(path: str, password: str = '') -> dict:
+    """Alias: delegates to compute_split_analytics()."""
     return compute_split_analytics(path, password)
 
 

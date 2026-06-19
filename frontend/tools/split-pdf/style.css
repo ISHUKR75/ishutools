@@ -378,7 +378,9 @@ input,select,textarea { font-family:var(--font); color:var(--text); }
 .sp-thumb:hover { border-color:var(--accent2); transform:scale(1.08) translateY(-2px); }
 .sp-thumb.pg-selected { border-color:var(--accent); box-shadow:0 0 10px var(--glow2); }
 .sp-thumb.pg-selected .sp-thumb-sel { opacity:1; }
-.sp-thumb img { width:100%; display:block; }
+.sp-thumb img { width:100%; display:block; min-height:80px; }
+.sp-thumb-skeleton { width:66px; height:88px; background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4,#1e2131) 50%,var(--bg3) 75%); background-size:200% 100%; animation:shimmerThumb 1.4s infinite; }
+@keyframes shimmerThumb { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 .sp-thumb-sel {
   position:absolute; top:3px; right:3px; width:16px; height:16px;
   background:var(--accent); border-radius:50%;

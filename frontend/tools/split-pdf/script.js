@@ -311,29 +311,47 @@ function loadPdfInfo(file) {
 function loadThumbnails(file) {
   var fd = new FormData();
   fd.append('file', file);
-  fd.append('max_pages', '16');
+  fd.append('count', '16');
+  var pw = D.passwordInput ? D.passwordInput.value : '';
+  if (pw) fd.append('password', pw);
+
+  /* Show loading skeleton */
+  D.thumbsStrip.innerHTML = '';
+  for (var s = 0; s < 6; s++) {
+    var sk = document.createElement('div');
+    sk.className = 'sp-thumb sp-thumb-skeleton';
+    D.thumbsStrip.appendChild(sk);
+  }
+  showEl(D.thumbsWrap);
+  if (D.thumbsCount) D.thumbsCount.textContent = 'Loading previews…';
 
   fetch('/api/split-pdf/thumbnails', { method:'POST', body:fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (!data.thumbnails || !data.thumbnails.length) return;
+      if (!data.thumbnails || !data.thumbnails.length) {
+        hideEl(D.thumbsWrap);
+        return;
+      }
       D.thumbsStrip.innerHTML = '';
-      data.thumbnails.forEach(function(src, i) {
+      data.thumbnails.forEach(function(item, i) {
+        /* item is {page:'thumb_NNNN.jpg', data:'data:image/jpeg;base64,...'} */
+        var imgSrc = (typeof item === 'string') ? item : (item.data || '');
+        if (!imgSrc) return;
         var div = document.createElement('div');
         div.className = 'sp-thumb';
         div.setAttribute('role', 'listitem');
         div.dataset.page = String(i);
-        div.innerHTML = '<img src="' + src + '" alt="Page ' + (i+1) + '" loading="lazy">'
+        div.innerHTML = '<img src="' + imgSrc + '" alt="Page ' + (i+1) + '" loading="lazy" decoding="async">'
           + '<div class="sp-thumb-sel"><i class="fa-solid fa-check"></i></div>'
           + '<div class="sp-thumb-num">' + (i+1) + '</div>';
         div.addEventListener('click', function() { thumbClick(i); });
         D.thumbsStrip.appendChild(div);
       });
       var total = PDF_INFO ? PDF_INFO.total_pages : data.thumbnails.length;
-      D.thumbsCount.textContent = data.thumbnails.length + ' of ' + total + ' shown';
+      if (D.thumbsCount) D.thumbsCount.textContent = data.thumbnails.length + ' of ' + total + ' shown · click to select';
       showEl(D.thumbsWrap);
     })
-    .catch(function() {});
+    .catch(function() { hideEl(D.thumbsWrap); });
 }
 
 function autoDetectMode(file) {
@@ -843,7 +861,7 @@ function doSplit() {
   fd.append('file',            FILE);
   fd.append('mode',            MODE);
   fd.append('password',        D.passwordInput.value || '');
-  fd.append('naming',          D.namingPattern.value || 'page_{n:04d}');
+  fd.append('naming_pattern',  D.namingPattern.value || 'page_{n:04d}');
   fd.append('remove_blanks',   D.removeBlanksToggle.checked ? '1' : '0');
   fd.append('source_filename', FILE.name);
 
