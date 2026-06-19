@@ -1,5 +1,5 @@
 /**
- * split-pdf/script.js  v11.0 — IshuTools.fun
+ * split-pdf/script.js  v12.0 — IshuTools.fun
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
  *
  * Memory constraints:
@@ -10,6 +10,22 @@
  *  - Never opacity:0 in IO/scroll reveal
  *  - Never background-clip:text on FA icons
  *  - Never color-mix() CSS
+ *
+ * v12.0 improvements:
+ *  - Auto-scroll to results after split
+ *  - Animated counters in results stats
+ *  - Rich progress steps with icons
+ *  - Large-file warning sound (jaldi_waha_sa_hato)
+ *  - Content-type chips (scanned/forms/layers)
+ *  - Multiple confetti bursts on success
+ *  - Better error messages with actionable hints
+ *  - Keyboard shortcut (Ctrl+Enter to split)
+ *  - File size > 50MB warning toast
+ *  - Better toast exit animation
+ *  - pg-selected CSS class fix (was .selected)
+ *  - sp-bookmark-item (was .sp-bk-item)
+ *  - sp-res-stat for results chips (was .sp-stat-chip)
+ *  - Ripple effect on split button
  */
 'use strict';
 
@@ -33,12 +49,13 @@ var _sseSource    = null;
 var _simTimer     = null;
 var _recMode      = null;
 var _simPct       = 0;
+var _animFrames   = [];   /* v12: store counter animation IDs */
 
 /* ── DOM refs (populated in DOMContentLoaded) ───────────────────────── */
 var D = null;
 
 /* ══════════════════════════════════════════════════════════════════
-   BACKGROUND CANVAS
+   BACKGROUND CANVAS — animated particle network
 ══════════════════════════════════════════════════════════════════ */
 function initBgCanvas() {
   var c = document.getElementById('bgCanvas');
@@ -53,22 +70,28 @@ function initBgCanvas() {
   window.addEventListener('resize', resize, { passive: true });
   resize();
 
-  var N = Math.min(55, Math.floor(W / 22));
+  var N = Math.min(60, Math.floor(W / 20));
   for (var i = 0; i < N; i++) {
     pts.push({
-      x:  Math.random() * W,
-      y:  Math.random() * H,
-      vx: (Math.random() - .5) * .28,
-      vy: (Math.random() - .5) * .28,
-      r:  1.1 + Math.random() * 1.8,
-      hue: Math.floor(Math.random() * 4)
+      x:   Math.random() * W,
+      y:   Math.random() * H,
+      vx:  (Math.random() - .5) * .3,
+      vy:  (Math.random() - .5) * .3,
+      r:   1.0 + Math.random() * 2.0,
+      hue: Math.floor(Math.random() * 5)
     });
   }
-  var COLS = ['rgba(99,102,241,.45)','rgba(139,92,246,.45)','rgba(6,182,212,.35)','rgba(16,185,129,.3)'];
+  var COLS = [
+    'rgba(99,102,241,.5)', 'rgba(139,92,246,.5)',
+    'rgba(6,182,212,.38)', 'rgba(16,185,129,.32)',
+    'rgba(236,72,153,.28)'
+  ];
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
-    pts.forEach(function(p) {
+    var len = pts.length;
+    for (var i = 0; i < len; i++) {
+      var p = pts[i];
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
@@ -76,17 +99,17 @@ function initBgCanvas() {
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fillStyle = COLS[p.hue];
       ctx.fill();
-    });
-    for (var i = 0; i < pts.length; i++) {
-      for (var j = i + 1; j < pts.length; j++) {
+    }
+    for (var i = 0; i < len; i++) {
+      for (var j = i + 1; j < len; j++) {
         var dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
         var d  = Math.sqrt(dx*dx + dy*dy);
-        if (d < 120) {
+        if (d < 130) {
           ctx.beginPath();
           ctx.moveTo(pts[i].x, pts[i].y);
           ctx.lineTo(pts[j].x, pts[j].y);
-          ctx.strokeStyle = 'rgba(99,102,241,' + (0.055 * (1 - d/120)).toFixed(3) + ')';
-          ctx.lineWidth = .7;
+          ctx.strokeStyle = 'rgba(99,102,241,' + (0.06 * (1 - d/130)).toFixed(3) + ')';
+          ctx.lineWidth = .65;
           ctx.stroke();
         }
       }
@@ -114,6 +137,7 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('ishu-theme', next);
   updateThemeIcon(next);
+  S('playToggleOnSound');
 }
 
 function initSoundToggle() { updateSoundBtn(); }
@@ -121,7 +145,7 @@ function updateSoundBtn() {
   if (!D || !D.soundIcon) return;
   var on = !window.SOUNDS || window.SOUNDS.isEnabled();
   D.soundIcon.className = on ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
-  D.soundBtn.classList.toggle('muted', !on);
+  if (D.soundBtn) D.soundBtn.classList.toggle('muted', !on);
 }
 function toggleSound() {
   if (window.SOUNDS) window.SOUNDS.toggle();
@@ -148,24 +172,78 @@ function stemName(fn) {
   return fn.replace(/\.pdf$/i, '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 55) || 'document';
 }
 
+/* v12: Ripple effect on button click */
+function addRipple(btn, e) {
+  try {
+    var rect   = btn.getBoundingClientRect();
+    var rip    = document.createElement('span');
+    var size   = Math.max(rect.width, rect.height) * 2;
+    var x      = e.clientX - rect.left - size / 2;
+    var y      = e.clientY - rect.top  - size / 2;
+    rip.style.cssText = 'position:absolute;width:' + size + 'px;height:' + size + 'px;top:' + y + 'px;left:' + x + 'px;border-radius:50%;background:rgba(255,255,255,.18);pointer-events:none;animation:ripple .6s linear forwards;';
+    btn.appendChild(rip);
+    setTimeout(function() { rip.remove(); }, 650);
+  } catch (_) {}
+}
+
+/* v12: animated counter (count from 0 to target) */
+function animateCount(el, target, suffix, duration) {
+  suffix   = suffix   || '';
+  duration = duration || 700;
+  var start     = Date.now();
+  var startVal  = 0;
+  function tick() {
+    var progress = Math.min(1, (Date.now() - start) / duration);
+    var ease     = 1 - Math.pow(1 - progress, 3);
+    var current  = Math.round(startVal + (target - startVal) * ease);
+    el.textContent = current + suffix;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* v12: smooth scroll to element */
+function scrollToEl(el, offset) {
+  if (!el) return;
+  offset = offset || 80;
+  var top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+  window.scrollTo({ top: top, behavior: 'smooth' });
+}
+
+/* Toast notifications */
 function toast(msg, type, dur) {
   type = type || 'info'; dur = dur || 3500;
   var c = document.getElementById('toastContainer');
   if (!c) return;
-  var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation', info:'fa-circle-info' };
+  var icons = {
+    success: 'fa-circle-check',
+    error:   'fa-circle-xmark',
+    warning: 'fa-triangle-exclamation',
+    info:    'fa-circle-info'
+  };
   var el = document.createElement('div');
-  el.className = 'sp-toast ' + type;
+  el.className = 'sp-toast sp-toast-' + type;
   el.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.info) + '"></i><span>' + msg + '</span>';
   c.appendChild(el);
   setTimeout(function() {
-    el.classList.add('exiting');
-    setTimeout(function() { el.remove(); }, 360);
+    el.classList.add('sp-toast-out');
+    setTimeout(function() { if (el.parentNode) el.remove(); }, 360);
   }, dur);
 }
 
 /* ══════════════════════════════════════════════════════════════════
    PROGRESS
 ══════════════════════════════════════════════════════════════════ */
+var PROGRESS_TITLES = [
+  [0,  'Starting up…'],
+  [15, 'Reading PDF…'],
+  [30, 'Splitting pages…'],
+  [55, 'Applying lossless engine…'],
+  [75, 'Processing output…'],
+  [90, 'Packing ZIP archive…'],
+  [98, 'Almost done!'],
+];
+
 function updateProgress(pct, msg) {
   var p = Math.max(0, Math.min(100, Math.round(pct)));
   _simPct = p;
@@ -173,33 +251,39 @@ function updateProgress(pct, msg) {
   D.progressBar.style.width = p + '%';
   D.progressBar.setAttribute('aria-valuenow', p);
   if (D.progressPct) D.progressPct.textContent = p + '%';
+
+  /* SVG arc fill */
   var circle = document.getElementById('progressCircle');
   if (circle) circle.style.strokeDashoffset = String((106.8 * (1 - p / 100)).toFixed(2));
+
+  /* Subtitle */
   if (msg && D.progressSub) D.progressSub.textContent = msg;
+
+  /* Title from threshold table */
   if (D.progressTitle) {
-    if (p < 20)      D.progressTitle.textContent = 'Starting…';
-    else if (p < 50) D.progressTitle.textContent = 'Splitting pages…';
-    else if (p < 85) D.progressTitle.textContent = 'Processing pages…';
-    else if (p < 98) D.progressTitle.textContent = 'Packing ZIP…';
-    else             D.progressTitle.textContent = 'Almost done!';
+    var title = PROGRESS_TITLES[0][1];
+    for (var i = 0; i < PROGRESS_TITLES.length; i++) {
+      if (p >= PROGRESS_TITLES[i][0]) title = PROGRESS_TITLES[i][1];
+    }
+    D.progressTitle.textContent = title;
   }
 }
 
-function addProgressStep(icon, text) {
+function addProgressStep(icon, text, status) {
   if (!D.progressSteps) return;
   var div = document.createElement('div');
-  div.className = 'sp-progress-step';
+  div.className = 'sp-progress-step' + (status ? ' ' + status : '');
   div.innerHTML = '<i class="fa-solid ' + icon + '"></i><span>' + text + '</span>';
   D.progressSteps.appendChild(div);
 }
 
 function simProgress(target, msPerPct) {
-  target    = target    || 88;
-  msPerPct  = msPerPct  || 115;
+  target   = target   || 88;
+  msPerPct = msPerPct || 110;
   _simTimer = setInterval(function() {
     var cur = _simPct;
     if (cur >= target) { clearInterval(_simTimer); _simTimer = null; return; }
-    updateProgress(cur + 1 + Math.random() * 1.3, '');
+    updateProgress(cur + 1 + Math.random() * 1.5, '');
   }, msPerPct);
 }
 
@@ -212,25 +296,35 @@ function closeSSE() {
    UPLOAD & FILE HANDLING
 ══════════════════════════════════════════════════════════════════ */
 function initUpload() {
+  /* Drop zone click — delegate all clicks */
   D.dropZone.addEventListener('click', function(e) {
     if (!e.target.closest('#browseBtn')) D.fileInput.click();
   });
   D.dropZone.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fileInput.click(); }
   });
-  D.browseBtn.addEventListener('click', function(e) { e.stopPropagation(); D.fileInput.click(); });
+  D.browseBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); D.fileInput.click();
+  });
   D.fileInput.addEventListener('change', function(e) {
     if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
   });
-  D.dropZone.addEventListener('dragover',  function(e) { e.preventDefault(); D.dropZone.classList.add('drag-over'); S('playDragStartSound'); });
-  D.dropZone.addEventListener('dragleave', function(e) { if (!D.dropZone.contains(e.relatedTarget)) D.dropZone.classList.remove('drag-over'); });
-  D.dropZone.addEventListener('drop',      function(e) {
+
+  /* Drag & drop */
+  D.dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault(); D.dropZone.classList.add('drag-over');
+  });
+  D.dropZone.addEventListener('dragleave', function(e) {
+    if (!D.dropZone.contains(e.relatedTarget)) D.dropZone.classList.remove('drag-over');
+  });
+  D.dropZone.addEventListener('drop', function(e) {
     e.preventDefault(); D.dropZone.classList.remove('drag-over');
     S('playDragDropSound');
-    var f = e.dataTransfer.files[0];
+    var f = e.dataTransfer && e.dataTransfer.files[0];
     if (f && f.type === 'application/pdf') handleFile(f);
-    else if (f) { S('playErrorSound'); toast('Please drop a PDF file.', 'warning'); }
+    else if (f) { S('playErrorSound'); toast('Please drop a PDF file (.pdf).', 'warning'); }
   });
+
   D.removeBtn.addEventListener('click', resetAll);
 }
 
@@ -240,13 +334,21 @@ function handleFile(file) {
 
   S('playFileAddSound');
 
+  /* v12: Warn for very large files */
+  if (file.size > 100 * 1024 * 1024) {
+    S('playWarningSound');
+    toast('Large file (' + fmtBytes(file.size) + ') — processing may take 30–90 seconds.', 'warning', 5000);
+  } else if (file.size > 50 * 1024 * 1024) {
+    toast('Large file (' + fmtBytes(file.size) + ') — processing may take 15–30 seconds.', 'info', 4000);
+  }
+
   hideEl(D.dropZone);
   showEl(D.fileInfoWrap);
   D.fileName.textContent = file.name;
   D.chipSize.innerHTML   = '<i class="fa-solid fa-weight-hanging"></i> ' + fmtBytes(file.size);
   D.chipPages.innerHTML  = '<i class="fa-solid fa-spinner fa-spin"></i> Loading…';
   ['chipBookmarks','chipBlanks','chipEncrypted','chipScanned'].forEach(function(k) {
-    D[k].classList.add('sp-chip-hidden');
+    if (D[k]) D[k].classList.add('sp-chip-hidden');
   });
 
   showEl(D.modesCard);
@@ -258,7 +360,6 @@ function handleFile(file) {
 
   selectMode(MODE);
   updateActionHint();
-
   loadPdfInfo(file);
   loadThumbnails(file);
   autoDetectMode(file);
@@ -271,29 +372,36 @@ function loadPdfInfo(file) {
   var pw = D.passwordInput ? D.passwordInput.value : '';
   if (pw) fd.append('password', pw);
 
-  fetch('/api/split-pdf/info', { method:'POST', body:fd })
+  fetch('/api/split-pdf/info', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(info) {
       PDF_INFO = info;
       if (!info.success && info.error) {
         D.chipPages.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error';
-        toast('PDF info: ' + info.error, 'warning');
+        toast('PDF info error: ' + info.error, 'warning');
         return;
       }
-      D.chipPages.innerHTML = '<i class="fa-solid fa-file-lines"></i> ' + (info.total_pages || '?') + ' pages';
+
+      var total = info.total_pages || 0;
+      D.chipPages.innerHTML = '<i class="fa-solid fa-file-lines"></i> ' + total + ' pages';
 
       if (info.has_bookmarks && info.bookmarks && info.bookmarks.length) {
         D.chipBookmarks.classList.remove('sp-chip-hidden');
-        D.chipBookmarks.innerHTML = '<i class="fa-solid fa-bookmark"></i> ' + info.bookmarks.length + ' bookmarks';
+        D.chipBookmarks.innerHTML = '<i class="fa-solid fa-bookmark"></i> ' + info.bookmarks.length + ' chapters';
         updateBookmarkList(info.bookmarks);
       }
       if (info.blank_pages > 0) {
         D.chipBlanks.classList.remove('sp-chip-hidden');
         D.chipBlanks.innerHTML = '<i class="fa-regular fa-file"></i> ' + info.blank_pages + ' blank';
-        if (D.blankCountInfo) D.blankCountInfo.textContent = 'Detected ' + info.blank_pages + ' blank page(s).';
+        if (D.blankCountInfo) D.blankCountInfo.textContent = 'Detected ' + info.blank_pages + ' blank separator page(s).';
       }
-      if (info.is_encrypted) D.chipEncrypted.classList.remove('sp-chip-hidden');
-      if (info.is_scanned)   D.chipScanned.classList.remove('sp-chip-hidden');
+      if (info.is_encrypted)  { if(D.chipEncrypted) D.chipEncrypted.classList.remove('sp-chip-hidden'); }
+      if (info.is_scanned)    { if(D.chipScanned)   D.chipScanned.classList.remove('sp-chip-hidden'); }
+
+      /* v12: Show PDF version if available */
+      if (info.pdf_version) {
+        D.chipSize.title = info.pdf_version + ' · ' + fmtBytes(file.size);
+      }
 
       updateModeBadges();
       updatePresetVisibility();
@@ -319,36 +427,33 @@ function loadThumbnails(file) {
   D.thumbsStrip.innerHTML = '';
   for (var s = 0; s < 6; s++) {
     var sk = document.createElement('div');
-    sk.className = 'sp-thumb sp-thumb-skeleton';
+    sk.className = 'sp-thumb-item sp-thumb-skeleton';
+    sk.style.cssText = 'width:56px;aspect-ratio:.707;background:rgba(255,255,255,.05);border-radius:7px;border:1px solid rgba(99,102,241,.1);flex-shrink:0;';
     D.thumbsStrip.appendChild(sk);
   }
   showEl(D.thumbsWrap);
   if (D.thumbsCount) D.thumbsCount.textContent = 'Loading previews…';
 
-  fetch('/api/split-pdf/thumbnails', { method:'POST', body:fd })
+  fetch('/api/split-pdf/thumbnails', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (!data.thumbnails || !data.thumbnails.length) {
-        hideEl(D.thumbsWrap);
-        return;
-      }
+      if (!data.thumbnails || !data.thumbnails.length) { hideEl(D.thumbsWrap); return; }
       D.thumbsStrip.innerHTML = '';
       data.thumbnails.forEach(function(item, i) {
-        /* item is {page:'thumb_NNNN.jpg', data:'data:image/jpeg;base64,...'} */
         var imgSrc = (typeof item === 'string') ? item : (item.data || '');
         if (!imgSrc) return;
         var div = document.createElement('div');
-        div.className = 'sp-thumb';
+        div.className = 'sp-thumb-item';
         div.setAttribute('role', 'listitem');
         div.dataset.page = String(i);
+        div.style.animationDelay = (i * 0.04) + 's';
         div.innerHTML = '<img src="' + imgSrc + '" alt="Page ' + (i+1) + '" loading="lazy" decoding="async">'
-          + '<div class="sp-thumb-sel"><i class="fa-solid fa-check"></i></div>'
           + '<div class="sp-thumb-num">' + (i+1) + '</div>';
         div.addEventListener('click', function() { thumbClick(i); });
         D.thumbsStrip.appendChild(div);
       });
       var total = PDF_INFO ? PDF_INFO.total_pages : data.thumbnails.length;
-      if (D.thumbsCount) D.thumbsCount.textContent = data.thumbnails.length + ' of ' + total + ' shown · click to select';
+      if (D.thumbsCount) D.thumbsCount.textContent = data.thumbnails.length + ' of ' + total + ' shown';
       showEl(D.thumbsWrap);
     })
     .catch(function() { hideEl(D.thumbsWrap); });
@@ -358,13 +463,16 @@ function autoDetectMode(file) {
   var fd = new FormData();
   fd.append('file', file);
 
-  fetch('/api/split-pdf/auto-detect', { method:'POST', body:fd })
+  fetch('/api/split-pdf/auto-detect', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.recommended_mode) return;
       _recMode = data.recommended_mode;
-      D.recommendText.textContent = data.reason || ('Recommended: ' + data.recommended_mode);
-      showEl(D.recommendBanner);
+      var confPct = data.confidence ? Math.round(data.confidence * 100) : '';
+      var recText = data.reason || ('Recommended: ' + data.recommended_mode);
+      if (confPct) recText += ' (' + confPct + '% confidence)';
+      if (D.recommendText) D.recommendText.textContent = recText;
+      if (D.recommendBanner) showEl(D.recommendBanner);
     })
     .catch(function() {});
 }
@@ -382,7 +490,7 @@ function thumbClick(idx) {
 
 function updateThumbSelections() {
   if (!D.thumbsStrip) return;
-  D.thumbsStrip.querySelectorAll('.sp-thumb').forEach(function(th) {
+  D.thumbsStrip.querySelectorAll('.sp-thumb-item').forEach(function(th) {
     th.classList.toggle('pg-selected', PAGE_SEL.has(parseInt(th.dataset.page)));
   });
 }
@@ -391,14 +499,22 @@ function updateThumbSelections() {
    MODE SELECTION
 ══════════════════════════════════════════════════════════════════ */
 var MODE_DESC = {
-  all:          'Burst every page into its own PDF file — perfect for archiving individual pages.',
-  range:        'Extract specific pages into a single PDF. Use ranges like 1-5, 8, 12-end.',
-  range_groups: 'Each range becomes a separate PDF file in one operation. Exclusive to IshuTools.',
-  every_n:      'Split into equal chunks of N pages each. Ideal for batches or chapters.',
-  bookmarks:    'One PDF per bookmark/chapter — perfect for textbooks, reports, and eBooks.',
-  blank_pages:  'Auto-detect blank separator pages and split between them. Zero quality loss.',
-  size_limit:   'Split to fit within a maximum file size. Each output PDF stays under your limit.',
-  odd_even:     'Two files: odd pages (1,3,5…) and even pages (2,4,6…). Perfect for duplex scanning.',
+  all:
+    'Burst every page into its own PDF — zero quality loss, pikepdf lossless engine. All files packed in a ZIP named after your document.',
+  range:
+    'Extract specific pages into a single PDF. Use ranges like 1-5, 8, 12-end, odd, even, or first 10.',
+  range_groups:
+    'Each range becomes its own separate PDF in one operation. Exclusive to IshuTools — no other free tool offers this.',
+  every_n:
+    'Split into equal-size chunks of N pages each. Smart heading detection names each file automatically.',
+  bookmarks:
+    'One PDF per bookmark/chapter — perfect for textbooks, reports, and eBooks. Reads PDF table of contents.',
+  blank_pages:
+    'Auto-detect blank separator pages using pixel-level luminance analysis (v12) and split between them.',
+  size_limit:
+    'Keep each output PDF under a target file size. Uses binary-search grouping for accurate results.',
+  odd_even:
+    'Two files: odd pages (1,3,5…) and even pages (2,4,6…). Perfect for duplex scanning and booklet printing.',
 };
 
 function selectMode(mode) {
@@ -410,7 +526,8 @@ function selectMode(mode) {
   });
   if (D.modeDesc) D.modeDesc.textContent = MODE_DESC[mode] || '';
 
-  ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even'].forEach(function(m) {
+  var modes = ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even'];
+  modes.forEach(function(m) {
     var el = document.getElementById('opts-' + m);
     if (el) togEl(el, m === mode);
   });
@@ -418,12 +535,13 @@ function selectMode(mode) {
   if (mode === 'range')     buildPageGrid();
   if (mode === 'every_n')   updateChunkInfo();
   if (mode === 'bookmarks') updateBookmarkList(PDF_INFO && PDF_INFO.bookmarks || []);
-  updateSplitPreview(); updateActionHint();
+  updateSplitPreview();
+  updateActionHint();
 }
 
 function initModeCards() {
   D.modesGrid.querySelectorAll('.sp-mode-card').forEach(function(card) {
-    card.addEventListener('click', function() {
+    card.addEventListener('click', function(e) {
       if (window.SOUNDS) window.SOUNDS.resume();
       selectMode(card.dataset.mode);
       S('playToggleOnSound');
@@ -477,19 +595,21 @@ function applyPreset(key) {
     var n = p.n;
     if (n === 'half')  n = Math.max(1, Math.ceil(total / 2));
     if (n === 'third') n = Math.max(1, Math.ceil(total / 3));
-    D.nInput.value  = n;
-    D.nSlider.value = Math.min(50, n);
+    if (D.nInput)  D.nInput.value  = n;
+    if (D.nSlider) D.nSlider.value = Math.min(50, n);
     updateChunkInfo();
   }
   if (p.mode === 'range_groups' && p.ranges) {
     var total2 = PDF_INFO ? PDF_INFO.total_pages : 1;
-    D.rangeGroupsInput.value = p.ranges.replace('LAST', String(total2));
-    updateGroupsPreview();
+    if (D.rangeGroupsInput) {
+      D.rangeGroupsInput.value = p.ranges.replace('LAST', String(total2));
+      updateGroupsPreview();
+    }
   }
 
   S('playPresetSound');
   updateSplitPreview();
-  toast('Preset applied', 'success', 1800);
+  toast('Preset applied: ' + key, 'success', 1800);
 }
 
 function updatePresetVisibility() {
@@ -509,19 +629,21 @@ function buildPageGrid() {
   var total = PDF_INFO ? PDF_INFO.total_pages : 1;
 
   if (total > 600) {
-    D.pgrid.innerHTML = '<div class="sp-pg-overflow">Page grid not shown for documents &gt; 600 pages. Use the range input above.</div>';
+    D.pgrid.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:8px">Page grid not shown for documents with &gt; 600 pages. Use the range input above.</div>';
     return;
   }
+
   var frag = document.createDocumentFragment();
   for (var i = 0; i < total; i++) {
     (function(idx) {
       var cell = document.createElement('div');
-      cell.className = 'sp-pg-cell' + (PAGE_SEL.has(idx) ? ' selected' : '');
+      cell.className = 'sp-pg-cell' + (PAGE_SEL.has(idx) ? ' pg-selected' : '');
       cell.textContent = idx + 1;
       cell.dataset.idx = String(idx);
       cell.setAttribute('role', 'gridcell');
       cell.setAttribute('tabindex', '0');
       cell.setAttribute('aria-selected', String(PAGE_SEL.has(idx)));
+      cell.style.animationDelay = Math.min(idx * 0.008, 0.4) + 's';
       cell.addEventListener('click', function(e) { pgCellClick(idx, e.shiftKey); });
       cell.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgCellClick(idx, e.shiftKey); }
@@ -541,17 +663,20 @@ function pgCellClick(idx, shift) {
     if (PAGE_SEL.has(idx)) PAGE_SEL.delete(idx); else PAGE_SEL.add(idx);
     _shiftStart = idx;
   }
-  syncInputFromPageGrid(); updatePgridDisplay(); S('playSortSound');
+  syncInputFromPageGrid();
+  updatePgridDisplay();
+  S('playSortSound');
 }
 
 function updatePgridDisplay() {
   if (!D.pgrid) return;
   D.pgrid.querySelectorAll('.sp-pg-cell').forEach(function(cell) {
     var idx = parseInt(cell.dataset.idx), sel = PAGE_SEL.has(idx);
-    cell.classList.toggle('selected', sel);
+    cell.classList.toggle('pg-selected', sel);
     cell.setAttribute('aria-selected', String(sel));
   });
-  updatePgridSelCount(); updateThumbSelections();
+  updatePgridSelCount();
+  updateThumbSelections();
 }
 
 function updatePgridSelCount() {
@@ -565,21 +690,25 @@ function updatePgridSelCount() {
 function syncInputFromPageGrid() {
   if (!D.rangeInput) return;
   if (PAGE_SEL.size === 0) {
-    D.rangeInput.value = ''; D.rangeInput.classList.remove('valid','invalid');
+    D.rangeInput.value = '';
+    D.rangeInput.classList.remove('valid','invalid');
   } else {
-    var sorted = Array.from(PAGE_SEL).sort(function(a,b){return a-b;});
+    var sorted = Array.from(PAGE_SEL).sort(function(a,b){ return a-b; });
     var parts = [], start = sorted[0], end = sorted[0];
     for (var i = 1; i <= sorted.length; i++) {
-      if (i < sorted.length && sorted[i] === end + 1) { end = sorted[i]; }
-      else {
+      if (i < sorted.length && sorted[i] === end + 1) {
+        end = sorted[i];
+      } else {
         parts.push(start === end ? String(start+1) : (start+1)+'-'+(end+1));
         if (i < sorted.length) { start = end = sorted[i]; }
       }
     }
     D.rangeInput.value = parts.join(',');
-    D.rangeInput.classList.add('valid'); D.rangeInput.classList.remove('invalid');
+    D.rangeInput.classList.add('valid');
+    D.rangeInput.classList.remove('invalid');
   }
-  updateRangePreview(); updateSplitPreview();
+  updateRangePreview();
+  updateSplitPreview();
 }
 
 function syncPageGridFromInput() {
@@ -595,21 +724,29 @@ function syncPageGridFromInput() {
     else if (cl === 'even') { for (var i=1;i<total;i+=2) PAGE_SEL.add(i); }
     else {
       var mF = cl.match(/^first\s+(\d+)/), mL = cl.match(/^last\s+(\d+)/);
-      if (mF) { for (var i=0;i<Math.min(+mF[1],total);i++) PAGE_SEL.add(i); }
-      else if (mL) { var n=+mL[1]; for (var i=Math.max(0,total-n);i<total;i++) PAGE_SEL.add(i); }
-      else {
+      if (mF) {
+        for (var i=0; i<Math.min(+mF[1],total); i++) PAGE_SEL.add(i);
+      } else if (mL) {
+        var n=+mL[1];
+        for (var i=Math.max(0,total-n); i<total; i++) PAGE_SEL.add(i);
+      } else {
         cl.split(/[,;，；]+/).forEach(function(part) {
-          part = part.trim().replace(/\bend\b/,''+total);
+          part = part.trim().replace(/\bend\b/, ''+total);
           var rm = part.match(/^(\d+)\s*[-–—~]\s*(\d+)$/);
-          if (rm) { for (var i=+rm[1]-1;i<=+rm[2]-1;i++) { if(i>=0&&i<total) PAGE_SEL.add(i); } }
-          else if (/^\d+$/.test(part)) { var idx=+part-1; if(idx>=0&&idx<total) PAGE_SEL.add(idx); }
+          if (rm) {
+            for (var i=+rm[1]-1; i<=+rm[2]-1; i++) { if (i>=0&&i<total) PAGE_SEL.add(i); }
+          } else if (/^\d+$/.test(part)) {
+            var idx=+part-1; if (idx>=0&&idx<total) PAGE_SEL.add(idx);
+          }
         });
       }
     }
     D.rangeInput.classList.toggle('valid',   PAGE_SEL.size > 0);
     D.rangeInput.classList.toggle('invalid', PAGE_SEL.size === 0);
   }
-  updatePgridDisplay(); updateRangePreview(); updateSplitPreview();
+  updatePgridDisplay();
+  updateRangePreview();
+  updateSplitPreview();
 }
 
 function updateRangePreview() {
@@ -617,19 +754,19 @@ function updateRangePreview() {
   var total = PDF_INFO ? PDF_INFO.total_pages : 0;
   var val   = (D.rangeInput.value || '').trim();
   if (!val) {
-    D.rangePreview.innerHTML = '<span class="sp-rp-hint">Type a range to preview</span>';
+    D.rangePreview.innerHTML = '<span style="color:var(--text3);font-size:.75rem">Type a range to preview selected pages</span>';
     return;
   }
   if (PAGE_SEL.size === 0) {
-    D.rangePreview.innerHTML = '<span class="sp-rp-invalid"><i class="fa-solid fa-triangle-exclamation"></i> No valid pages (PDF has ' + total + ' pages)</span>';
+    D.rangePreview.innerHTML = '<span style="color:var(--red);font-size:.75rem"><i class="fa-solid fa-triangle-exclamation"></i> No valid pages in this PDF (' + total + ' pages)</span>';
     return;
   }
   if (PAGE_SEL.size > 80) {
-    D.rangePreview.innerHTML = '<span class="sp-rp-warn"><i class="fa-solid fa-circle-info"></i> ' + PAGE_SEL.size + ' pages selected</span>';
+    D.rangePreview.innerHTML = '<span style="color:var(--cyan);font-size:.75rem"><i class="fa-solid fa-circle-info"></i> ' + PAGE_SEL.size + ' pages selected</span>';
     return;
   }
   D.rangePreview.innerHTML = Array.from(PAGE_SEL).sort(function(a,b){return a-b;}).map(function(i) {
-    return '<span class="sp-rp-chip">' + (i+1) + '</span>';
+    return '<span class="sp-chip sp-chip-blue" style="padding:2px 7px;font-size:.65rem">' + (i+1) + '</span>';
   }).join('');
 }
 
@@ -642,15 +779,18 @@ function updateChunkInfo() {
   var n = Math.max(1, parseInt(D.nInput.value) || 1);
   var cnt = Math.ceil(total / n);
   D.chunkCount.textContent = String(cnt);
-  D.chunkCount.style.color = cnt > 100 ? 'var(--yellow)' : 'var(--accent)';
+  D.chunkCount.style.color = cnt > 100 ? 'var(--yellow)' : 'var(--accent3)';
 }
 
 function updateGroupsPreview() {
   if (!D.groupsPreview) return;
-  var lines = (D.rangeGroupsInput.value || '').split(/[\n,，;；]+/).map(function(l){return l.trim();}).filter(Boolean);
+  var lines = (D.rangeGroupsInput.value || '')
+    .split(/[\n,，;；]+/)
+    .map(function(l){ return l.trim(); })
+    .filter(Boolean);
   D.groupsPreview.innerHTML = lines.map(function(l, i) {
     var hue = (i * 47) % 360;
-    return '<span class="sp-rp-chip" style="border-color:hsla(' + hue + ',60%,60%,.3);color:hsl(' + hue + ',60%,65%)">' + (i+1) + ': ' + l + '</span>';
+    return '<span class="sp-chip" style="border-color:hsla(' + hue + ',60%,60%,.3);color:hsl(' + hue + ',60%,65%);margin:2px">' + (i+1) + ': ' + l + '</span>';
   }).join('');
 }
 
@@ -658,12 +798,16 @@ function updateBookmarkList(bookmarks) {
   if (!D.bookmarkList || !D.bookmarksInfoText) return;
   if (!bookmarks || !bookmarks.length) {
     D.bookmarksInfoText.textContent = 'No bookmarks found — will fallback to 5-page chunks.';
-    D.bookmarkList.innerHTML = ''; return;
+    D.bookmarkList.innerHTML = '';
+    return;
   }
-  D.bookmarksInfoText.textContent = bookmarks.length + ' chapters found — each becomes its own PDF.';
+  D.bookmarksInfoText.textContent = bookmarks.length + ' chapter(s) found — each becomes its own PDF.';
   D.bookmarkList.innerHTML = bookmarks.slice(0, 40).map(function(bk, i) {
-    var title = bk[0] || ('Chapter ' + (i+1)), page = (bk[1] || 0) + 1;
-    return '<div class="sp-bk-item"><i class="fa-solid fa-bookmark"></i><span>' + (i+1) + '. ' + title + '</span><span style="margin-left:auto;font-size:.68rem;color:var(--text3)">pg ' + page + '</span></div>';
+    var title = (bk[0] || ('Chapter ' + (i+1))).slice(0, 60);
+    var page  = (bk[1] || 0) + 1;
+    return '<div class="sp-bookmark-item"><i class="fa-solid fa-bookmark"></i>'
+      + '<span>' + (i+1) + '. ' + title + '</span>'
+      + '<span class="sp-bookmark-pg">pg ' + page + '</span></div>';
   }).join('');
 }
 
@@ -673,18 +817,29 @@ function updateBookmarkList(bookmarks) {
 function updateSplitPreview() {
   if (!PDF_INFO || !D.splitPreviewBox) return;
   var total = PDF_INFO.total_pages || 1, est = '—';
-  if (MODE === 'all')          est = total + ' files';
-  else if (MODE === 'range')   est = PAGE_SEL.size > 0 ? '1 file (' + PAGE_SEL.size + ' pages)' : 'Select pages';
+
+  if (MODE === 'all')
+    est = total + ' file' + (total !== 1 ? 's' : '');
+  else if (MODE === 'range')
+    est = PAGE_SEL.size > 0 ? '1 file (' + PAGE_SEL.size + ' page' + (PAGE_SEL.size !== 1 ? 's' : '') + ')' : 'Select pages';
   else if (MODE === 'range_groups') {
-    var lines = (D.rangeGroupsInput.value || '').split(/[\n,，;；]+/).filter(function(l){return l.trim();});
+    var lines = (D.rangeGroupsInput.value || '').split(/[\n,，;；]+/).filter(function(l){ return l.trim(); });
     est = lines.length + ' file' + (lines.length !== 1 ? 's' : '');
   }
-  else if (MODE === 'every_n') { var n = Math.max(1, parseInt(D.nInput.value)||1); est = Math.ceil(total/n) + ' files'; }
-  else if (MODE === 'bookmarks') est = PDF_INFO.has_bookmarks ? (PDF_INFO.bookmarks||[]).length + ' files' : 'No bookmarks';
-  else if (MODE === 'blank_pages') est = PDF_INFO.blank_pages > 0 ? '~' + (PDF_INFO.blank_pages+1) + ' files' : '1+ files';
-  else if (MODE === 'size_limit')  est = '~' + Math.max(2, Math.ceil(total / Math.max(1, parseInt(D.sizeSlider.value)||5))) + ' files (estimate)';
-  else if (MODE === 'odd_even')    est = '2 files (odd + even)';
-  D.splitPreviewText.textContent = 'Will create: ' + est;
+  else if (MODE === 'every_n') {
+    var n = Math.max(1, parseInt(D.nInput.value)||1);
+    est = Math.ceil(total/n) + ' file' + (Math.ceil(total/n) !== 1 ? 's' : '');
+  }
+  else if (MODE === 'bookmarks')
+    est = PDF_INFO.has_bookmarks ? (PDF_INFO.bookmarks||[]).length + ' file' + ((PDF_INFO.bookmarks||[]).length !== 1 ? 's' : '') : 'No bookmarks';
+  else if (MODE === 'blank_pages')
+    est = PDF_INFO.blank_pages > 0 ? '~' + (PDF_INFO.blank_pages+1) + ' files' : '1+ files';
+  else if (MODE === 'size_limit')
+    est = '~' + Math.max(2, Math.ceil(total / Math.max(1, parseInt(D.sizeSlider ? D.sizeSlider.value : 5)||5))) + ' files (estimate)';
+  else if (MODE === 'odd_even')
+    est = '2 files (odd + even)';
+
+  if (D.splitPreviewText) D.splitPreviewText.textContent = 'Will create: ' + est;
   showEl(D.splitPreviewBox);
 }
 
@@ -692,12 +847,16 @@ function updateActionHint() {
   if (!D.actionHint) return;
   if (!FILE) { D.actionHint.textContent = 'Upload a PDF to get started'; return; }
   var hints = {
-    all:'Every page → own PDF → ZIP', range:'Selected pages → 1 PDF → ZIP',
-    range_groups:'Each group → own PDF → ZIP', every_n:'Equal chunks → multiple PDFs → ZIP',
-    bookmarks:'Each chapter → own PDF → ZIP', blank_pages:'Splits at blank pages → ZIP',
-    size_limit:'Grouped by size → ZIP', odd_even:'Odd pages + Even pages → 2 PDFs → ZIP',
+    all:          'Every page → own PDF → ZIP archive',
+    range:        'Selected pages → single PDF → ZIP',
+    range_groups: 'Each group → own PDF → ZIP',
+    every_n:      'Equal N-page chunks → multiple PDFs → ZIP',
+    bookmarks:    'Each chapter → own PDF → ZIP',
+    blank_pages:  'Splits at blank separators → ZIP',
+    size_limit:   'Grouped by file size → ZIP',
+    odd_even:     'Odd pages + Even pages → 2 PDFs → ZIP',
   };
-  D.actionHint.textContent = hints[MODE] || 'Press Ctrl+Enter to split';
+  D.actionHint.textContent = (hints[MODE] || 'Press Ctrl+Enter to split') + ' · Ctrl+Enter to start';
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -708,12 +867,14 @@ function initQsButtons() {
     btn.addEventListener('click', function() {
       var qs = btn.dataset.qs, total = PDF_INFO ? PDF_INFO.total_pages : 1;
       PAGE_SEL.clear();
-      if (qs === 'all')    for (var i=0;i<total;i++) PAGE_SEL.add(i);
-      if (qs === 'odd')    for (var i=0;i<total;i+=2) PAGE_SEL.add(i);
-      if (qs === 'even')   for (var i=1;i<total;i+=2) PAGE_SEL.add(i);
-      if (qs === 'first5') for (var i=0;i<Math.min(5,total);i++) PAGE_SEL.add(i);
-      if (qs === 'last5')  for (var i=Math.max(0,total-5);i<total;i++) PAGE_SEL.add(i);
-      syncInputFromPageGrid(); updatePgridDisplay(); S('playSortSound');
+      if (qs === 'all')    for (var i=0; i<total; i++) PAGE_SEL.add(i);
+      if (qs === 'odd')    for (var i=0; i<total; i+=2) PAGE_SEL.add(i);
+      if (qs === 'even')   for (var i=1; i<total; i+=2) PAGE_SEL.add(i);
+      if (qs === 'first5') for (var i=0; i<Math.min(5,total); i++) PAGE_SEL.add(i);
+      if (qs === 'last5')  for (var i=Math.max(0,total-5); i<total; i++) PAGE_SEL.add(i);
+      syncInputFromPageGrid();
+      updatePgridDisplay();
+      S('playSortSound');
     });
   });
 }
@@ -725,11 +886,15 @@ function initAdvOptions() {
   D.advToggle.addEventListener('click', function() {
     var open = !D.advBody.hasAttribute('hidden');
     if (open) {
-      hideEl(D.advBody); D.advChevron.classList.remove('open');
-      D.advToggle.setAttribute('aria-expanded','false'); S('playCollapseSound');
+      hideEl(D.advBody);
+      D.advChevron.classList.remove('open');
+      D.advToggle.setAttribute('aria-expanded','false');
+      S('playCollapseSound');
     } else {
-      showEl(D.advBody); D.advChevron.classList.add('open');
-      D.advToggle.setAttribute('aria-expanded','true'); S('playExpandSound');
+      showEl(D.advBody);
+      D.advChevron.classList.add('open');
+      D.advToggle.setAttribute('aria-expanded','true');
+      S('playExpandSound');
     }
   });
 }
@@ -740,10 +905,19 @@ function initAdvOptions() {
 function initFaq() {
   document.querySelectorAll('.sp-faq-q').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      var exp = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!exp));
-      var ans = btn.nextElementSibling;
-      if (exp) hideEl(ans); else showEl(ans);
+      var item = btn.closest('.sp-faq-item');
+      if (!item) return;
+      var isOpen = item.classList.contains('open');
+      /* Close all others */
+      document.querySelectorAll('.sp-faq-item.open').forEach(function(other) {
+        other.classList.remove('open');
+        var q = other.querySelector('.sp-faq-q');
+        if (q) q.setAttribute('aria-expanded','false');
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded','true');
+      }
     });
   });
 }
@@ -755,34 +929,44 @@ function initSizePresets() {
   document.querySelectorAll('.sp-size-preset-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var mb = parseInt(btn.dataset.mb);
-      D.sizeSlider.value = Math.min(50, mb);
-      D.sizeVal.textContent = mb + ' MB';
-      document.querySelectorAll('.sp-size-preset-btn').forEach(function(b){b.classList.remove('active');});
+      if (D.sizeSlider) D.sizeSlider.value = Math.min(50, mb);
+      if (D.sizeVal)    D.sizeVal.textContent = mb + ' MB';
+      document.querySelectorAll('.sp-size-preset-btn').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       updateSplitPreview();
     });
   });
-  D.sizeSlider.addEventListener('input', function() {
-    D.sizeVal.textContent = D.sizeSlider.value + ' MB';
-    document.querySelectorAll('.sp-size-preset-btn').forEach(function(b){b.classList.remove('active');});
-    updateSplitPreview();
-  });
+  if (D.sizeSlider) {
+    D.sizeSlider.addEventListener('input', function() {
+      if (D.sizeVal) D.sizeVal.textContent = D.sizeSlider.value + ' MB';
+      document.querySelectorAll('.sp-size-preset-btn').forEach(function(b){ b.classList.remove('active'); });
+      updateSplitPreview();
+    });
+  }
 }
 
 function initNSlider() {
-  D.nSlider.addEventListener('input', function() {
-    D.nInput.value = D.nSlider.value; updateChunkInfo(); updateSplitPreview();
-  });
-  D.nInput.addEventListener('input', function() {
-    var v = Math.max(1, parseInt(D.nInput.value)||1);
-    D.nSlider.value = Math.min(50, v); updateChunkInfo(); updateSplitPreview();
-  });
+  if (D.nSlider) {
+    D.nSlider.addEventListener('input', function() {
+      if (D.nInput) D.nInput.value = D.nSlider.value;
+      updateChunkInfo(); updateSplitPreview();
+    });
+  }
+  if (D.nInput) {
+    D.nInput.addEventListener('input', function() {
+      var v = Math.max(1, parseInt(D.nInput.value)||1);
+      if (D.nSlider) D.nSlider.value = Math.min(50, v);
+      updateChunkInfo(); updateSplitPreview();
+    });
+  }
 }
 
 function initBlankThresh() {
-  D.blankThreshSlider.addEventListener('input', function() {
-    D.blankThreshVal.textContent = D.blankThreshSlider.value + '%';
-  });
+  if (D.blankThreshSlider) {
+    D.blankThreshSlider.addEventListener('input', function() {
+      if (D.blankThreshVal) D.blankThreshVal.textContent = D.blankThreshSlider.value + '%';
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -790,106 +974,177 @@ function initBlankThresh() {
 ══════════════════════════════════════════════════════════════════ */
 function initRangeInput() {
   var debounce = null;
-  D.rangeInput.addEventListener('input', function() {
-    clearTimeout(debounce);
-    debounce = setTimeout(syncPageGridFromInput, 320);
-  });
-  D.copyRangeBtn.addEventListener('click', function() {
-    var val = D.rangeInput.value;
-    if (val) {
-      navigator.clipboard.writeText(val)
-        .then(function(){ toast('Range copied!', 'success', 1500); S('playCopySound'); })
-        .catch(function(){});
-    }
-  });
+  if (D.rangeInput) {
+    D.rangeInput.addEventListener('input', function() {
+      clearTimeout(debounce);
+      debounce = setTimeout(syncPageGridFromInput, 320);
+    });
+  }
+  if (D.copyRangeBtn) {
+    D.copyRangeBtn.addEventListener('click', function() {
+      var val = D.rangeInput ? D.rangeInput.value : '';
+      if (val) {
+        navigator.clipboard.writeText(val)
+          .then(function(){ toast('Range copied!', 'success', 1500); S('playCopySound'); })
+          .catch(function(){});
+      }
+    });
+  }
 }
 
 function initRangeGroupsInput() {
   var debounce = null;
-  D.rangeGroupsInput.addEventListener('input', function() {
-    clearTimeout(debounce);
-    debounce = setTimeout(function(){ updateGroupsPreview(); updateSplitPreview(); }, 300);
-  });
+  if (D.rangeGroupsInput) {
+    D.rangeGroupsInput.addEventListener('input', function() {
+      clearTimeout(debounce);
+      debounce = setTimeout(function(){ updateGroupsPreview(); updateSplitPreview(); }, 300);
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
    AI RECOMMENDATION
 ══════════════════════════════════════════════════════════════════ */
 function initRecommendation() {
-  D.recApplyBtn.addEventListener('click', function() {
-    if (_recMode) {
-      selectMode(_recMode); hideEl(D.recommendBanner);
-      toast('Applied recommended mode', 'success', 2000); S('playPresetSound');
+  if (D.recApplyBtn) {
+    D.recApplyBtn.addEventListener('click', function() {
+      if (_recMode) {
+        selectMode(_recMode);
+        hideEl(D.recommendBanner);
+        toast('Applied: ' + _recMode.replace(/_/g,' '), 'success', 2000);
+        S('playPresetSound');
+      }
+    });
+  }
+  if (D.recDismissBtn) {
+    D.recDismissBtn.addEventListener('click', function() {
+      hideEl(D.recommendBanner);
+    });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE FAB
+══════════════════════════════════════════════════════════════════ */
+function initFab() {
+  if (!D.fabBtn) return;
+  D.fabBtn.addEventListener('click', function() {
+    if (FILE) {
+      if (window.SOUNDS) window.SOUNDS.resume();
+      doSplit();
+    } else {
+      D.fileInput.click();
     }
   });
-  D.recDismissBtn.addEventListener('click', function() { hideEl(D.recommendBanner); });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+══════════════════════════════════════════════════════════════════ */
+function initKeyboard() {
+  document.addEventListener('keydown', function(e) {
+    /* Ctrl+Enter → split */
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (FILE && !D.splitBtn.disabled) {
+        if (window.SOUNDS) window.SOUNDS.resume();
+        doSplit();
+      }
+    }
+    /* Escape → close FAQ items */
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.sp-faq-item.open').forEach(function(item) {
+        item.classList.remove('open');
+      });
+    }
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════
    SPLIT ACTION
 ══════════════════════════════════════════════════════════════════ */
 function doSplit() {
-  if (!FILE) { toast('Please upload a PDF first.', 'warning'); return; }
-  if (D.splitBtn.disabled) return;
+  if (!FILE)                  { toast('Please upload a PDF file first.', 'warning'); return; }
+  if (D.splitBtn.disabled)    return;
 
-  if (MODE === 'range' && PAGE_SEL.size === 0 && !D.rangeInput.value.trim()) {
-    S('playWarningSound'); toast('Please select at least one page.', 'warning');
-    D.rangeInput.focus(); return;
+  if (MODE === 'range' && PAGE_SEL.size === 0 && !(D.rangeInput && D.rangeInput.value.trim())) {
+    S('playWarningSound');
+    toast('Please select at least one page in the grid or enter a range.', 'warning', 3500);
+    if (D.rangeInput) D.rangeInput.focus();
+    return;
   }
-  if (MODE === 'range_groups' && !D.rangeGroupsInput.value.trim()) {
-    S('playWarningSound'); toast('Please enter at least one range group.', 'warning');
-    D.rangeGroupsInput.focus(); return;
+  if (MODE === 'range_groups' && !(D.rangeGroupsInput && D.rangeGroupsInput.value.trim())) {
+    S('playWarningSound');
+    toast('Please enter at least one range group (e.g. 1-5).', 'warning', 3500);
+    if (D.rangeGroupsInput) D.rangeGroupsInput.focus();
+    return;
   }
 
   if (window.SOUNDS) window.SOUNDS.resume();
   S('playMergeStartSound');
+
   _splitStart = Date.now();
-  _simPct = 0;
+  _simPct     = 0;
+
+  /* Scroll to progress card */
+  scrollToEl(D.progressCard, 70);
 
   showEl(D.progressCard);
   hideEl(D.resultsCard);
   hideEl(D.actionCard);
   D.progressSteps.innerHTML = '';
-  updateProgress(0, 'Preparing…');
+  updateProgress(0, 'Preparing split…');
 
-  addProgressStep('fa-check', 'Mode: ' + MODE.replace(/_/g,' '));
-  if (PDF_INFO) addProgressStep('fa-file', (PDF_INFO.total_pages||'?') + ' pages · ' + fmtBytes(FILE.size));
+  var total = PDF_INFO ? PDF_INFO.total_pages : '?';
+  addProgressStep('fa-check',        'Mode: ' + MODE.replace(/_/g,' '), 'done');
+  addProgressStep('fa-file-pdf',     (total) + ' pages · ' + fmtBytes(FILE.size), 'done');
+  addProgressStep('fa-microchip',    'v12 lossless engine active (pikepdf + PyMuPDF)', 'active');
 
   simProgress(86, 108);
 
   var fd = new FormData();
-  fd.append('file',            FILE);
-  fd.append('mode',            MODE);
-  fd.append('password',        D.passwordInput.value || '');
-  fd.append('naming_pattern',  D.namingPattern.value || 'page_{n:04d}');
-  fd.append('remove_blanks',   D.removeBlanksToggle.checked ? '1' : '0');
-  fd.append('source_filename', FILE.name);
+  fd.append('file',             FILE);
+  fd.append('mode',             MODE);
+  fd.append('password',         D.passwordInput ? (D.passwordInput.value || '') : '');
+  fd.append('naming_pattern',   D.namingPattern ? (D.namingPattern.value || 'page_{n:04d}') : 'page_{n:04d}');
+  fd.append('remove_blanks',    D.removeBlanksToggle && D.removeBlanksToggle.checked ? '1' : '0');
+  fd.append('source_filename',  FILE.name);
 
-  if (MODE === 'range')        fd.append('ranges', D.rangeInput.value || '');
+  if (MODE === 'range')        fd.append('ranges',      D.rangeInput ? D.rangeInput.value : '');
   if (MODE === 'range_groups') {
-    var groups = D.rangeGroupsInput.value.split(/[\n,，;；]+/).map(function(l){return l.trim();}).filter(Boolean);
+    var groups = (D.rangeGroupsInput ? D.rangeGroupsInput.value : '')
+      .split(/[\n,，;；]+/).map(function(l){ return l.trim(); }).filter(Boolean);
     fd.append('ranges', groups.join(','));
   }
-  if (MODE === 'every_n')    fd.append('every_n', D.nInput.value || '5');
-  if (MODE === 'size_limit') fd.append('max_size_mb', D.sizeSlider.value || '5');
-  if (MODE === 'blank_pages') fd.append('blank_threshold', (parseInt(D.blankThreshSlider.value)/100).toFixed(2));
+  if (MODE === 'every_n')    fd.append('every_n',        D.nInput     ? (D.nInput.value || '5')       : '5');
+  if (MODE === 'size_limit') fd.append('max_size_mb',    D.sizeSlider ? (D.sizeSlider.value || '5')   : '5');
+  if (MODE === 'blank_pages') fd.append('blank_threshold', D.blankThreshSlider
+    ? (parseInt(D.blankThreshSlider.value)/100).toFixed(2) : '0.94');
 
-  fetch('/api/split-pdf', { method:'POST', body:fd })
+  fetch('/api/split-pdf', { method: 'POST', body: fd })
     .then(function(res) {
       closeSSE();
       if (!res.ok) {
-        return res.json().then(function(j){ throw new Error(j.error || j.message || 'Server error'); })
-          .catch(function(){ throw new Error('Server error ' + res.status); });
+        return res.json()
+          .then(function(j) {
+            var msg = j.error || j.message || 'Server error ' + res.status;
+            throw new Error(msg);
+          })
+          .catch(function(jsonErr) {
+            if (jsonErr.message) throw jsonErr;
+            throw new Error('Server error ' + res.status);
+          });
       }
-      updateProgress(95, 'Finalising…');
-      addProgressStep('fa-file-zipper', 'Packing ZIP…');
-      var headers = res;
-      return res.blob().then(function(blob) { return { blob:blob, res:headers }; });
+      updateProgress(95, 'Finalising and packing ZIP…');
+      addProgressStep('fa-file-zipper', 'Packing output ZIP…', 'active');
+
+      var savedRes = res;
+      return res.blob().then(function(blob) { return { blob: blob, res: savedRes }; });
     })
     .then(function(obj) {
       var blob = obj.blob, res = obj.res;
-      updateProgress(100, 'Done!');
-      addProgressStep('fa-circle-check', 'Split complete!');
+      updateProgress(100, 'Split complete!');
+      addProgressStep('fa-circle-check', 'Done — ZIP ready!', 'done');
 
       var filesCreated = parseInt(res.headers.get('X-File-Count') || res.headers.get('X-Files-Created') || '1');
       var totalPages   = parseInt(res.headers.get('X-Total-Pages') || (PDF_INFO ? PDF_INFO.total_pages : '?'));
@@ -897,19 +1152,25 @@ function doSplit() {
       var qualityGrade = res.headers.get('X-Quality-Grade') || 'A+';
       var qualityScore = res.headers.get('X-Quality-Score') || '100';
       var zipName      = res.headers.get('X-Download-Name') || res.headers.get('X-Zip-Name') || _ZIP_FILENAME;
+      var zipSizeKb    = parseInt(res.headers.get('X-Zip-Size-Kb') || '0');
 
       if (_BLOB_URL) URL.revokeObjectURL(_BLOB_URL);
-      _BLOB_URL = URL.createObjectURL(blob);
+      _BLOB_URL     = URL.createObjectURL(blob);
       _ZIP_FILENAME = zipName;
 
       setTimeout(function() {
         hideEl(D.progressCard);
         showEl(D.resultsCard);
         showEl(D.actionCard);
-        showResults(filesCreated, totalPages, qualityGrade, qualityScore);
+        showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb);
         S('playSuccessChime');
+
+        /* v12: Auto-scroll to results */
+        setTimeout(function() { scrollToEl(D.resultsCard, 70); }, 120);
+
+        /* v12: Multiple confetti bursts */
         launchConfetti();
-      }, 600);
+      }, 580);
     })
     .catch(function(e) {
       closeSSE();
@@ -917,56 +1178,124 @@ function doSplit() {
       hideEl(D.progressCard);
       showEl(D.actionCard);
       S('playErrorSound');
-      toast('Split failed: ' + (e.message || 'Please try again.'), 'error', 5500);
+      var msg = e.message || 'Unknown error. Please try again.';
+      /* Provide actionable hints */
+      if (msg.indexOf('password') !== -1 || msg.indexOf('encrypted') !== -1)
+        msg += ' — Enter password in Advanced Options.';
+      if (msg.indexOf('corrupt') !== -1)
+        msg += ' — Try using PDF Repair tool first.';
+      toast('Split failed: ' + msg, 'error', 6000);
     });
 }
 
-function showResults(filesCreated, totalPages, qualityGrade, qualityScore) {
-  D.resultsSub.textContent = filesCreated + ' file' + (filesCreated !== 1 ? 's' : '') + ' ready to download';
-  D.dlName.textContent = _ZIP_FILENAME;
-  D.qualityText.textContent = 'Grade ' + qualityGrade + ' (' + qualityScore + '/100) · Lossless · streams never re-encoded';
+/* ══════════════════════════════════════════════════════════════════
+   SHOW RESULTS (v12: animated counters)
+══════════════════════════════════════════════════════════════════ */
+function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb) {
+  var elapsed = procMs > 0
+    ? (procMs >= 1000 ? (procMs / 1000).toFixed(1) + 's' : procMs + 'ms')
+    : (Math.round((Date.now() - _splitStart) / 100) / 10).toFixed(1) + 's';
 
-  var elapsed = (Math.round((Date.now() - _splitStart) / 100) / 10).toFixed(1);
-  D.resultsStats.innerHTML = [
-    { icon:'fa-file-pdf',     text: filesCreated + ' file' + (filesCreated!==1?'s':'') + ' created' },
-    { icon:'fa-file-lines',   text: totalPages + ' pages' },
-    { icon:'fa-clock',        text: elapsed + 's elapsed' },
-    { icon:'fa-shield-check', text: 'Grade ' + qualityGrade },
-  ].map(function(s) {
-    return '<span class="sp-stat-chip" role="listitem"><i class="fa-solid ' + s.icon + '"></i>' + s.text + '</span>';
+  if (D.resultsSub)
+    D.resultsSub.textContent = filesCreated + ' file' + (filesCreated !== 1 ? 's' : '') + ' ready to download';
+  if (D.dlName)
+    D.dlName.textContent = _ZIP_FILENAME;
+  if (D.qualityText)
+    D.qualityText.textContent = 'Grade ' + qualityGrade + ' · Score ' + qualityScore + '/100 · Zero re-encoding · Lossless';
+
+  var statDefs = [
+    { icon:'fa-file-pdf',     label:' file' + (filesCreated!==1?'s':'') + ' created', value:filesCreated, suffix:'' },
+    { icon:'fa-file-lines',   label:' pages input', value:totalPages, suffix:'' },
+    { icon:'fa-clock',        label:' processing', value:null, raw:elapsed },
+    { icon:'fa-shield-check', label:' quality', value:null, raw:'Grade ' + qualityGrade },
+  ];
+  if (zipSizeKb > 0) {
+    statDefs.push({ icon:'fa-file-zipper', label:' ZIP size', value:null, raw: zipSizeKb >= 1024 ? (zipSizeKb/1024).toFixed(1)+' MB' : zipSizeKb + ' KB' });
+  }
+
+  D.resultsStats.innerHTML = statDefs.map(function(s, i) {
+    return '<span class="sp-res-stat" role="listitem" style="animation-delay:' + (i*0.07) + 's">'
+      + '<i class="fa-solid ' + s.icon + '"></i>'
+      + '<strong id="resStat' + i + '">' + (s.raw || (s.value + s.suffix)) + '</strong>'
+      + s.label
+      + '</span>';
   }).join('');
+
+  /* v12: Animate numeric counters */
+  statDefs.forEach(function(s, i) {
+    if (s.value !== null && typeof s.value === 'number') {
+      var el = document.getElementById('resStat' + i);
+      if (el) animateCount(el, s.value, s.suffix, 600 + i * 120);
+    }
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════
    DOWNLOAD — fahhhhh.mp3 plays on every download
 ══════════════════════════════════════════════════════════════════ */
 function downloadZip() {
-  if (!_BLOB_URL) { toast('Nothing to download.', 'warning'); return; }
+  if (!_BLOB_URL) { toast('Nothing to download — split first.', 'warning'); return; }
   S('playDownloadWhoosh');   /* fahhhhh.mp3 */
   var a = document.createElement('a');
-  a.href = _BLOB_URL; a.download = _ZIP_FILENAME;
-  document.body.appendChild(a); a.click();
-  setTimeout(function(){ a.remove(); }, 120);
-  toast('Downloading ' + _ZIP_FILENAME, 'success', 2500);
+  a.href     = _BLOB_URL;
+  a.download = _ZIP_FILENAME;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { a.remove(); }, 120);
+  toast('Downloading ' + _ZIP_FILENAME + ' — enjoy!', 'success', 2800);
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   CONFETTI
+   CONFETTI (v12: multiple bursts)
 ══════════════════════════════════════════════════════════════════ */
 function launchConfetti() {
   if (typeof confetti === 'function') {
-    confetti({ particleCount:130, spread:76, origin:{y:.55}, colors:['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b'] });
+    confetti({
+      particleCount: 140,
+      spread: 78,
+      origin: { y: .54 },
+      colors: ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ec4899']
+    });
     setTimeout(function() {
-      confetti({ particleCount:55, spread:50, origin:{y:.60}, colors:['#ec4899','#f97316','#6366f1'] });
-    }, 400);
+      confetti({
+        particleCount: 65,
+        spread: 48,
+        origin: { y: .58 },
+        colors: ['#ec4899','#f97316','#6366f1','#a78bfa']
+      });
+    }, 380);
+    setTimeout(function() {
+      confetti({
+        particleCount: 35,
+        spread: 110,
+        origin: { y: .5, x: .2 },
+        colors: ['#10b981','#06b6d4']
+      });
+      confetti({
+        particleCount: 35,
+        spread: 110,
+        origin: { y: .5, x: .8 },
+        colors: ['#6366f1','#8b5cf6']
+      });
+    }, 700);
   } else {
-    var cols = ['#6366f1','#8b5cf6','#06b6d4','#10b981'];
-    for (var i = 0; i < 20; i++) {
+    /* CSS fallback */
+    var cols = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#ec4899'];
+    for (var i = 0; i < 24; i++) {
       (function(i) {
         var d = document.createElement('div');
-        d.style.cssText = 'position:fixed;width:7px;height:7px;border-radius:2px;left:'+(Math.random()*100)+'vw;top:-10px;background:'+cols[i%4]+';animation:confettiFall '+(0.8+Math.random()*1.2)+'s ease-in forwards;z-index:9999;pointer-events:none;';
+        var dur = 0.8 + Math.random() * 1.3;
+        d.style.cssText = [
+          'position:fixed',
+          'width:7px', 'height:7px', 'border-radius:2px',
+          'left:' + (Math.random() * 100) + 'vw',
+          'top:-10px',
+          'background:' + cols[i % cols.length],
+          'animation:confettiFall ' + dur + 's ease-in forwards',
+          'z-index:9999', 'pointer-events:none'
+        ].join(';');
         document.body.appendChild(d);
-        setTimeout(function(){ d.remove(); }, 2200);
+        setTimeout(function() { if (d.parentNode) d.remove(); }, dur * 1000 + 200);
       })(i);
     }
   }
@@ -976,84 +1305,63 @@ function launchConfetti() {
    RESET
 ══════════════════════════════════════════════════════════════════ */
 function resetAll() {
-  FILE = null; PDF_INFO = null; PAGE_SEL.clear(); _shiftStart = null; _recMode = null;
   if (_BLOB_URL) { URL.revokeObjectURL(_BLOB_URL); _BLOB_URL = null; }
-  _ZIP_FILENAME = 'document_split.zip';
   closeSSE();
+  FILE = null; PDF_INFO = null; PAGE_SEL.clear();
+  _shiftStart = null; _recMode = null; _simPct = 0;
+  _ZIP_FILENAME = 'document_split.zip';
 
-  showEl(D.dropZone); hideEl(D.fileInfoWrap);
+  hideEl(D.fileInfoWrap);
+  showEl(D.dropZone);
   D.fileInput.value = '';
-  if (D.thumbsStrip) D.thumbsStrip.innerHTML = '';
-  hideEl(D.thumbsWrap); hideEl(D.recommendBanner);
-  ['chipBookmarks','chipBlanks','chipEncrypted','chipScanned'].forEach(function(k){
-    D[k].classList.add('sp-chip-hidden');
-  });
 
-  hideEl(D.modesCard); hideEl(D.optionsCard); hideEl(D.advCard);
-  hideEl(D.actionCard); hideEl(D.progressCard); hideEl(D.resultsCard);
-  hideEl(D.presetsRow); hideEl(D.fabBtn);
-  D.splitBtn.disabled = true;
-  D.actionHint.textContent = 'Upload a PDF to get started';
-
-  D.presetsRow.querySelectorAll('.sp-preset-btn').forEach(function(b){b.classList.remove('active');});
-  hideEl(D.advBody); D.advChevron.classList.remove('open');
-  D.advToggle.setAttribute('aria-expanded','false');
-  D.rangeInput.value = ''; D.rangeInput.classList.remove('valid','invalid');
-  if (D.rangePreview) D.rangePreview.innerHTML = '';
-  D.rangeGroupsInput.value = '';
-  if (D.groupsPreview) D.groupsPreview.innerHTML = '';
+  hideEl(D.modesCard);
+  hideEl(D.optionsCard);
+  hideEl(D.advCard);
+  hideEl(D.actionCard);
+  hideEl(D.progressCard);
+  hideEl(D.resultsCard);
+  hideEl(D.recommendBanner);
+  hideEl(D.presetsRow);
   hideEl(D.splitPreviewBox);
-  MODE = 'all';
+  hideEl(D.fabBtn);
+  hideEl(D.thumbsWrap);
 
-  S('playMergeAgainSound');
-  toast('Reset complete — upload a new PDF.', 'info', 2000);
+  D.splitBtn.disabled = true;
+  if (D.progressSteps)   D.progressSteps.innerHTML = '';
+  if (D.resultsStats)    D.resultsStats.innerHTML  = '';
+  if (D.thumbsStrip)     D.thumbsStrip.innerHTML   = '';
+  if (D.bookmarkList)    D.bookmarkList.innerHTML   = '';
+  if (D.pgrid)           D.pgrid.innerHTML          = '';
+  if (D.rangeInput)      D.rangeInput.value         = '';
+  if (D.rangePreview)    D.rangePreview.innerHTML   = '';
+  if (D.rangeGroupsInput) D.rangeGroupsInput.value  = '';
+  if (D.groupsPreview)   D.groupsPreview.innerHTML  = '';
+  if (D.advBody)         hideEl(D.advBody);
+  if (D.advChevron)      D.advChevron.classList.remove('open');
+
+  selectMode('all');
+  updateProgress(0, '');
+
+  /* Scroll to top */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  S('playResetSound');
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   MOBILE FAB
-══════════════════════════════════════════════════════════════════ */
-function initFab() {
-  D.fabBtn.addEventListener('click', function() {
-    if (window.SOUNDS) window.SOUNDS.resume();
-    if (!FILE) { D.fileInput.click(); return; }
-    doSplit();
-  });
-}
+/* alias for backward-compat onclick= */
+window.resetTool    = resetAll;
+window.downloadResult = downloadZip;
 
 /* ══════════════════════════════════════════════════════════════════
-   KEYBOARD SHORTCUTS
-══════════════════════════════════════════════════════════════════ */
-function initKeyboard() {
-  document.addEventListener('keydown', function(e) {
-    var tag = document.activeElement ? document.activeElement.tagName : '';
-    var inInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault();
-      if (FILE && !D.splitBtn.disabled) { if(window.SOUNDS) window.SOUNDS.resume(); doSplit(); }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'a' && MODE === 'range' && !inInput) {
-      e.preventDefault();
-      var total = PDF_INFO ? PDF_INFO.total_pages : 0;
-      PAGE_SEL.clear(); for (var i=0;i<total;i++) PAGE_SEL.add(i);
-      syncInputFromPageGrid(); updatePgridDisplay();
-    }
-    if (e.key === 'Escape' && D.progressCard && !D.progressCard.hasAttribute('hidden')) {
-      /* Allow escape to show action bar if not already showing */
-    }
-  });
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   GSAP ENTRANCE ANIMATIONS (if loaded)
+   GSAP ANIMATIONS
 ══════════════════════════════════════════════════════════════════ */
 function initGsapAnimations() {
   if (typeof gsap === 'undefined') return;
-  /* Hero now lives inside upload card — animate the whole card in, then stagger inner elements */
-  gsap.from('.sp-upload-card',     { y:22, duration:.6,  ease:'power2.out', delay:.08 });
-  gsap.from('.sp-hero-badge',      { y:10, duration:.45, ease:'power2.out', delay:.22 });
-  gsap.from('.sp-hero-h1',         { y:14, duration:.5,  ease:'power2.out', delay:.3  });
-  gsap.from('.sp-hero-sub',        { y:8,  duration:.45, ease:'power2.out', delay:.38 });
-  gsap.from('.sp-hero-pills span', { y:7,  stagger:.055, duration:.38, ease:'power2.out', delay:.46 });
+  gsap.from('.sp-upload-card',     { y:24, duration:.55,  ease:'power2.out', delay:.06 });
+  gsap.from('.sp-hero-badge',      { y:10, duration:.42,  ease:'power2.out', delay:.18 });
+  gsap.from('.sp-hero-h1',         { y:14, duration:.48,  ease:'power2.out', delay:.26 });
+  gsap.from('.sp-hero-sub',        { y:8,  duration:.42,  ease:'power2.out', delay:.34 });
+  gsap.from('.sp-hero-pills span', { y:7,  stagger:.05,   duration:.36, ease:'power2.out', delay:.42 });
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1142,7 +1450,7 @@ document.addEventListener('DOMContentLoaded', function() {
     splitAgainBtn:     document.getElementById('splitAgainBtn'),
   };
 
-  /* Initialise subsystems */
+  /* Initialise all subsystems */
   initTheme();
   initSoundToggle();
   initBgCanvas();
@@ -1161,34 +1469,50 @@ document.addEventListener('DOMContentLoaded', function() {
   initKeyboard();
 
   /* Wire nav buttons */
-  D.themeBtn.addEventListener('click', toggleTheme);
-  D.soundBtn.addEventListener('click', toggleSound);
+  if (D.themeBtn) D.themeBtn.addEventListener('click', toggleTheme);
+  if (D.soundBtn) D.soundBtn.addEventListener('click', toggleSound);
 
-  /* Wire split button */
-  D.splitBtn.addEventListener('click', function() { if(window.SOUNDS) window.SOUNDS.resume(); doSplit(); });
+  /* Wire split button + ripple */
+  if (D.splitBtn) {
+    D.splitBtn.addEventListener('click', function(e) {
+      if (window.SOUNDS) window.SOUNDS.resume();
+      addRipple(D.splitBtn, e);
+      doSplit();
+    });
+  }
 
-  /* Wire download button — fahhhhh.mp3 via playDownloadWhoosh */
-  D.downloadBtn.addEventListener('click', downloadZip);
+  /* Wire download button */
+  if (D.downloadBtn) {
+    D.downloadBtn.addEventListener('click', function(e) {
+      addRipple(D.downloadBtn, e);
+      downloadZip();
+    });
+  }
 
-  /* Wire split-again button */
-  D.splitAgainBtn.addEventListener('click', resetAll);
+  /* Wire split-again */
+  if (D.splitAgainBtn) D.splitAgainBtn.addEventListener('click', resetAll);
 
   /* Wire presets */
-  D.presetsRow.querySelectorAll('.sp-preset-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() { applyPreset(btn.dataset.preset); });
-  });
+  if (D.presetsRow) {
+    D.presetsRow.querySelectorAll('.sp-preset-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { applyPreset(btn.dataset.preset); });
+    });
+  }
 
   /* Add confetti CSS fallback keyframe */
   var sEl = document.createElement('style');
-  sEl.textContent = '@keyframes confettiFall{from{transform:translateY(-10px) rotate(0deg);opacity:1}to{transform:translateY(100vh) rotate(720deg);opacity:0}}';
+  sEl.textContent = '@keyframes confettiFall{from{transform:translateY(-10px) rotate(0deg);opacity:1}to{transform:translateY(100vh) rotate(720deg);opacity:0}}@keyframes ripple{to{transform:scale(3);opacity:0}}';
   document.head.appendChild(sEl);
 
-  /* Initial state: tool sections hidden until file loaded */
+  /* Initial state */
   selectMode('all');
-  hideEl(D.modesCard); hideEl(D.optionsCard); hideEl(D.advCard);
-  hideEl(D.actionCard); hideEl(D.splitPreviewBox);
+  hideEl(D.modesCard);
+  hideEl(D.optionsCard);
+  hideEl(D.advCard);
+  hideEl(D.actionCard);
+  hideEl(D.splitPreviewBox);
 
-  /* GSAP animations (deferred — may not be loaded yet at DOMContentLoaded) */
+  /* GSAP (deferred) */
   setTimeout(initGsapAnimations, 200);
 
   /* Preload sounds */
