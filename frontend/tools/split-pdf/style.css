@@ -2523,3 +2523,316 @@ body::after {
   background-size: 200% 200%;
   animation: gradientMove 5s ease infinite;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   v12.1 VISUAL POLISH & FEATURE ADDITIONS — IshuTools Split PDF
+   Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
+══════════════════════════════════════════════════════════════════ */
+
+/* ── Gradient border sweep on active mode card ─────────────────── */
+@keyframes gradBorderSweep {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+.sp-mode-card.active {
+  position: relative;
+  z-index: 1;
+}
+.sp-mode-card.active::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4, #10b981, #6366f1);
+  background-size: 300% 300%;
+  animation: gradBorderSweep 3.5s ease infinite;
+  z-index: -1;
+}
+/* Mode card hover: spring bounce */
+.sp-mode-card {
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1),
+              box-shadow .25s ease,
+              border-color .25s ease;
+  will-change: transform;
+}
+.sp-mode-card:hover:not(.active) {
+  transform: translateY(-4px) scale(1.025);
+  box-shadow: 0 16px 32px rgba(99,102,241,.22);
+}
+/* Mode icon pop when selected */
+.sp-mode-card.active .sp-mode-icon {
+  animation: modeIconPop .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modeIconPop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.4) rotate(-8deg); }
+  100% { transform: scale(1); }
+}
+
+/* ── Better hero badge pulse ───────────────────────────────────── */
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(99,102,241,.2); }
+  50%       { box-shadow: 0 0 0 10px rgba(99,102,241,.0); }
+}
+.sp-hero-badge { animation: badgePulse 3.2s ease infinite; }
+
+/* ── Gradient text animate ─────────────────────────────────────── */
+.sp-hl {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 35%, #06b6d4 65%, #6366f1 100%);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientMove 5.5s ease infinite;
+}
+
+/* ── Thumbnail reveal & hover ──────────────────────────────────── */
+.sp-thumb-item {
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+  animation: thumbReveal .32s ease both;
+}
+@keyframes thumbReveal {
+  from { transform: scale(.82) translateY(10px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);    opacity: 1; }
+}
+.sp-thumb-item:hover {
+  transform: scale(1.1) translateY(-3px) !important;
+  box-shadow: 0 10px 28px rgba(99,102,241,.35);
+  z-index: 5;
+}
+.sp-thumb-item.pg-selected {
+  outline: 2.5px solid var(--accent2);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(139,92,246,.25);
+}
+
+/* ── Results card entrance ─────────────────────────────────────── */
+.sp-results-card:not([hidden]) {
+  animation: resultsCardIn .55s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes resultsCardIn {
+  from { transform: translateY(24px) scale(.96); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+
+/* ── Results stat chip entrance ───────────────────────────────── */
+.sp-res-stat {
+  animation: statReveal .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes statReveal {
+  from { transform: scale(.72) translateY(12px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);    opacity: 1; }
+}
+
+/* ── Progress card entrance ───────────────────────────────────── */
+.sp-progress-card:not([hidden]) {
+  animation: progressCardIn .4s ease both;
+}
+@keyframes progressCardIn {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Download button pulse & hover ────────────────────────────── */
+@keyframes dlButtonPulse {
+  0%,100% { box-shadow: 0 8px 24px rgba(99,102,241,.4); }
+  50%      { box-shadow: 0 8px 36px rgba(99,102,241,.7); }
+}
+.sp-download-btn {
+  animation: dlButtonPulse 2.2s ease infinite;
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1) !important;
+}
+.sp-download-btn:hover {
+  animation: none;
+  transform: translateY(-3px) scale(1.03) !important;
+  box-shadow: 0 14px 36px rgba(99,102,241,.5);
+}
+
+/* ── Feature card hover ────────────────────────────────────────── */
+.sp-feat-card {
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+}
+.sp-feat-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 24px 48px rgba(0,0,0,.2);
+}
+.sp-feat-icon {
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.sp-feat-card:hover .sp-feat-icon {
+  transform: scale(1.18) rotate(-6deg);
+}
+
+/* ── FAQ item better focus ─────────────────────────────────────── */
+.sp-faq-item.open .sp-faq-q {
+  color: var(--accent3);
+}
+.sp-faq-item.open .sp-faq-q::after {
+  content: '−' !important;
+  color: var(--accent3);
+}
+
+/* ── Quality row improved ──────────────────────────────────────── */
+.sp-quality-row {
+  background: rgba(16,185,129,.07);
+  border: 1px solid rgba(16,185,129,.18);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--green);
+}
+.sp-quality-row i { color: var(--green); }
+
+/* ── Split preview box entrance ────────────────────────────────── */
+.sp-split-preview-box:not([hidden]) {
+  animation: previewBoxIn .3s ease both;
+}
+@keyframes previewBoxIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Review star glow ──────────────────────────────────────────── */
+.sp-review-stars {
+  text-shadow: 0 0 14px rgba(245,158,11,.55);
+  letter-spacing: 3px;
+}
+
+/* ── FAB pulse ─────────────────────────────────────────────────── */
+.sp-fab:not([hidden]) {
+  animation: fabPulse 2.1s ease infinite;
+}
+@keyframes fabPulse {
+  0%,100% { box-shadow: 0 6px 20px rgba(99,102,241,.4); }
+  50%      { box-shadow: 0 6px 32px rgba(99,102,241,.75); }
+}
+
+/* ── Stat card counter animate ─────────────────────────────────── */
+.sp-stat-card { transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease; }
+.sp-stat-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(99,102,241,.15); }
+
+/* ── Step card hover ───────────────────────────────────────────── */
+.sp-step { transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease; }
+.sp-step:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,.15); }
+
+/* ── About card hover ──────────────────────────────────────────── */
+.sp-about-link {
+  transition: all .25s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px;
+  background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
+  color: var(--accent3); font-size: .8rem; font-weight: 700;
+  text-decoration: none;
+}
+.sp-about-link:hover {
+  background: rgba(99,102,241,.15);
+  border-color: var(--accent3);
+  transform: translateY(-2px);
+  opacity: 1;
+}
+
+/* ── Comparison table row hover ────────────────────────────────── */
+.sp-compare-table tbody tr {
+  transition: background .2s ease;
+}
+.sp-compare-table tbody tr:hover {
+  background: rgba(99,102,241,.04);
+}
+
+/* ── Mode description animate ──────────────────────────────────── */
+#modeDesc {
+  transition: opacity .2s ease, transform .2s ease;
+}
+.sp-mode-desc-updating {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* ── Bookmark item hover ───────────────────────────────────────── */
+.sp-bookmark-item {
+  transition: background .18s ease, transform .18s ease;
+}
+.sp-bookmark-item:hover {
+  background: rgba(99,102,241,.08);
+  transform: translateX(4px);
+}
+
+/* ── Responsive improvements ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .sp-hero-h1 { font-size: clamp(1.6rem, 7vw, 2.4rem) !important; }
+  .sp-modes-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .sp-features-grid { grid-template-columns: 1fr !important; }
+  .sp-compare-wrap { overflow-x: auto; }
+  .sp-dl-name { display: none !important; }
+  .sp-results-actions { flex-direction: column; }
+}
+@media (max-width: 360px) {
+  .sp-modes-grid { grid-template-columns: 1fr !important; }
+  .sp-hero-pills { flex-direction: column; align-items: center; }
+}
+
+/* ── Custom scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,.35); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,.6); }
+
+/* ── Section tag animation ─────────────────────────────────────── */
+.sp-section-tag {
+  animation: tagGlow 4s ease infinite;
+}
+@keyframes tagGlow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,.15); }
+  50%      { box-shadow: 0 0 0 6px rgba(99,102,241,.0); }
+}
+
+/* ── Better chips ──────────────────────────────────────────────── */
+.sp-chip {
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.sp-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.12);
+}
+
+/* ── Presets row reveal ────────────────────────────────────────── */
+.sp-presets-row:not([hidden]) {
+  animation: presetsIn .35s ease both;
+}
+@keyframes presetsIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Page grid cell better animation ──────────────────────────── */
+.sp-pg-cell {
+  animation: pgCellIn .2s ease both;
+  transition: background .12s ease, transform .12s ease, box-shadow .12s ease;
+}
+@keyframes pgCellIn {
+  from { transform: scale(.7); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+.sp-pg-cell:hover:not(.pg-selected) {
+  background: rgba(99,102,241,.1) !important;
+  border-color: rgba(99,102,241,.4) !important;
+  transform: scale(1.06);
+}
+.sp-pg-cell.pg-selected {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.4);
+}
+
+/* ── Loading skeleton pulse ────────────────────────────────────── */
+@keyframes skeletonPulse {
+  0%,100% { opacity: .4; }
+  50%      { opacity: .8; }
+}
+.sp-thumb-skeleton { animation: skeletonPulse 1.4s ease infinite !important; }
+

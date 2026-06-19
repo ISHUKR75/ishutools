@@ -708,7 +708,7 @@ def _build_readme(source_filename: str, mode: str, file_count: int,
 
     lines = [
         '═══════════════════════════════════════════',
-        'IshuTools.fun — Split PDF v12.0',
+        'IshuTools.fun — Split PDF v12.1',
         'Created by Ishu Kumar (ISHUKR41 / ISHUKR75)',
         'https://ishutools.fun | GitHub: ISHUKR41 / ISHUKR75',
         '═══════════════════════════════════════════',
@@ -1694,9 +1694,27 @@ def split_pdf(
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(
-            f'Cannot open PDF: {e}. '
-            'The file may be corrupted — try using PDF Repair first.') from e
+        # v12.1: Auto-repair attempt for corrupted PDFs
+        logger.info('PDF open failed (%s) — attempting auto-repair with pikepdf…', e)
+        repaired = False
+        if _HAS_PIKEPDF:
+            try:
+                repaired_path = input_path + '.repaired.pdf'
+                with pikepdf.open(input_path, suppress_warnings=True) as _src:
+                    _src.save(repaired_path, fix_metadata_version=True,
+                              recompress_flate=False)
+                reader = PdfReader(repaired_path)
+                if reader.is_encrypted:
+                    reader.decrypt(password or '')
+                input_path = repaired_path
+                logger.info('Auto-repair succeeded → using repaired PDF')
+                repaired = True
+            except Exception as repair_err:
+                logger.warning('Auto-repair failed: %s', repair_err)
+        if not repaired:
+            raise ValueError(
+                f'Cannot open PDF: {e}. '
+                'The file may be corrupted — try using the PDF Repair tool first.') from e
 
     total = len(reader.pages)
     if total == 0:

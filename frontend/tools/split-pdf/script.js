@@ -272,9 +272,13 @@ function updateProgress(pct, msg) {
 function addProgressStep(icon, text, status) {
   if (!D.progressSteps) return;
   var div = document.createElement('div');
+  var delay = D.progressSteps.children.length * 0.07;
   div.className = 'sp-progress-step' + (status ? ' ' + status : '');
+  div.style.animationDelay = delay + 's';
   div.innerHTML = '<i class="fa-solid ' + icon + '"></i><span>' + text + '</span>';
   D.progressSteps.appendChild(div);
+  /* v12.1: Scroll step into view */
+  div.scrollIntoView && div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function simProgress(target, msPerPct) {
@@ -524,7 +528,16 @@ function selectMode(mode) {
     c.classList.toggle('active', active);
     c.setAttribute('aria-checked', String(active));
   });
-  if (D.modeDesc) D.modeDesc.textContent = MODE_DESC[mode] || '';
+  /* v12.1: Animate mode description text change */
+  if (D.modeDesc) {
+    D.modeDesc.classList.add('sp-mode-desc-updating');
+    setTimeout(function() {
+      if (D.modeDesc) {
+        D.modeDesc.textContent = MODE_DESC[mode] || '';
+        D.modeDesc.classList.remove('sp-mode-desc-updating');
+      }
+    }, 180);
+  }
 
   var modes = ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even'];
   modes.forEach(function(m) {
@@ -1057,6 +1070,21 @@ function initKeyboard() {
         item.classList.remove('open');
       });
     }
+    /* T → toggle theme (not in input) */
+    if (e.key === 't' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      var tag = document.activeElement && document.activeElement.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA') { toggleTheme(); }
+    }
+    /* D → download if available */
+    if (e.key === 'd' && (e.ctrlKey || e.metaKey) && _BLOB_URL) {
+      e.preventDefault();
+      downloadZip();
+    }
+    /* R → reset / split again */
+    if (e.key === 'r' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+      e.preventDefault();
+      if (FILE) resetAll();
+    }
   });
 }
 
@@ -1362,6 +1390,52 @@ function initGsapAnimations() {
   gsap.from('.sp-hero-h1',         { y:14, duration:.48,  ease:'power2.out', delay:.26 });
   gsap.from('.sp-hero-sub',        { y:8,  duration:.42,  ease:'power2.out', delay:.34 });
   gsap.from('.sp-hero-pills span', { y:7,  stagger:.05,   duration:.36, ease:'power2.out', delay:.42 });
+
+  /* v12.1: Scroll-reveal for below-fold sections */
+  var secs = document.querySelectorAll('.sp-section');
+  if (secs.length && window.IntersectionObserver) {
+    var revealIO = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          gsap.from(el.querySelectorAll('.sp-feat-card, .sp-step, .sp-stat-card, .sp-review-card'), {
+            y: 22, stagger: .08, duration: .45, ease: 'power2.out'
+          });
+          revealIO.unobserve(el);
+        }
+      });
+    }, { threshold: 0.1 });
+    secs.forEach(function(s) { revealIO.observe(s); });
+  }
+}
+
+/* v12.1: Section counter animation using IntersectionObserver */
+function initStatCounters() {
+  var statNums = document.querySelectorAll('.sp-stat-num');
+  if (!statNums.length || !window.IntersectionObserver) return;
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target;
+      var txt = el.textContent.trim();
+      var num = parseFloat(txt.replace(/[^0-9.]/g, ''));
+      if (!isNaN(num) && num > 0 && num < 10000) {
+        var suffix = txt.replace(/[0-9.]/g, '');
+        var start = 0, dur = 900, startTime = null;
+        function step(ts) {
+          if (!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / dur, 1);
+          var ease = 1 - Math.pow(1 - progress, 3);
+          var cur = start + (num - start) * ease;
+          el.textContent = (num % 1 === 0 ? Math.round(cur) : cur.toFixed(1)) + suffix;
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+      io.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  statNums.forEach(function(n) { io.observe(n); });
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1514,6 +1588,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   /* GSAP (deferred) */
   setTimeout(initGsapAnimations, 200);
+
+  /* v12.1: Init stat counters for below-fold sections */
+  setTimeout(initStatCounters, 400);
 
   /* Preload sounds */
   if (window.SOUNDS && window.SOUNDS.preload) {
