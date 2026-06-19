@@ -1693,3 +1693,116 @@ def split_ranges_to_multiple(
         'processing_time_ms': round((time.time() - _t_start) * 1000),
         'quality_info': {'engine': 'pikepdf+fitz+pypdf', 'lossless': True},
     }
+
+
+# ── Compatibility aliases & missing API functions ────────────────────────────
+
+def get_split_preview(path: str, password: str = '') -> dict:
+    """Alias for pdf_info_fast — called by /api/split-pdf/info."""
+    return pdf_info_fast(path, password=password)
+
+
+def generate_page_thumbnails(
+    input_path: str,
+    output_dir: str,
+    pages: list = None,
+    dpi: int = 72,
+    password: str = '',
+) -> list:
+    """
+    Render PDF pages to JPEG thumbnails and return list of saved file paths.
+    Falls back to blank placeholder files if rendering unavailable.
+    Called by /api/split-pdf/thumbnails.
+    """
+    import os, tempfile
+    paths: list = []
+
+    if pages is None:
+        pages = list(range(12))
+
+    if _HAS_FITZ:
+        try:
+            doc = fitz.open(input_path)
+            if doc.is_encrypted:
+                doc.authenticate(password or '')
+            for i in pages:
+                if i >= doc.page_count:
+                    break
+                pg = doc[i]
+                mat = fitz.Matrix(dpi / 72.0, dpi / 72.0)
+                pix = pg.get_pixmap(matrix=mat)
+                out_path = os.path.join(output_dir, f'thumb_p{i+1:04d}.jpg')
+                pix.save(out_path)
+                paths.append(out_path)
+            doc.close()
+            return paths
+        except Exception as e:
+            logger.warning('generate_page_thumbnails fitz error: %s', e)
+
+    # Pillow / pdf2image fallback
+    try:
+        from pdf2image import convert_from_path
+        first = (pages[0] if pages else 0) + 1
+        last  = (pages[-1] if pages else 0) + 1
+        imgs = convert_from_path(input_path, dpi=dpi, first_page=first, last_page=last,
+                                  userpw=password or None)
+        for idx, img in enumerate(imgs):
+            pg_num = pages[idx] + 1 if idx < len(pages) else idx + 1
+            out_path = os.path.join(output_dir, f'thumb_p{pg_num:04d}.jpg')
+            img.save(out_path, 'JPEG', quality=72)
+            paths.append(out_path)
+        return paths
+    except Exception as e:
+        logger.warning('generate_page_thumbnails pdf2image error: %s', e)
+
+    return paths
+
+
+def get_page_analytics(input_path: str, password: str = '') -> list:
+    """
+    Return per-page analytics: word count, image count, blank status.
+    Called by /api/split-pdf/analytics.
+    """
+    result = []
+
+    if not _HAS_FITZ:
+        try:
+            reader = PdfReader(input_path)
+            if reader.is_encrypted:
+                reader.decrypt(password or '')
+            for i, pg in enumerate(reader.pages):
+                try:
+                    text = pg.extract_text() or ''
+                    words = len(text.split())
+                except Exception:
+                    words = 0
+                result.append({'page': i + 1, 'words': words, 'images': 0, 'blank': words == 0})
+        except Exception as e:
+            logger.warning('get_page_analytics pypdf error: %s', e)
+        return result
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+        for i in range(doc.page_count):
+            pg = doc[i]
+            text  = pg.get_text().strip()
+            imgs  = pg.get_images()
+            words = len(text.split()) if text else 0
+            blank = False
+            if not text and not imgs:
+                pix = pg.get_pixmap(dpi=BLANK_DPI, colorspace=fitz.csGRAY)
+                blank = _is_blank_pixel_data(bytes(pix.samples))
+            result.append({
+                'page':   i + 1,
+                'words':  words,
+                'images': len(imgs),
+                'blank':  blank,
+                'chars':  len(text),
+            })
+        doc.close()
+    except Exception as e:
+        logger.warning('get_page_analytics fitz error: %s', e)
+
+    return result

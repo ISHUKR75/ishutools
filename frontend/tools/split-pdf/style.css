@@ -489,8 +489,15 @@ input, select, textarea { font-family:var(--font); }
   font-size:.67rem; color:var(--accent); font-weight:600;
 }
 .sp-range-count { font-size:.68rem; color:var(--text3); margin-left:3px; }
-.sp-rp-hint { font-size:.71rem; color:var(--text3); font-style:italic; }
-.sp-rp-warn { font-size:.71rem; color:var(--red); display:flex; align-items:center; gap:4px; }
+.sp-rp-hint    { font-size:.71rem; color:var(--text3); font-style:italic; }
+.sp-rp-warn    { font-size:.71rem; color:var(--red); display:flex; align-items:center; gap:4px; }
+.sp-rp-invalid { font-size:.71rem; color:var(--red); }
+.sp-rp-chip {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:26px; padding:2px 6px; border-radius:6px; margin:1px;
+  background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.25);
+  font-size:.67rem; color:var(--accent); font-weight:700;
+}
 
 /* Quick-select bar */
 .sp-qs-bar {
@@ -1132,3 +1139,31 @@ input, select, textarea { font-family:var(--font); }
   background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.22);
   font-size:.7rem; color:var(--green); font-weight:700;
 }
+
+/* ── RESULT FILES LIST ───────────────────────────────────────────── */
+.sp-res-files-wrap { margin-top:16px; border-top:1px solid var(--border); padding-top:12px; }
+.sp-res-files-toggle {
+  display:flex; align-items:center; gap:7px; background:none; border:none;
+  color:var(--text2); font-size:.8rem; font-weight:600; padding:4px 0; width:100%;
+  transition:color var(--t);
+}
+.sp-res-files-toggle:hover { color:var(--text); }
+.sp-rft-arrow { margin-left:auto; font-size:.72rem; transition:transform .22s; }
+.sp-res-files-list {
+  display:flex; flex-direction:column; gap:4px; margin-top:8px;
+  max-height:200px; overflow-y:auto; padding-right:3px;
+}
+.sp-res-file-item {
+  display:flex; align-items:center; gap:8px; padding:7px 11px; border-radius:8px;
+  background:rgba(255,255,255,.025); border:1px solid var(--border);
+  font-size:.75rem; color:var(--text2); transition:var(--t);
+}
+.sp-res-file-item:hover { background:rgba(99,102,241,.07); border-color:var(--border-h); color:var(--text); }
+
+/* ── RANGE INPUT VALID STATE ─────────────────────────────────────── */
+.sp-range-input.valid { border-color:rgba(16,185,129,.45); }
+.sp-range-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--glow2); }
+
+/* ── TOAST WARNING ───────────────────────────────────────────────── */
+.sp-toast.warning { border-color:rgba(251,191,36,.32); }
+.sp-toast.warning i { color:var(--yellow,#fbbf24); }
