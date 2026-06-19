@@ -1147,8 +1147,116 @@ kbd {
   100%{ transform:translateY(100vh) rotate(720deg); opacity:0; }
 }
 
+/* ── COMPARISON TABLE ─────────────────────────────────────────────── */
+.sp-compare {
+  position:relative; z-index:1;
+  padding:56px 16px;
+  background:var(--bg);
+  border-top:1px solid var(--border);
+}
+.sp-compare-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:14px; }
+.sp-compare-table {
+  width:100%; border-collapse:collapse; font-size:.82rem;
+  background:var(--card); border-radius:14px; overflow:hidden;
+}
+.sp-compare-table th, .sp-compare-table td {
+  padding:11px 14px; border-bottom:1px solid var(--border); text-align:left;
+  vertical-align:middle;
+}
+.sp-compare-table thead tr { background:var(--bg2); }
+.sp-compare-table th { font-weight:700; font-size:.78rem; color:var(--text2); white-space:nowrap; }
+.sp-compare-table tbody tr:last-child td { border-bottom:none; }
+.sp-compare-table tbody tr:hover { background:rgba(99,102,241,.04); }
+.sp-col-us {
+  background:rgba(99,102,241,.08) !important;
+  border-left:2px solid var(--accent); border-right:2px solid var(--accent);
+  font-weight:600;
+}
+.sp-compare-table thead .sp-col-us { background:rgba(99,102,241,.15) !important; }
+.sp-compare-table thead .sp-col-us span { font-size:.85rem; font-weight:800; color:var(--text); display:block; }
+.sp-compare-table thead .sp-col-us small { font-size:.7rem; color:var(--accent); font-weight:500; }
+.sp-yes { color:var(--green); }
+.sp-yes i { font-size:.8rem; }
+.sp-maybe { color:var(--yellow); }
+.sp-maybe i { font-size:.8rem; }
+.sp-no { color:var(--red); opacity:.75; }
+.sp-no i { font-size:.8rem; }
+.sp-uniq-tag {
+  font-size:.62rem; background:var(--cyan); color:#000;
+  padding:1px 6px; border-radius:99px; font-weight:700; margin-left:4px;
+  vertical-align:middle;
+}
+.sp-compare-note {
+  margin-top:18px; font-size:.8rem; color:var(--text2);
+  padding:12px 16px; background:rgba(99,102,241,.08);
+  border:1px solid var(--border); border-radius:10px; line-height:1.6;
+}
+@media(max-width:640px) {
+  .sp-compare-table th, .sp-compare-table td { padding:8px 10px; font-size:.75rem; }
+}
+
+/* ── USER REVIEWS ─────────────────────────────────────────────────── */
+.sp-reviews {
+  position:relative; z-index:1;
+  padding:56px 16px;
+  background:linear-gradient(135deg,rgba(99,102,241,.05) 0%,rgba(139,92,246,.03) 100%);
+  border-top:1px solid var(--border);
+}
+.sp-overall-rating {
+  display:flex; align-items:center; gap:10px;
+  justify-content:center; margin-top:10px;
+}
+.sp-rating-stars i { color:var(--yellow); font-size:1.1rem; }
+.sp-rating-num {
+  font-family:var(--font2); font-size:2rem; font-weight:900; color:var(--text);
+}
+.sp-rating-base { font-size:.8rem; color:var(--text3); }
+.sp-reviews-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:18px;
+  max-width:900px; margin:28px auto 0;
+}
+@media(max-width:720px) { .sp-reviews-grid { grid-template-columns:1fr; } }
+.sp-review-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:16px; padding:20px;
+  transition:all var(--t);
+}
+.sp-review-card:hover { border-color:var(--accent); transform:translateY(-3px); box-shadow:0 12px 40px rgba(99,102,241,.15); }
+.sp-review-stars i { color:var(--yellow); font-size:.8rem; }
+.sp-review-text {
+  font-size:.82rem; color:var(--text2); line-height:1.65;
+  margin:10px 0 14px; font-style:italic;
+}
+.sp-review-author {
+  display:flex; align-items:center; gap:9px; font-size:.78rem; color:var(--text3);
+}
+.sp-review-av {
+  width:28px; height:28px; border-radius:50%;
+  background:var(--grad); color:white;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; font-weight:700; flex-shrink:0;
+}
+.sp-review-badge {
+  font-size:.65rem; background:rgba(16,185,129,.15);
+  border:1px solid rgba(16,185,129,.3); color:var(--green);
+  padding:1px 6px; border-radius:99px; margin-left:4px;
+}
+
+/* ── AUTHOR CREDENTIALS ───────────────────────────────────────────── */
+.sp-author-creds {
+  display:flex; flex-wrap:wrap; gap:7px; margin:8px 0 10px;
+}
+.sp-author-creds span {
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:.72rem; font-weight:500; color:var(--text2);
+  background:var(--card2); border:1px solid var(--border);
+  padding:4px 10px; border-radius:100px;
+}
+.sp-author-creds span i { font-size:.65rem; color:var(--accent); }
+
 /* ── SECTION ENTRANCE ANIMATIONS ─────────────────────────────────── */
-.sp-how, .sp-modes-showcase, .sp-faq, .sp-author, .sp-stats-section, .sp-seo-section {
+.sp-how, .sp-modes-showcase, .sp-faq, .sp-author, .sp-stats-section, .sp-seo-section,
+.sp-compare, .sp-reviews {
   animation:sp-section-enter .6s cubic-bezier(.4,0,.2,1) both;
 }
 @keyframes sp-section-enter {

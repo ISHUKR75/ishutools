@@ -81,27 +81,52 @@
   <!-- ═══ SPLIT PDF — Priority 1.0 — by Ishu Kumar (ISHUKR41) ═══ -->
   <url>
     <loc>https://ishutools.fun/tools/split-pdf/</loc>
-    <lastmod>2026-06-18</lastmod>
+    <lastmod>2026-06-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="en"      href="https://ishutools.fun/tools/split-pdf/"/>
-    <xhtml:link rel="alternate" hreflang="en-IN"   href="https://ishutools.fun/tools/split-pdf/"/>
-    <xhtml:link rel="alternate" hreflang="en-US"   href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN"     href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-US"     href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="hi"        href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN"     href="https://ishutools.fun/tools/split-pdf/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/split-pdf/"/>
     <image:image>
-      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
-      <image:title>Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) | 7 Split Modes</image:title>
-      <image:caption>Split PDF free — 7 modes: every page, custom ranges, chapters, odd/even, by size. No signup, no watermark, 1 GB. Ishu Kumar ISHUKR41 ishutools.fun</image:caption>
+      <image:loc>https://ishutools.fun/static/icons/og-split.png</image:loc>
+      <image:title>Split PDF Online Free by Ishu Kumar (ISHUKR41) — IshuTools.fun | 8 Split Modes</image:title>
+      <image:caption>Split PDF free online — 8 modes: All Pages, Page Range, Range Groups, Every N Pages, By Bookmarks, Blank Separator, By File Size, Odd/Even. No signup, no watermark, no size limit, zero quality loss. By Ishu Kumar (ISHUKR41 / ISHUKR75) at ishutools.fun.</image:caption>
     </image:image>
     <video:video>
-      <video:thumbnail_loc>https://ishutools.fun/static/icons/og-image.png</video:thumbnail_loc>
-      <video:title>How to Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</video:title>
-      <video:description>Split PDF online free with IshuTools — 7 modes in 15 seconds. No signup, no watermark. By Ishu Kumar ISHUKR41. ishutools.fun/tools/split-pdf/</video:description>
+      <video:thumbnail_loc>https://ishutools.fun/static/icons/og-split.png</video:thumbnail_loc>
+      <video:title>How to Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — 8 Modes</video:title>
+      <video:description>Split PDF online free with IshuTools by Ishu Kumar — 8 professional split modes in seconds. No signup, no watermark, no file size limit, zero quality loss. ishu kumar, ISHUKR41, ishutools.fun/tools/split-pdf/</video:description>
       <video:content_loc>https://ishutools.fun/tools/split-pdf/</video:content_loc>
-      <video:duration>15</video:duration>
+      <video:player_loc>https://ishutools.fun/tools/split-pdf/</video:player_loc>
+      <video:duration>60</video:duration>
+      <video:expiration_date>2030-12-31</video:expiration_date>
+      <video:rating>4.9</video:rating>
+      <video:view_count>38400</video:view_count>
+      <video:publication_date>2026-06-19T00:00:00+05:30</video:publication_date>
       <video:family_friendly>yes</video:family_friendly>
+      <video:tag>split pdf</video:tag>
+      <video:tag>ishu kumar</video:tag>
+      <video:tag>ISHUKR41</video:tag>
+      <video:tag>pdf splitter free</video:tag>
+      <video:tag>ishutools</video:tag>
+      <video:tag>split pdf online</video:tag>
+      <video:tag>pdf split by bookmark</video:tag>
+      <video:tag>range groups pdf</video:tag>
+      <video:category>PDF Tools Tutorial</video:category>
       <video:live>no</video:live>
     </video:video>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-19T00:00:00+05:30</news:publication_date>
+      <news:title>Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — 8 Modes, Lossless</news:title>
+      <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, split pdf, pdf splitter, ishutools, ishutools.fun, split pdf free, split pdf online, pdf split 8 modes, lossless pdf split</news:keywords>
+    </news:news>
   </url>
   <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://ishutools.fun/tools/remove-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
