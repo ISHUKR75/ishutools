@@ -3100,3 +3100,53 @@ body::after {
   color: var(--accent);
   margin-right: 5px;
 }
+
+/* ══ ISHU KUMAR QUICK FACTS (Knowledge Panel) ══════════════════════════ */
+.sp-facts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 24px;
+  background: var(--card2);
+}
+.sp-fact-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  transition: var(--t);
+}
+.sp-fact-row:last-child { border-bottom: none; }
+.sp-fact-row:hover { background: rgba(99,102,241,.04); }
+.sp-fact-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text2);
+  background: rgba(99,102,241,.05);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.sp-fact-label i { color: var(--accent); font-size: .78rem; }
+.sp-fact-value {
+  padding: 12px 18px;
+  font-size: .85rem;
+  color: var(--text);
+  line-height: 1.55;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sp-fact-value a { color: var(--accent3); font-weight: 600; text-decoration: none; }
+.sp-fact-value a:hover { text-decoration: underline; }
+@media (max-width: 500px) {
+  .sp-fact-row { grid-template-columns: 1fr; }
+  .sp-fact-label { border-right: none; border-bottom: 1px solid var(--border); }
+}
