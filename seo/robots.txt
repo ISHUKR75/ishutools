@@ -21,6 +21,7 @@ Sitemap: https://ishutools.fun/sitemap.xml
 Sitemap: https://ishutools.fun/sitemap-tools.xml
 Sitemap: https://ishutools.fun/sitemap-merge-pdf.xml
 Sitemap: https://ishutools.fun/sitemap-split-pdf.xml
+Sitemap: https://ishutools.fun/sitemap-compress-pdf.xml
 
 # ── Google ──────────────────────────────────────────────────
 User-agent: Googlebot

@@ -28,7 +28,13 @@
   <!-- Dedicated Split PDF sitemap — keywords: split pdf, ishu kumar, ISHUKR41 -->
   <sitemap>
     <loc>https://ishutools.fun/sitemap-split-pdf.xml</loc>
-    <lastmod>2026-06-18</lastmod>
+    <lastmod>2026-06-19</lastmod>
+  </sitemap>
+
+  <!-- Dedicated Compress PDF sitemap — ishu compress pdf, ishu kumar, ISHUKR41, pdf compressor -->
+  <sitemap>
+    <loc>https://ishutools.fun/sitemap-compress-pdf.xml</loc>
+    <lastmod>2026-06-20</lastmod>
   </sitemap>
 
 </sitemapindex>

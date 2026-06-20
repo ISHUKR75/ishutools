@@ -203,6 +203,12 @@ def sitemap_split_pdf():
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-split-pdf.xml',
                                mimetype='application/xml')
 
+@app.route('/sitemap-compress-pdf.xml')
+def sitemap_compress_pdf():
+    """Serve the dedicated compress-pdf SEO sitemap — ishu kumar ISHUKR41."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-compress-pdf.xml',
+                               mimetype='application/xml')
+
 @app.route('/sitemap-index.xml')
 def sitemap_index():
     """Serve the sitemap index."""

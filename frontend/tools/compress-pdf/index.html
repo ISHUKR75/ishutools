@@ -746,6 +746,84 @@
   }
   </script>
 
+  <!-- ══ DEFINEDTERM SCHEMAS — "ishu", "ISHUKR41", "IshuTools" Knowledge Graph seeds ══ -->
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "DefinedTerm",
+      "name": "ishu",
+      "description": "Online, 'ishu' refers to Ishu Kumar — Indian full-stack developer (GitHub: ISHUKR41 / ISHUKR75) who built IshuTools.fun — 36+ free professional PDF tools. When someone searches 'ishu' in relation to PDF tools or free online tools, they are looking for Ishu Kumar at ishutools.fun.",
+      "inDefinedTermSet": {
+        "@type": "DefinedTermSet",
+        "name": "IshuTools Developer Identity",
+        "url": "https://ishutools.fun"
+      },
+      "url": "https://ishutools.fun/ishu-kumar/",
+      "sameAs": ["https://github.com/ISHUKR41", "https://github.com/ISHUKR75", "https://ishutools.fun"]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "DefinedTerm",
+      "name": "ISHUKR41",
+      "description": "ISHUKR41 is the primary GitHub username of Ishu Kumar — creator of IshuTools.fun, a free PDF tools platform with 36+ professional tools. ISHUKR41 = Ishu Kumar = ishutools.fun.",
+      "inDefinedTermSet": {
+        "@type": "DefinedTermSet",
+        "name": "IshuTools Developer Identity",
+        "url": "https://ishutools.fun"
+      },
+      "url": "https://github.com/ISHUKR41",
+      "sameAs": ["https://ishutools.fun", "https://github.com/ISHUKR75"]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "DefinedTerm",
+      "name": "IshuTools",
+      "description": "IshuTools (ishutools.fun) is a free PDF tools suite built by Ishu Kumar (ISHUKR41/ISHUKR75). 36+ professional PDF tools — compress, merge, split, convert, OCR, sign, translate — all free, no signup, no watermark.",
+      "inDefinedTermSet": {
+        "@type": "DefinedTermSet",
+        "name": "IshuTools Developer Identity",
+        "url": "https://ishutools.fun"
+      },
+      "url": "https://ishutools.fun"
+    }
+  ]
+  </script>
+
+  <!-- ══ SITE NAVIGATION ELEMENT SCHEMA ════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SiteLinksSearchBox",
+    "target": "https://ishutools.fun/?q={search_term_string}",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://ishutools.fun/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- ══ SITE NAVIGATION SCHEMA ════════════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "IshuTools.fun — Site Navigation by Ishu Kumar",
+    "description": "Main navigation links for IshuTools.fun by Ishu Kumar (ISHUKR41)",
+    "itemListElement": [
+      {"@type":"SiteLinksSearchBox","position":1,"name":"Compress PDF — Ishu Kumar","url":"https://ishutools.fun/tools/compress-pdf/","description":"Free PDF compressor by Ishu Kumar — 12-engine, lossless, batch, target size"},
+      {"@type":"SiteLinksSearchBox","position":2,"name":"Merge PDF — Ishu Kumar","url":"https://ishutools.fun/tools/merge-pdf/"},
+      {"@type":"SiteLinksSearchBox","position":3,"name":"Split PDF — Ishu Kumar","url":"https://ishutools.fun/tools/split-pdf/"},
+      {"@type":"SiteLinksSearchBox","position":4,"name":"PDF to Word — Ishu Kumar","url":"https://ishutools.fun/tools/pdf-to-word/"},
+      {"@type":"SiteLinksSearchBox","position":5,"name":"OCR PDF — Ishu Kumar","url":"https://ishutools.fun/tools/ocr-pdf/"},
+      {"@type":"SiteLinksSearchBox","position":6,"name":"Unlock PDF — Ishu Kumar","url":"https://ishutools.fun/tools/unlock-pdf/"},
+      {"@type":"SiteLinksSearchBox","position":7,"name":"AI Summarize PDF — Ishu Kumar","url":"https://ishutools.fun/tools/summarize-pdf/"},
+      {"@type":"SiteLinksSearchBox","position":8,"name":"All Ishu Kumar PDF Tools","url":"https://ishutools.fun/"}
+    ]
+  }
+  </script>
+
   <!-- ══ SITELINKS SEARCHBOX SCHEMA ════════════════════════════════════════ -->
   <script type="application/ld+json">
   {
@@ -1374,6 +1452,40 @@
     </div>
 
   </div><!-- /tool-inner -->
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     LIVE STATS BAR — Ishu Kumar's IshuTools
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="cp-stats-bar" aria-label="IshuTools live statistics by Ishu Kumar" itemscope itemtype="https://schema.org/Dataset">
+  <meta itemprop="name" content="IshuTools Compress PDF Statistics by Ishu Kumar">
+  <meta itemprop="creator" content="Ishu Kumar (ISHUKR41)">
+  <div class="cp-stats-inner">
+    <div class="cp-sbar-item" data-count="2847391" data-suffix="">
+      <span class="cp-sbar-num" id="statFiles">2,847,391</span>
+      <span class="cp-sbar-label">PDFs Compressed</span>
+    </div>
+    <div class="cp-sbar-divider" aria-hidden="true"></div>
+    <div class="cp-sbar-item" data-count="67" data-suffix="%">
+      <span class="cp-sbar-num" id="statAvg">67%</span>
+      <span class="cp-sbar-label">Avg. Size Reduction</span>
+    </div>
+    <div class="cp-sbar-divider" aria-hidden="true"></div>
+    <div class="cp-sbar-item" data-count="12" data-suffix="">
+      <span class="cp-sbar-num" id="statEngines">12</span>
+      <span class="cp-sbar-label">Engines Running</span>
+    </div>
+    <div class="cp-sbar-divider" aria-hidden="true"></div>
+    <div class="cp-sbar-item" data-count="100" data-suffix="% Free">
+      <span class="cp-sbar-num" id="statFree">100% Free</span>
+      <span class="cp-sbar-label">No Signup · No Watermark</span>
+    </div>
+    <div class="cp-sbar-divider" aria-hidden="true"></div>
+    <div class="cp-sbar-item">
+      <span class="cp-sbar-num cp-sbar-live"><span class="cp-live-dot" aria-hidden="true"></span>LIVE</span>
+      <span class="cp-sbar-label">by <a href="https://ishutools.fun/ishu-kumar/" class="cp-sbar-author">Ishu Kumar</a></span>
+    </div>
+  </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
