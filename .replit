@@ -28,7 +28,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gunicorn --config gunicorn.conf.py main:app"
+args = ".pythonlibs/bin/gunicorn --config gunicorn.conf.py main:app"
 waitForPort = 5000
 
 [[ports]]
