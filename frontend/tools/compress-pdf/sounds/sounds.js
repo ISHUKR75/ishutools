@@ -15,7 +15,7 @@
   'use strict';
 
   const KEY   = 'ishu-sounds-v3';
-  const BASE  = '/tools/merge-pdf/sounds/';
+  const BASE  = 'sounds/';
   let   _on   = true;
   try { _on = localStorage.getItem(KEY) !== 'false'; } catch (_) {}
 
