@@ -1634,6 +1634,136 @@ kbd {
   .cp-hindi-step { flex-direction: column; align-items: center; text-align: center; }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   SCANNED PDF SPECIALIST GUIDE — ISHU KUMAR
+══════════════════════════════════════════════════════════════════ */
+.cp-scanned-section {
+  padding: var(--sp-12) var(--sp-6);
+  background: var(--bg1); border-top: 1px solid var(--bdr);
+}
+.cp-scanned-inner { max-width: var(--sec-max); margin: 0 auto; }
+.cp-scanned-intro {
+  text-align: center; font-size: var(--fs-sm); color: var(--t3);
+  max-width: 700px; margin: var(--sp-3) auto var(--sp-8); line-height: 1.7;
+}
+.cp-scanned-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-4);
+}
+.cp-scanned-card {
+  background: var(--bg2); border: 1px solid var(--bdr);
+  border-radius: var(--r-lg); padding: var(--sp-5);
+  display: flex; flex-direction: column; gap: var(--sp-3);
+}
+.cp-scanned-problem { border-color: rgba(239,68,68,.2); }
+.cp-scanned-solution { border-color: rgba(16,185,129,.2); }
+.cp-scanned-workflow { border-color: rgba(59,130,246,.2); }
+.cp-sc-head {
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.cp-sc-icon-warn { color: #f87171; font-size: 1.1rem; }
+.cp-sc-icon-ok   { color: #10b981; font-size: 1.1rem; }
+.cp-sc-icon-blue { color: #60a5fa; font-size: 1.1rem; }
+.cp-sc-title {
+  font-size: var(--fs-sm); font-weight: 700; color: var(--t1); margin: 0;
+}
+.cp-sc-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+.cp-sc-list li {
+  font-size: var(--fs-xs); color: var(--t3); line-height: 1.6;
+  padding-left: var(--sp-3); position: relative;
+}
+.cp-sc-list li::before {
+  content: '•'; position: absolute; left: 0;
+  color: var(--em); font-size: .9em;
+}
+.cp-sc-steps { display: flex; flex-direction: column; gap: var(--sp-2); }
+.cp-sc-step {
+  display: flex; align-items: flex-start; gap: var(--sp-2);
+  font-size: var(--fs-xs); color: var(--t3); line-height: 1.6;
+}
+.cp-sc-step a { color: var(--em); text-decoration: none; }
+.cp-sc-step a:hover { text-decoration: underline; }
+.cp-sc-num {
+  background: var(--em); color: #000; width: 20px; height: 20px;
+  min-width: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; font-weight: 800;
+}
+.cp-sc-presets {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.cp-sc-preset {
+  font-size: .7rem; color: var(--t3); background: var(--bg1);
+  border: 1px solid var(--bdr); border-radius: var(--r-sm);
+  padding: var(--sp-1) var(--sp-2);
+}
+.cp-sc-preset strong { color: var(--em); }
+
+/* ══════════════════════════════════════════════════════════════════
+   INDIA GOVT PORTAL PDF LIMITS TABLE — ISHU KUMAR
+══════════════════════════════════════════════════════════════════ */
+.cp-govtable-section {
+  padding: var(--sp-12) var(--sp-6);
+  background: linear-gradient(135deg, rgba(245,158,11,.03) 0%, rgba(16,185,129,.03) 100%);
+  border-top: 1px solid var(--bdr);
+}
+.cp-govtable-inner { max-width: var(--sec-max); margin: 0 auto; }
+.cp-govtable-intro {
+  text-align: center; font-size: var(--fs-sm); color: var(--t3);
+  max-width: 700px; margin: var(--sp-3) auto var(--sp-6); line-height: 1.7;
+}
+.cp-govtable-wrap {
+  width: 100%; overflow-x: auto;
+  border: 1px solid var(--bdr); border-radius: var(--r-lg);
+  -webkit-overflow-scrolling: touch;
+}
+.cp-govtable {
+  width: 100%; border-collapse: collapse; font-size: var(--fs-xs);
+}
+.cp-govtable thead tr {
+  background: rgba(16,185,129,.08);
+}
+.cp-govtable th {
+  padding: var(--sp-3) var(--sp-4); text-align: left;
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--em);
+  border-bottom: 2px solid rgba(16,185,129,.2);
+  white-space: nowrap;
+}
+.cp-govtable td {
+  padding: var(--sp-3) var(--sp-4); color: var(--t3);
+  border-bottom: 1px solid var(--bdr); line-height: 1.5;
+}
+.cp-govtable tbody tr:last-child td { border-bottom: none; }
+.cp-govtable tbody tr:hover td { background: rgba(16,185,129,.04); }
+.cp-gt-alt td { background: rgba(255,255,255,.02); }
+.cp-gt-limit { font-weight: 700; color: #f59e0b; white-space: nowrap; }
+.cp-gt-badge {
+  display: inline-block; padding: 2px 8px;
+  background: rgba(16,185,129,.12); color: var(--em);
+  border-radius: var(--r-full); font-size: .65rem; font-weight: 700;
+  white-space: nowrap;
+}
+.cp-gt-badge-target {
+  background: rgba(245,158,11,.15); color: #f59e0b;
+}
+.cp-govtable-footer {
+  margin-top: var(--sp-4); font-size: var(--fs-xs); color: var(--t4);
+  display: flex; align-items: flex-start; gap: var(--sp-2); line-height: 1.6;
+}
+.cp-govtable-footer i { color: var(--em); margin-top: 2px; flex-shrink: 0; }
+.cp-govtable-footer a { color: var(--em); text-decoration: none; }
+.cp-govtable-footer a:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .cp-scanned-grid { grid-template-columns: 1fr; }
+  .cp-sc-presets { grid-template-columns: 1fr; }
+}
+
 @media print {
   #bgCanvas, .cp-nav, #toastWrap, #scrollTopBtn, #cpFab, .cp-marquee-section { display: none !important; }
   body { background: #fff; color: #000; }

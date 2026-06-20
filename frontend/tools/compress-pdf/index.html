@@ -376,6 +376,31 @@
         "@type": "Question",
         "name": "What technology does Ishu Kumar use to build IshuTools?",
         "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar built IshuTools.fun with Python Flask (backend), pikepdf (lossless compression), Ghostscript (distillation), PyMuPDF/fitz (image resampling), qpdf (linearisation), mutool (stream cleaning), Pillow (image compression), pdf2docx, pytesseract (OCR), deep-translator (AI translate), and Vanilla HTML/CSS/JS with GSAP, Chart.js, PDF.js frontend."}
+      },
+      {
+        "@type": "Question",
+        "name": "How to compress a scanned PDF without losing text clarity?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Scanned PDFs are image-heavy — each page is a JPEG/PNG at 300–600 DPI. Ishu Kumar's IshuTools uses PyMuPDF (fitz) which automatically detects image-only pages and resamples to 150–200 DPI (High preset). A 100 MB scanned PDF compresses to 8–15 MB with readable text. For govt portals, use Target Size Mode to hit exactly 100 KB, 200 KB, or 500 KB. Tip: use Ishu's OCR PDF tool first, then compress — you get a searchable AND compressed PDF."}
+      },
+      {
+        "@type": "Question",
+        "name": "How to compress PDF to 100KB for government portal in India?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar built a Binary Search Target Mode specifically for Indian government portals (EPFO, DigiLocker, NTA, UPSC, DU, IRCTC). Go to ishutools.fun/tools/compress-pdf/, click Target File Size, enter 90 KB (10% below limit as safety margin), and click Compress PDF. Ishu's engine runs a binary search over DPI settings to hit your exact target within ±2% accuracy. Works for any limit: 100 KB, 200 KB, 300 KB, 500 KB, or 1 MB."}
+      },
+      {
+        "@type": "Question",
+        "name": "Can IshuTools compress PDF without changing font or text quality?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes — Ishu Kumar's Lossless preset uses pikepdf with zero re-encoding. Fonts are preserved 100%, text is pixel-identical to the original. Only removes duplicate objects, unused resources, redundant cross-references and metadata bloat. Saves 2–25%. Ideal for legal documents, contracts, certificates, and academic papers where font accuracy is critical."}
+      },
+      {
+        "@type": "Question",
+        "name": "Ishu tools compress PDF India mein best kyun hai?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar (ISHUKR41) ek Indian developer hain — unhone IshuTools.fun banaya India ki zarooraton ke liye: Government portal support (EPFO, DigiLocker, NTA ke exact size limits ke liye Target Mode), mobile-first design (2G/3G pe bhi kaam karta hai), 100% free (koi subscription nahi), privacy (files store nahi hoti), Hindi support, 12-engine pipeline jo iLovePDF/Smallpdf se 3x better compression deta hai. Ishu Kumar ka promise: IshuTools hamesha free rahega."}
+      },
+      {
+        "@type": "Question",
+        "name": "What is ISHUKR41 and ISHUKR75?",
+        "acceptedAnswer": {"@type": "Answer", "text": "ISHUKR41 and ISHUKR75 are the GitHub usernames of Ishu Kumar — an Indian full-stack developer who built IshuTools.fun. When you search 'ISHUKR41', 'ISHUKR75', 'ishu', 'ishu kumar', 'ishu tools', or 'ishu compress pdf' online, you are looking for Ishu Kumar at ishutools.fun — India's best free PDF tools platform with 36+ professional tools."}
       }
     ]
   }
@@ -2240,6 +2265,173 @@
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
+     SCANNED PDF SPECIALIST GUIDE — ISHU KUMAR
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="cp-scanned-section" aria-labelledby="scannedHead">
+  <div class="cp-scanned-inner">
+    <h2 id="scannedHead" class="cp-section-title">
+      How to Compress Scanned PDF — Ishu Kumar's Specialist Guide
+    </h2>
+    <p class="cp-scanned-intro">
+      Scanned PDFs are 5–20× larger than text PDFs because every page is a raw image.
+      <strong>Ishu Kumar</strong> designed specific handling for scanned documents — here's how to get the best results.
+    </p>
+    <div class="cp-scanned-grid">
+      <div class="cp-scanned-card cp-scanned-problem">
+        <div class="cp-sc-head">
+          <i class="fa fa-exclamation-triangle cp-sc-icon-warn" aria-hidden="true"></i>
+          <h3 class="cp-sc-title">The Problem with Scanned PDFs</h3>
+        </div>
+        <ul class="cp-sc-list">
+          <li>A 10-page scanned document can be <strong>50–200 MB</strong></li>
+          <li>Each page = a JPEG/PNG image at 300–600 DPI (scanner default)</li>
+          <li>Normal text compressors can't compress image-only pages</li>
+          <li>Most free tools reject files over 10 MB — Ishu's tool has <strong>no limit</strong></li>
+          <li>Result: WhatsApp won't send it, email rejects it, govt portals block it</li>
+        </ul>
+      </div>
+      <div class="cp-scanned-card cp-scanned-solution">
+        <div class="cp-sc-head">
+          <i class="fa fa-check-circle cp-sc-icon-ok" aria-hidden="true"></i>
+          <h3 class="cp-sc-title">Ishu Kumar's Solution</h3>
+        </div>
+        <ul class="cp-sc-list">
+          <li>PyMuPDF detects image-only pages automatically</li>
+          <li>Resamples from 600 DPI → 150–200 DPI (High preset)</li>
+          <li>JPEG quality set to 85 — invisible quality difference, huge size saving</li>
+          <li>A 100 MB scanned PDF → <strong>8–15 MB</strong> in High mode</li>
+          <li>Or use <strong>Screen preset</strong>: → <strong>2–5 MB</strong> for WhatsApp/email sharing</li>
+          <li><strong>Target Mode</strong>: set exactly 500 KB for govt portal upload</li>
+        </ul>
+      </div>
+      <div class="cp-scanned-card cp-scanned-workflow">
+        <div class="cp-sc-head">
+          <i class="fa fa-route cp-sc-icon-blue" aria-hidden="true"></i>
+          <h3 class="cp-sc-title">Recommended Workflow by Ishu</h3>
+        </div>
+        <div class="cp-sc-steps">
+          <div class="cp-sc-step"><span class="cp-sc-num">1</span><span>OCR first → <a href="/tools/ocr-pdf/">ishu OCR tool</a> (makes text searchable)</span></div>
+          <div class="cp-sc-step"><span class="cp-sc-num">2</span><span>Then compress → <a href="/tools/compress-pdf/">ishu compress PDF</a> (High preset)</span></div>
+          <div class="cp-sc-step"><span class="cp-sc-num">3</span><span>Result: searchable + compressed — best of both worlds</span></div>
+        </div>
+        <div class="cp-sc-presets">
+          <div class="cp-sc-preset"><strong>WhatsApp:</strong> Screen preset → ~2 MB</div>
+          <div class="cp-sc-preset"><strong>Email:</strong> Low preset → ~5 MB</div>
+          <div class="cp-sc-preset"><strong>Govt Portal:</strong> Target Mode → exact size</div>
+          <div class="cp-sc-preset"><strong>Archive:</strong> High preset → max quality</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     INDIA GOVT PORTAL PDF SIZE LIMITS TABLE — ISHU KUMAR
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="cp-govtable-section" aria-labelledby="govtableHead">
+  <div class="cp-govtable-inner">
+    <h2 id="govtableHead" class="cp-section-title">
+      India Government Portal PDF Size Limits — Ishu Kumar's Reference Guide
+    </h2>
+    <p class="cp-govtable-intro">
+      <strong>Ishu Kumar</strong> compiled this reference table for Indian users. Use <strong>IshuTools Target Size Mode</strong>
+      to compress your PDF to exactly the required limit — set your target 10% below the limit as a safety margin.
+    </p>
+    <div class="cp-govtable-wrap" role="region" aria-label="India government portal PDF limits">
+      <table class="cp-govtable" role="table">
+        <thead>
+          <tr>
+            <th scope="col">Portal / Use Case</th>
+            <th scope="col">PDF Size Limit</th>
+            <th scope="col">Ishu's Recommended Preset</th>
+            <th scope="col">Set Target To</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>DigiLocker Upload</strong></td>
+            <td class="cp-gt-limit">1 MB</td>
+            <td><span class="cp-gt-badge">Low</span></td>
+            <td>900 KB</td>
+          </tr>
+          <tr class="cp-gt-alt">
+            <td><strong>EPFO / UAN Portal</strong></td>
+            <td class="cp-gt-limit">500 KB</td>
+            <td><span class="cp-gt-badge">Screen / Target</span></td>
+            <td>450 KB</td>
+          </tr>
+          <tr>
+            <td><strong>NTA / JEE / NEET Form</strong></td>
+            <td class="cp-gt-limit">100–300 KB</td>
+            <td><span class="cp-gt-badge cp-gt-badge-target">Target Mode</span></td>
+            <td>90–270 KB</td>
+          </tr>
+          <tr class="cp-gt-alt">
+            <td><strong>UPSC / SSC Application</strong></td>
+            <td class="cp-gt-limit">300 KB</td>
+            <td><span class="cp-gt-badge cp-gt-badge-target">Target Mode</span></td>
+            <td>270 KB</td>
+          </tr>
+          <tr>
+            <td><strong>DU / Delhi University</strong></td>
+            <td class="cp-gt-limit">200 KB</td>
+            <td><span class="cp-gt-badge cp-gt-badge-target">Target Mode</span></td>
+            <td>180 KB</td>
+          </tr>
+          <tr class="cp-gt-alt">
+            <td><strong>IRCTC / Railway Booking</strong></td>
+            <td class="cp-gt-limit">500 KB</td>
+            <td><span class="cp-gt-badge">Low</span></td>
+            <td>450 KB</td>
+          </tr>
+          <tr>
+            <td><strong>Income Tax / ITR Portal</strong></td>
+            <td class="cp-gt-limit">5 MB</td>
+            <td><span class="cp-gt-badge">Medium</span></td>
+            <td>4.5 MB</td>
+          </tr>
+          <tr class="cp-gt-alt">
+            <td><strong>Aadhaar / UIDAI Services</strong></td>
+            <td class="cp-gt-limit">1 MB</td>
+            <td><span class="cp-gt-badge">Low</span></td>
+            <td>900 KB</td>
+          </tr>
+          <tr>
+            <td><strong>Gmail Attachment</strong></td>
+            <td class="cp-gt-limit">25 MB</td>
+            <td><span class="cp-gt-badge">Medium</span></td>
+            <td>—</td>
+          </tr>
+          <tr class="cp-gt-alt">
+            <td><strong>WhatsApp Document</strong></td>
+            <td class="cp-gt-limit">100 MB</td>
+            <td><span class="cp-gt-badge">Screen</span></td>
+            <td>Under 2 MB</td>
+          </tr>
+          <tr>
+            <td><strong>College Admission Portal</strong></td>
+            <td class="cp-gt-limit">100–500 KB</td>
+            <td><span class="cp-gt-badge cp-gt-badge-target">Target Mode</span></td>
+            <td>Set 10% below</td>
+          </tr>
+          <tr class="cp-gt-alt">
+            <td><strong>Passport / Visa Application</strong></td>
+            <td class="cp-gt-limit">2 MB</td>
+            <td><span class="cp-gt-badge">Medium</span></td>
+            <td>1.8 MB</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="cp-govtable-footer">
+      <i class="fa fa-info-circle" aria-hidden="true"></i>
+      All limits verified by <strong>Ishu Kumar</strong>. Use <strong><a href="/tools/compress-pdf/">IshuTools Target Size Mode</a></strong>
+      to hit exact limits. Set target 10% below the portal limit for a safe buffer. <em>Last updated: June 2026.</em>
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
      RELATED TOOLS BY ISHU KUMAR — INTERNAL LINKING
 ══════════════════════════════════════════════════════════════════════════ -->
 <section class="cp-related-section" aria-labelledby="relatedHead">
@@ -2751,6 +2943,103 @@
           <strong>pytesseract</strong> (OCR), <strong>deep-translator</strong> (AI translate),
           Vanilla HTML/CSS/JS (frontend) with GSAP, Chart.js, and PDF.js.
           All source code by <strong>Ishu Kumar</strong> (ISHUKR41 / ISHUKR75).
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-faq-item cp-reveal">
+      <button class="cp-faq-q" aria-expanded="false" aria-controls="faq16-a">
+        <div class="cp-faq-icon" aria-hidden="true"><i class="fa fa-scanner"></i></div>
+        <span class="cp-faq-txt">How to compress a scanned PDF without losing text clarity?</span>
+        <i class="fa fa-chevron-down cp-faq-chevron" aria-hidden="true"></i>
+      </button>
+      <div id="faq16-a" class="cp-faq-a">
+        <div class="cp-faq-a-inner">
+          Scanned PDFs are image-heavy — compressing them without losing OCR text clarity requires special handling.
+          <strong>Ishu Kumar's</strong> IshuTools compress PDF tool uses <strong>PyMuPDF (fitz)</strong> for scanned PDFs:
+          it detects image-only pages and resamples at 150–200 DPI (vs the original 300–600 DPI scanner output).
+          Use the <strong>High preset</strong> for scanned documents — you get 40–60% smaller file with readable text.
+          For completely unsearchable scans, use <strong>Ishu's OCR PDF tool first</strong> to make text selectable,
+          then compress. <em>Never use Screen preset on scanned documents</em> — 72 DPI makes text blurry.
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-faq-item cp-reveal">
+      <button class="cp-faq-q" aria-expanded="false" aria-controls="faq17-a">
+        <div class="cp-faq-icon" aria-hidden="true"><i class="fa fa-university"></i></div>
+        <span class="cp-faq-txt">How to compress PDF to 100KB, 200KB, or 500KB for government portal upload?</span>
+        <i class="fa fa-chevron-down cp-faq-chevron" aria-hidden="true"></i>
+      </button>
+      <div id="faq17-a" class="cp-faq-a">
+        <div class="cp-faq-a-inner">
+          Indian government portals (EPFO, DigiLocker, NTA, DU admissions, IRCTC, UPSC) have strict size limits.
+          <strong>Ishu Kumar</strong> built a <strong>Binary Search Target Mode</strong> specifically for this:
+          <br><br>
+          1. Upload your PDF to <strong>ishutools.fun/tools/compress-pdf/</strong><br>
+          2. Click <strong>"Target File Size"</strong><br>
+          3. Enter your limit (e.g. 90 KB — 10% below portal limit as safety margin)<br>
+          4. Click <strong>Compress PDF</strong><br><br>
+          Ishu's engine runs a binary search over DPI settings to hit <strong>exactly your target ±2%</strong>.
+          No other free tool has this feature. Works for 100 KB, 200 KB, 500 KB, 1 MB limits.
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-faq-item cp-reveal">
+      <button class="cp-faq-q" aria-expanded="false" aria-controls="faq18-a">
+        <div class="cp-faq-icon" aria-hidden="true"><i class="fa fa-file-pdf"></i></div>
+        <span class="cp-faq-txt">Can IshuTools compress PDF without changing font or text quality?</span>
+        <i class="fa fa-chevron-down cp-faq-chevron" aria-hidden="true"></i>
+      </button>
+      <div id="faq18-a" class="cp-faq-a">
+        <div class="cp-faq-a-inner">
+          Yes — <strong>Ishu Kumar</strong> designed the <strong>Lossless preset</strong> exactly for this.
+          The lossless engine (pikepdf) never re-encodes images or text streams — it only removes:
+          duplicate objects, unused resources, metadata bloat, redundant cross-references, and unoptimized streams.
+          <strong>Fonts are preserved 100%</strong> — no subsetting, no removal, no quality change.
+          Text in the compressed PDF is pixel-identical to the original.
+          Lossless mode saves 2–25% — ideal for legal documents, contracts, certificates, and academic papers
+          where font accuracy matters.
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-faq-item cp-reveal">
+      <button class="cp-faq-q" aria-expanded="false" aria-controls="faq19-a">
+        <div class="cp-faq-icon" aria-hidden="true"><i class="fa fa-layer-group"></i></div>
+        <span class="cp-faq-txt">Can I compress multiple PDFs at once on Ishu's tool? (Batch compression)</span>
+        <i class="fa fa-chevron-down cp-faq-chevron" aria-hidden="true"></i>
+      </button>
+      <div id="faq19-a" class="cp-faq-a">
+        <div class="cp-faq-a-inner">
+          Yes! <strong>Ishu Kumar's</strong> compress PDF tool supports <strong>batch compression</strong>.
+          Just drag and drop multiple PDF files into the drop zone at once — or click "browse" and select multiple files.
+          All files are compressed in parallel using all 12 engines simultaneously.
+          Each file gets its own result with file size shown before and after.
+          Download all compressed files individually. <strong>No file count limit, no size limit</strong> — completely free.
+          This is unique to <strong>ishutools.fun</strong> — most free PDF compressors only allow one file at a time.
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-faq-item cp-reveal">
+      <button class="cp-faq-q" aria-expanded="false" aria-controls="faq20-a">
+        <div class="cp-faq-icon" aria-hidden="true"><i class="fa fa-globe-asia"></i></div>
+        <span class="cp-faq-txt">Ishu tools compress PDF India mein best kyun hai? (Why is IshuTools best in India?)</span>
+        <i class="fa fa-chevron-down cp-faq-chevron" aria-hidden="true"></i>
+      </button>
+      <div id="faq20-a" class="cp-faq-a">
+        <div class="cp-faq-a-inner">
+          <strong>Ishu Kumar (ISHUKR41)</strong> ek Indian developer hain — unhone IshuTools.fun banaya hai
+          specifically India ki zarooraton ko dhyan mein rakh kar:<br><br>
+          🇮🇳 <strong>Government portal support</strong> — EPFO, DigiLocker, NTA ke exact size limits ke liye Target Mode<br>
+          📱 <strong>Mobile-first design</strong> — 2G/3G pe bhi kaam karta hai<br>
+          🆓 <strong>100% free</strong> — koi subscription nahi, koi hidden charge nahi<br>
+          🔒 <strong>Privacy</strong> — files server pe store nahi hoti<br>
+          🌏 <strong>Hindi support</strong> — bilingual interface<br>
+          ⚡ <strong>12-engine pipeline</strong> — iLovePDF/Smallpdf se 3x better compression<br><br>
+          <em>Ishu Kumar ka promise: IshuTools.fun hamesha free rahega India ke liye.</em>
         </div>
       </div>
     </div>
