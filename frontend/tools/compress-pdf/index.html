@@ -351,6 +351,15 @@
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════
+     UNDO BAR
+════════════════════════════════════════════════════════════════════ -->
+<div id="cpUndoBar" hidden role="status" aria-live="polite">
+  <span class="cp-undo-msg"><i class="fa fa-trash-alt" aria-hidden="true"></i> Item removed</span>
+  <button id="cpUndoBtn" class="cp-undo-action">Undo</button>
+  <button id="cpUndoDismiss" class="cp-undo-dismiss" aria-label="Dismiss"><i class="fa fa-times" aria-hidden="true"></i></button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
      TOOL SECTION — COMPRESS PDF (order:3 — appears FIRST on page)
 ════════════════════════════════════════════════════════════════════ -->
 <main class="cp-tool-section" id="upload" role="main" aria-label="Compress PDF tool">
@@ -801,6 +810,9 @@
             <div class="cp-stage" role="listitem"><div class="cp-stage-dot"></div>Post-process</div>
             <div class="cp-stage" role="listitem"><div class="cp-stage-dot"></div>Finalise</div>
           </div>
+
+          <!-- Progress timeline (populated by JS) -->
+          <div id="cpProgressTimeline" class="cp-progress-timeline" role="list" aria-label="Progress timeline"></div>
         </div>
 
       </div>
@@ -874,6 +886,16 @@
           <div class="cp-res-stat-label">Preset Applied</div>
           <div id="resPreset" class="cp-res-stat-val">—</div>
         </div>
+      </div>
+
+      <!-- Compression fingerprint -->
+      <div id="resFingerprint" hidden class="cp-res-fingerprint" aria-label="Compression fingerprint">
+        <i class="fa fa-fingerprint" aria-hidden="true"></i>
+        <span class="cp-fingerprint-label">Fingerprint:</span>
+        <code class="cp-fingerprint-code" id="resFingerprintCode"></code>
+        <button class="cp-fingerprint-copy" id="resFingerprintCopy" aria-label="Copy fingerprint" title="Copy fingerprint">
+          <i class="fa fa-copy" aria-hidden="true"></i>
+        </button>
       </div>
 
       <!-- Engines tried row -->
@@ -1491,6 +1513,77 @@
   <i class="fa fa-compress-arrows-alt" aria-hidden="true"></i>
   Compress
 </button>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     KEYBOARD SHORTCUTS MODAL
+════════════════════════════════════════════════════════════════════ -->
+<div id="cp-shortcuts-modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts"
+     style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(6px)">
+  <div class="cp-shortcuts-card" tabindex="-1">
+    <div class="cp-shortcuts-header">
+      <div class="cp-shortcuts-title">
+        <i class="fa fa-keyboard" aria-hidden="true"></i>
+        Keyboard Shortcuts
+      </div>
+      <button id="closeShortcuts" aria-label="Close shortcuts" style="background:none;border:none;color:var(--t4);font-size:1.2rem;cursor:pointer;padding:.2rem .4rem;border-radius:.3rem;line-height:1">
+        <i class="fa fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Open file picker</span>
+      <kbd class="cp-shortcut-key">O</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Compress now</span>
+      <kbd class="cp-shortcut-key">Enter</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Cancel / close panel</span>
+      <kbd class="cp-shortcut-key">Esc</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Reset tool</span>
+      <kbd class="cp-shortcut-key">R</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Toggle history panel</span>
+      <kbd class="cp-shortcut-key">H</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Toggle batch panel</span>
+      <kbd class="cp-shortcut-key">B</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Cycle preset forward</span>
+      <kbd class="cp-shortcut-key">P</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Preset up / down</span>
+      <kbd class="cp-shortcut-key">↑ / ↓</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Show file info</span>
+      <kbd class="cp-shortcut-key">I</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Undo last delete</span>
+      <kbd class="cp-shortcut-key">Z</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Toggle sound</span>
+      <kbd class="cp-shortcut-key">S</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Toggle theme</span>
+      <kbd class="cp-shortcut-key">T</kbd>
+    </div>
+    <div class="cp-shortcut-row">
+      <span class="cp-shortcut-desc">Show this panel</span>
+      <kbd class="cp-shortcut-key">?</kbd>
+    </div>
+  </div>
+</div>
 
 <!-- Deferred scripts -->
 <script src="script.js" defer></script>

@@ -5712,6 +5712,37 @@ def verify_lossless_output(input_path: str, output_path: str) -> Dict[str, Any]:
 
 # ─── COMPRESSION METRICS CALCULATOR ──────────────────────────────────────────
 
+def _preset_quality_score(preset: str, pct: float, engine: str = 'auto') -> int:
+    """
+    Compute a preset-aware quality score (0-100).
+    - lossless/high: start at 100, penalty only for large pct reductions (stream-only)
+    - medium: balanced score based on compression achieved
+    - low/screen: reward compression, accept quality trade-off
+    """
+    engine_bonus = {
+        'pikepdf_lossless': 8, 'pikepdf_dedup': 7, 'pikepdf_xref_rebuild': 6,
+        'gs_prepress': 7, 'gs_printer': 6, 'gs_ebook': 6, 'qpdf_stream': 6,
+        'fitz_recompress': 5, 'mutool_clean': 5,
+    }.get(engine, 3)
+
+    if preset in ('lossless', 'high'):
+        base = 92
+        reduction_bonus = min(6, int(pct * 0.15))
+        return min(100, base + reduction_bonus + engine_bonus)
+    elif preset == 'medium':
+        base = 60
+        gain = min(30, int(pct * 0.55))
+        return min(100, base + gain + engine_bonus)
+    elif preset == 'low':
+        base = 50
+        gain = min(38, int(pct * 0.6))
+        return min(100, base + gain + engine_bonus)
+    else:  # screen
+        base = 42
+        gain = min(48, int(pct * 0.65))
+        return min(100, base + gain + engine_bonus)
+
+
 def calculate_compression_metrics(
     input_path: str,
     output_path: str,
@@ -8463,7 +8494,7 @@ def build_api_response(
         'engine':             result.get('engine_used', result.get('engine', 'auto')),
         'processing_ms':      elapsed_ms,
         'processing_human':   f'{elapsed_ms / 1000:.1f}s',
-        'quality_score':      result.get('quality_score', max(0, 100 - int(pct * 0.4))),
+        'quality_score':      result.get('quality_score', _preset_quality_score(preset, pct, result.get('engine_used', result.get('engine', 'auto')))),
         'content_type':       result.get('content_type', 'mixed'),
         'engines_tried':      result.get('engines_tried', []),
         'engines_succeeded':  result.get('engines_succeeded', []),
@@ -9206,7 +9237,7 @@ def compress_pdf_v37_pipeline(
         'engine_reports':    parallel_r.get('engine_reports', {}),
         'content_type':      content_type,
         'processing_ms':     elapsed_ms,
-        'quality_score':     max(0, 100 - int(pct * 0.4)),
+        'quality_score':     _preset_quality_score(preset, pct, parallel_r.get('best_engine', 'auto')),
         'qa_passed':         qa.get('passed', True),
         'fingerprint':       fp,
         'scan_ratio':        scan_det.get('scan_ratio', 0),
@@ -9852,7 +9883,7 @@ def compress_pdf_unified(
         'processing_ms':    elapsed_ms,
         'original_human':   _human(in_sz),
         'compressed_human': _human(out_sz),
-        'quality_score':    max(0, 100 - int(pct * 0.35)),
+        'quality_score':    _preset_quality_score(preset, pct, 'auto'),
     }
 
 
