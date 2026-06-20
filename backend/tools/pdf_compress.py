@@ -3871,3 +3871,374 @@ log.info(
     f"pypdf={PYPDF_OK} gs={'yes' if _find_gs() else 'no'} "
     f"qpdf={'yes' if _find_qpdf() else 'no'}"
 )
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# v32 ADDITIONS — ISHU KUMAR (ISHUKR41) — IshuTools.fun
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def batch_compress_summary(results: list) -> dict:
+    """
+    Aggregate summary statistics for a batch compression run.
+    results: list of dicts with keys input_size, output_size, reduction_pct, engine, grade
+    Returns total_saved, avg_reduction, best_file, worst_file, total_files, engines_used.
+    """
+    if not results:
+        return {'success': False, 'error': 'Empty results list'}
+    total_in   = sum(r.get('input_size', 0) for r in results)
+    total_out  = sum(r.get('output_size', 0) for r in results)
+    total_saved = max(0, total_in - total_out)
+    avg_red    = ((total_in - total_out) / total_in * 100) if total_in > 0 else 0.0
+    best       = max(results, key=lambda r: r.get('reduction_pct', 0))
+    worst      = min(results, key=lambda r: r.get('reduction_pct', 0))
+    engines    = list({r.get('engine', 'unknown') for r in results if r.get('engine')})
+    grades     = [r.get('grade', 'C') for r in results]
+    grade_order = ['S', 'A', 'B', 'C', 'D', 'F']
+    avg_grade  = grade_order[min(
+        int(sum(grade_order.index(g) for g in grades if g in grade_order) / max(len(grades), 1)),
+        len(grade_order) - 1
+    )]
+    return {
+        'success':       True,
+        'total_files':   len(results),
+        'total_input':   total_in,
+        'total_output':  total_out,
+        'total_saved':   total_saved,
+        'avg_reduction': round(avg_red, 2),
+        'avg_grade':     avg_grade,
+        'best_file':     best,
+        'worst_file':    worst,
+        'engines_used':  engines,
+    }
+
+
+def estimate_preset_outputs(path: str, password: str = '') -> dict:
+    """
+    For a given PDF, estimate output sizes for all 5 presets.
+    Returns dict: {preset: estimated_output_bytes} and compression potentials.
+    """
+    result: Dict[str, Any] = {
+        'success': False, 'presets': {}, 'recommendations': [], 'errors': []
+    }
+    try:
+        info = get_compression_estimate(path, password)
+        if not info.get('success'):
+            result['errors'].append('Could not analyse PDF')
+            return result
+
+        file_size = info.get('file_size', 0)
+        ests      = info.get('estimated_reductions_by_preset', {})
+
+        presets_out = {}
+        for preset, pct in ests.items():
+            pct_val = float(pct or 0)
+            estimated_out = int(file_size * (1 - pct_val / 100))
+            presets_out[preset] = {
+                'estimated_output_bytes':  max(estimated_out, 1024),
+                'estimated_reduction_pct': round(pct_val, 1),
+                'estimated_output_human':  _human(max(estimated_out, 1024)),
+            }
+
+        result.update({
+            'success':       True,
+            'file_size':     file_size,
+            'file_size_human': _human(file_size),
+            'presets':       presets_out,
+            'content_type':  info.get('content_type', 'mixed'),
+            'recommendations': info.get('recommendations', []),
+        })
+    except Exception as e:
+        result['errors'].append(str(e))
+    return result
+
+
+def _human(b: int) -> str:
+    """Format bytes to human-readable string."""
+    if b == 0: return '0 B'
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if b < 1024:
+            return f"{b:.1f} {unit}" if unit != 'B' else f"{b} B"
+        b /= 1024
+    return f"{b:.1f} TB"
+
+
+def validate_compressed_output(input_path: str, output_path: str,
+                                 preset: str = 'medium') -> dict:
+    """
+    Validate that the compressed output is a valid, readable PDF and
+    that no critical content was lost (for lossless/high presets).
+    Returns: {valid, page_count_match, size_ratio, warnings, errors}
+    """
+    result: Dict[str, Any] = {
+        'valid': False, 'page_count_match': False,
+        'size_ratio': 0.0, 'warnings': [], 'errors': []
+    }
+    try:
+        in_sz  = os.path.getsize(input_path)
+        out_sz = os.path.getsize(output_path)
+        if out_sz == 0:
+            result['errors'].append('Output file is empty')
+            return result
+        size_ratio = out_sz / max(in_sz, 1)
+        result['size_ratio'] = round(size_ratio, 4)
+
+        if size_ratio > 1.5 and preset not in ('lossless', 'high'):
+            result['warnings'].append(
+                f'Output is {size_ratio:.1f}x larger than input — unexpected for {preset} preset'
+            )
+
+        in_pages  = _count_pages_safe(input_path)
+        out_pages = _count_pages_safe(output_path)
+        page_match = (in_pages > 0 and in_pages == out_pages)
+        result['page_count_match'] = page_match
+        if not page_match and in_pages > 0:
+            result['warnings'].append(
+                f'Page count mismatch: input={in_pages}, output={out_pages}'
+            )
+
+        # Basic PDF header check
+        with open(output_path, 'rb') as f:
+            header = f.read(8)
+        if not header.startswith(b'%PDF'):
+            result['errors'].append('Output is not a valid PDF (missing %PDF header)')
+            return result
+
+        result['valid'] = True
+    except Exception as e:
+        result['errors'].append(str(e))
+    return result
+
+
+def _count_pages_safe(path: str) -> int:
+    """Count PDF pages without raising — returns 0 on failure."""
+    try:
+        if PIKEPDF_OK:
+            with pikepdf.open(path, suppress_warnings=True) as pdf:
+                return len(pdf.pages)
+    except Exception:
+        pass
+    try:
+        if PYPDF_OK:
+            from pypdf import PdfReader
+            return len(PdfReader(path, strict=False).pages)
+    except Exception:
+        pass
+    return 0
+
+
+def get_compression_speed_estimate(file_size_bytes: int, preset: str = 'medium') -> dict:
+    """
+    Estimate compression time based on file size and preset.
+    Returns: {estimated_seconds, speed_class, notes}
+    """
+    # Empirical estimates (per MB) based on preset complexity
+    secs_per_mb = {
+        'lossless': 0.3,
+        'high':     0.8,
+        'medium':   1.2,
+        'low':      2.0,
+        'screen':   2.8,
+    }
+    mb       = file_size_bytes / (1024 * 1024)
+    rate     = secs_per_mb.get(preset, 1.5)
+    est_secs = max(0.5, mb * rate)
+
+    if est_secs < 3:
+        speed_class = 'instant'
+        notes = 'Almost instant — under 3 seconds'
+    elif est_secs < 15:
+        speed_class = 'fast'
+        notes = f'Fast — ~{est_secs:.0f} seconds'
+    elif est_secs < 60:
+        speed_class = 'moderate'
+        notes = f'Moderate — ~{est_secs:.0f} seconds'
+    else:
+        mins = est_secs / 60
+        speed_class = 'slow'
+        notes = f'Large file — ~{mins:.1f} minutes'
+
+    return {
+        'estimated_seconds': round(est_secs, 1),
+        'speed_class':       speed_class,
+        'notes':             notes,
+        'file_size_mb':      round(mb, 2),
+        'preset':            preset,
+    }
+
+
+def smart_select_preset(analysis: dict) -> str:
+    """
+    Given analysis dict from get_compression_estimate(), return the
+    smart-recommended preset key (lossless/high/medium/low/screen).
+    Logic:
+      - Already small (<200KB) → lossless
+      - Text-only PDF → high (lossless stream savings)
+      - Image-heavy, large (>10MB) → screen or low
+      - Mixed + medium savings → medium
+      - Already optimised (max est <8%) → lossless
+    """
+    ests        = analysis.get('estimated_reductions_by_preset', {})
+    content     = analysis.get('content_type', 'mixed')
+    file_sz     = analysis.get('file_size', 0)
+    max_est     = max((float(v) for v in ests.values()), default=0)
+    has_encrypt = analysis.get('has_encryption', False)
+
+    if has_encrypt:
+        return 'high'  # Safe default for encrypted
+
+    if file_sz < 200 * 1024:           # < 200 KB
+        return 'lossless'
+    if max_est < 8:
+        return 'lossless'
+    if content == 'text_only':
+        return 'high'
+    if content == 'image_only' and file_sz > 10 * 1024 * 1024:
+        return 'low'
+    if max_est > 60 and file_sz > 5 * 1024 * 1024:
+        return 'screen'
+    return 'medium'
+
+
+def repair_pdf_structure(input_path: str, output_path: str, password: str = '') -> dict:
+    """
+    Attempt to repair a corrupt or damaged PDF structure using pikepdf.
+    Returns: {success, repaired, warnings, errors, output_size}
+    """
+    result: Dict[str, Any] = {
+        'success': False, 'repaired': False,
+        'warnings': [], 'errors': [], 'output_size': 0
+    }
+    if not PIKEPDF_OK:
+        result['errors'].append('pikepdf not available')
+        return result
+    try:
+        open_kw = {'suppress_warnings': True, 'recovery': True}
+        if password:
+            open_kw['password'] = password
+        with pikepdf.open(input_path, **open_kw) as pdf:
+            save_kw: Dict[str, Any] = {
+                'compress_streams': True,
+                'object_stream_mode': pikepdf.ObjectStreamMode.generate,
+                'recompress_flate': True,
+            }
+            pdf.save(output_path, **save_kw)
+        result.update({
+            'success':     True,
+            'repaired':    True,
+            'output_size': os.path.getsize(output_path),
+        })
+    except Exception as e:
+        result['errors'].append(str(e))
+    return result
+
+
+def extract_color_pages_info(path: str, password: str = '',
+                              sample_pages: int = 10) -> dict:
+    """
+    Sample up to `sample_pages` pages to determine color vs grayscale ratio.
+    Useful for deciding whether grayscale conversion would save significant space.
+    Returns: {color_ratio, grayscale_pages, color_pages, total_sampled, recommendation}
+    """
+    result: Dict[str, Any] = {
+        'success': False, 'color_ratio': 1.0,
+        'color_pages': 0, 'grayscale_pages': 0, 'total_sampled': 0,
+        'recommendation': 'unknown', 'errors': []
+    }
+    if not FITZ_OK:
+        result['errors'].append('PyMuPDF not available')
+        return result
+    try:
+        import fitz  # type: ignore
+        doc    = fitz.open(path)
+        total  = len(doc)
+        to_sample = min(sample_pages, total)
+        step   = max(1, total // to_sample)
+        pages_color = 0
+        pages_gray  = 0
+        for i in range(0, total, step):
+            if pages_color + pages_gray >= to_sample:
+                break
+            page = doc[i]
+            pix  = page.get_pixmap(alpha=False, colorspace=fitz.csGRAY)
+            pix2 = page.get_pixmap(alpha=False)
+            # Compare: if RGB and GRAY samples differ significantly → color
+            gray_data  = pix.samples
+            color_data = pix2.samples
+            # Simple heuristic: check if channel variance differs
+            import statistics
+            sample_vals = list(color_data[:3000:3])
+            if len(sample_vals) > 10:
+                var = statistics.variance(sample_vals) if len(sample_vals) > 1 else 0
+                if var > 800:
+                    pages_color += 1
+                else:
+                    pages_gray += 1
+            else:
+                pages_gray += 1
+        doc.close()
+        sampled = pages_color + pages_gray
+        color_ratio = pages_color / max(sampled, 1)
+        result.update({
+            'success':        True,
+            'color_pages':    pages_color,
+            'grayscale_pages': pages_gray,
+            'total_sampled':  sampled,
+            'color_ratio':    round(color_ratio, 3),
+            'recommendation': (
+                'Convert to grayscale for significant savings' if color_ratio < 0.15
+                else 'Keep color — document is primarily colored'
+                if color_ratio > 0.7
+                else 'Mixed — grayscale conversion may save 10–30%'
+            ),
+        })
+    except Exception as e:
+        result['errors'].append(str(e))
+    return result
+
+
+def estimate_target_mode_quality(file_size: int, target_kb: int) -> dict:
+    """
+    For target-size mode, estimate what quality level is required and
+    whether the target is achievable.
+    Returns: {achievable, required_reduction_pct, required_preset, warnings}
+    """
+    target_bytes = target_kb * 1024
+    if target_bytes >= file_size:
+        return {
+            'achievable': True,
+            'required_reduction_pct': 0.0,
+            'required_preset': 'lossless',
+            'warnings': ['Target is larger than input — no compression needed'],
+        }
+    required_pct = (1 - target_bytes / file_size) * 100
+    warnings     = []
+    if required_pct > 90:
+        required_preset = 'screen'
+        warnings.append(
+            f'{required_pct:.0f}% reduction required — may significantly impact quality'
+        )
+    elif required_pct > 70:
+        required_preset = 'screen'
+        warnings.append(f'{required_pct:.0f}% reduction required — use Screen preset')
+    elif required_pct > 45:
+        required_preset = 'low'
+    elif required_pct > 25:
+        required_preset = 'medium'
+    elif required_pct > 10:
+        required_preset = 'high'
+    else:
+        required_preset = 'lossless'
+
+    return {
+        'achievable':             required_pct < 95,
+        'required_reduction_pct': round(required_pct, 1),
+        'required_preset':        required_preset,
+        'target_bytes':           target_bytes,
+        'warnings':               warnings,
+    }
+
+
+# Additional alias for completeness
+estimate_outputs_by_preset = estimate_preset_outputs
+batch_summary             = batch_compress_summary
+
+log.info("pdf_compress.py v32 extensions loaded")

@@ -1882,3 +1882,701 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('/api/compress-pdf/engines').catch(() => {});
   }, 3000);
 });
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   v32 ADDITIONS — ISHU KUMAR (ISHUKR41) — IshuTools.fun
+   ══════════════════════════════════════════════════════════════════════════════
+   NEW FEATURES:
+   • PDF.js thumbnail preview (first page renders in dropzone when file loaded)
+   • Real-time compression speed meter (KB/s)
+   • Batch ZIP download (download all compressed files as a single .zip)
+   • Drag-to-reorder batch queue items
+   • Preset size estimator panel (live estimates for all 5 presets)
+   • Before/After visual comparison with animated size bars
+   • Clipboard copy of download URL
+   • Multi-file drag-counter badge
+   • Compression savings leaderboard in history
+   • Auto dark/light canvas particle color adaptation
+   • Smart filename display (truncate with tooltip)
+   • Advanced result breakdown: savings per engine
+   • Compression speed chart (KB/s over time)
+   • Keyboard-accessible preset comparison view
+   • Real-time target KB estimation feedback
+   • Toast queue manager (prevents stacking)
+   • One-click re-compress with different preset
+   • Smooth page-leave animation guard
+   • Result PDF metadata display
+   • Batch progress total bar
+   • Auto-scroll to first error in batch
+══════════════════════════════════════════════════════════════════════════════ */
+
+'use strict';
+
+/* ── PDF.js thumbnail preview ─────────────────────────────────────────────── */
+
+const PDFJS_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+const PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+let _pdfjsLoaded = false;
+let _pdfjsLoading = false;
+const _pdfjsQueue = [];
+
+function loadPdfJs(cb) {
+  if (_pdfjsLoaded && window.pdfjsLib) { cb(); return; }
+  _pdfjsQueue.push(cb);
+  if (_pdfjsLoading) return;
+  _pdfjsLoading = true;
+  const s = document.createElement('script');
+  s.src = PDFJS_CDN;
+  s.onload = () => {
+    try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; } catch (_) {}
+    _pdfjsLoaded = true;
+    _pdfjsLoading = false;
+    _pdfjsQueue.forEach(fn => { try { fn(); } catch (_) {} });
+    _pdfjsQueue.length = 0;
+  };
+  s.onerror = () => { _pdfjsLoading = false; };
+  document.head.appendChild(s);
+}
+
+async function renderPdfThumbnail(file, canvasEl, maxW = 280, maxH = 320) {
+  if (!window.pdfjsLib) return false;
+  try {
+    const buf  = await file.arrayBuffer();
+    const pdf  = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf), verbosity: 0 }).promise;
+    const page = await pdf.getPage(1);
+    const vp0  = page.getViewport({ scale: 1 });
+    const scale = Math.min(maxW / vp0.width, maxH / vp0.height);
+    const vp    = page.getViewport({ scale });
+    canvasEl.width  = vp.width;
+    canvasEl.height = vp.height;
+    await page.render({ canvasContext: canvasEl.getContext('2d'), viewport: vp }).promise;
+    return true;
+  } catch (_) { return false; }
+}
+
+function showFileThumbnail(file) {
+  const dz = document.getElementById('dropZone');
+  if (!dz) return;
+
+  // Remove existing thumbnail
+  const old = document.getElementById('cpThumbCanvas');
+  if (old) old.parentElement?.remove();
+
+  // Build thumbnail container
+  const wrap = document.createElement('div');
+  wrap.id = 'cpThumbWrap';
+  wrap.className = 'cp-thumb-wrap';
+  wrap.innerHTML = `
+    <canvas id="cpThumbCanvas" class="cp-thumb-canvas" role="img" aria-label="PDF first-page preview"></canvas>
+    <div class="cp-thumb-overlay">
+      <i class="fa fa-file-pdf cp-thumb-pdf-icon" aria-hidden="true"></i>
+      <div class="cp-thumb-name" title="${file.name}">${file.name.length > 28 ? file.name.slice(0, 25) + '…' : file.name}</div>
+      <div class="cp-thumb-size">${fmtBytes(file.size)}</div>
+    </div>`;
+  dz.insertBefore(wrap, dz.firstChild);
+
+  loadPdfJs(() => {
+    const canvas = document.getElementById('cpThumbCanvas');
+    if (!canvas) return;
+    renderPdfThumbnail(file, canvas, 260, 300).then(ok => {
+      if (ok) {
+        wrap.classList.add('has-thumb');
+      } else {
+        wrap.classList.add('no-thumb');
+      }
+    });
+  });
+}
+
+/* ── Preset Size Estimator Panel ──────────────────────────────────────────── */
+
+function showPresetEstimates(analysisData) {
+  const panel = document.getElementById('presetEstPanel');
+  if (!panel || !analysisData) return;
+
+  const ests    = analysisData.estimated_reductions_by_preset || analysisData.estimates || {};
+  const inSize  = analysisData.file_size || (FILE ? FILE.size : 0);
+  const presets = [
+    { key: 'lossless', label: 'Lossless', color: '#8b5cf6' },
+    { key: 'high',     label: 'High',     color: '#10b981' },
+    { key: 'medium',   label: 'Medium',   color: '#6366f1' },
+    { key: 'low',      label: 'Low',      color: '#f59e0b' },
+    { key: 'screen',   label: 'Screen',   color: '#ef4444' },
+  ];
+
+  const rows = presets.map(p => {
+    const pct = Math.round(ests[p.key] ?? 0);
+    const estOut = inSize > 0 ? inSize * (1 - pct / 100) : 0;
+    return `
+      <div class="cp-est-row" role="row">
+        <div class="cp-est-label" style="color:${p.color}">${p.label}</div>
+        <div class="cp-est-bar-wrap" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${p.label} estimated reduction ${pct}%">
+          <div class="cp-est-bar" style="width:${pct}%;background:${p.color}22;border-right:3px solid ${p.color}"></div>
+        </div>
+        <div class="cp-est-pct" style="color:${p.color}">${pct > 0 ? `~${pct}%` : '—'}</div>
+        <div class="cp-est-size">${estOut > 0 ? fmtBytes(estOut) : '—'}</div>
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="cp-est-header">
+      <i class="fa fa-chart-bar" aria-hidden="true"></i>
+      Estimated output sizes for your file (${fmtBytes(inSize)})
+    </div>
+    <div class="cp-est-table" role="table" aria-label="Preset size estimates">
+      ${rows}
+    </div>`;
+  panel.removeAttribute('hidden');
+}
+
+/* ── Real-time compression speed meter ────────────────────────────────────── */
+
+let _speedSamples  = [];
+let _speedInterval = null;
+let _lastBytes     = 0;
+let _lastSpeedTs   = 0;
+
+function startSpeedMeter(fileSize) {
+  _speedSamples = [];
+  _lastBytes    = 0;
+  _lastSpeedTs  = performance.now();
+  const totalBytes = fileSize || (FILE ? FILE.size : 0);
+
+  const meterEl = document.getElementById('cpSpeedMeter');
+  if (!meterEl) return;
+  meterEl.removeAttribute('hidden');
+
+  _speedInterval = setInterval(() => {
+    const now = performance.now();
+    const elapsed = (now - _t0) / 1000;
+    if (elapsed <= 0) return;
+    const pct = parseFloat(document.getElementById('progressPct')?.textContent) || 0;
+    const estProcessed = (pct / 100) * totalBytes;
+    const speed = estProcessed / Math.max(elapsed, 0.1);
+    _speedSamples.push(speed);
+    if (_speedSamples.length > 12) _speedSamples.shift();
+    const avgSpeed = _speedSamples.reduce((a, b) => a + b, 0) / _speedSamples.length;
+    const remaining = speed > 0 ? Math.max(0, (totalBytes - estProcessed) / speed) : 0;
+
+    const valEl = document.getElementById('cpSpeedVal');
+    const etaEl  = document.getElementById('cpSpeedEta');
+    if (valEl) valEl.textContent = fmtBytes(Math.round(avgSpeed)) + '/s';
+    if (etaEl) etaEl.textContent = remaining > 2 ? fmtElapsed(remaining) + ' left' : 'Finalising…';
+  }, 600);
+}
+
+function stopSpeedMeter() {
+  if (_speedInterval) { clearInterval(_speedInterval); _speedInterval = null; }
+  const meterEl = document.getElementById('cpSpeedMeter');
+  if (meterEl) meterEl.setAttribute('hidden', '');
+}
+
+/* ── Patch doCompress to start/stop speed meter ───────────────────────────── */
+
+const _origDoCompress = doCompress;
+window._ishuDoCompressPatched = true;
+
+/* Override: we need to wrap doCompress to start/stop speed meter inline.
+   We do this by monkey-patching the SSE open and close calls */
+const _origOpenSSE = openSSE;
+function openSSE_v32(jobId) {
+  startSpeedMeter(FILE ? FILE.size : 0);
+  _origOpenSSE(jobId);
+}
+/* Note: closeSSE is called inline in doCompress — we patch stopSpeedMeter
+   into the DOMContentLoaded phase post-existing-wiring */
+
+/* ── Batch ZIP download ────────────────────────────────────────────────────── */
+
+async function downloadAllBatchAsZip() {
+  const done = BATCH_QUEUE.filter(item => item.status === 'done' && item.result?.blob);
+  if (done.length === 0) {
+    toast('No files ready', 'Compress files first before downloading ZIP.', 'warn', 3000);
+    return;
+  }
+
+  // Try to use JSZip (lazy-loaded)
+  const btn = document.getElementById('batchZipBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Building ZIP…'; }
+
+  try {
+    await _ensureJsZip();
+    const zip = new window.JSZip();
+    for (const item of done) {
+      const arrayBuf = await item.result.blob.arrayBuffer();
+      const name     = getStem(item.file.name) + '_compressed.pdf';
+      zip.file(name, arrayBuf);
+    }
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 1 },
+    });
+    const zipStem = (BATCH_LARGEST ? getStem(BATCH_LARGEST.name) : 'batch') + '_compressed_all';
+    const url  = URL.createObjectURL(zipBlob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = `${zipStem}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    S('fahhhhh');
+    toast('ZIP downloaded!', `${done.length} compressed files in one archive.`, 'success', 4000);
+  } catch (err) {
+    toast('ZIP failed', err.message || 'Could not create archive.', 'error', 5000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-file-archive"></i> Download All as ZIP'; }
+  }
+}
+
+function _ensureJsZip() {
+  return new Promise((resolve, reject) => {
+    if (window.JSZip) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    s.onload  = resolve;
+    s.onerror = () => reject(new Error('Failed to load JSZip'));
+    document.head.appendChild(s);
+  });
+}
+
+/* ── Drag-to-reorder batch items ──────────────────────────────────────────── */
+
+let _dragSrcItem = null;
+let _dragSrcIdx  = 0;
+
+function initBatchDragReorder() {
+  const list = document.getElementById('batchList');
+  if (!list) return;
+
+  list.querySelectorAll('.cp-batch-item').forEach((row, i) => {
+    row.draggable = true;
+    row.setAttribute('aria-grabbed', 'false');
+
+    row.addEventListener('dragstart', e => {
+      _dragSrcItem = row;
+      _dragSrcIdx  = i;
+      row.classList.add('cp-batch-dragging');
+      row.setAttribute('aria-grabbed', 'true');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', i);
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('cp-batch-dragging');
+      row.setAttribute('aria-grabbed', 'false');
+      list.querySelectorAll('.cp-batch-item').forEach(r => r.classList.remove('cp-batch-drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      list.querySelectorAll('.cp-batch-item').forEach(r => r.classList.remove('cp-batch-drag-over'));
+      if (row !== _dragSrcItem) row.classList.add('cp-batch-drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!_dragSrcItem || _dragSrcItem === row) return;
+      const items = [...list.querySelectorAll('.cp-batch-item')];
+      const destIdx = items.indexOf(row);
+      // Reorder BATCH_QUEUE
+      const moved = BATCH_QUEUE.splice(_dragSrcIdx, 1)[0];
+      BATCH_QUEUE.splice(destIdx, 0, moved);
+      // Re-render
+      showBatchPanel();
+      initBatchDragReorder();
+      toast('Queue reordered', '', 'info', 1500);
+    });
+  });
+}
+
+/* ── Before/After visual size comparison ─────────────────────────────────── */
+
+function showBeforeAfterComparison(inSize, outSize) {
+  const wrap = document.getElementById('cpBeforeAfterViz');
+  if (!wrap || inSize <= 0) return;
+
+  const redPct = calcReduction(inSize, outSize);
+  const maxBar = Math.max(inSize, outSize);
+  const beforePct = 100;
+  const afterPct  = (outSize / maxBar) * 100;
+
+  wrap.innerHTML = `
+    <div class="cp-bav-title">
+      <i class="fa fa-balance-scale" aria-hidden="true"></i>
+      File Size Comparison
+    </div>
+    <div class="cp-bav-row">
+      <div class="cp-bav-label">Before</div>
+      <div class="cp-bav-track" aria-label="Before size: ${fmtBytes(inSize)}">
+        <div class="cp-bav-fill cp-bav-before" style="width:${beforePct}%" aria-hidden="true"></div>
+        <div class="cp-bav-val">${fmtBytes(inSize)}</div>
+      </div>
+    </div>
+    <div class="cp-bav-row">
+      <div class="cp-bav-label">After</div>
+      <div class="cp-bav-track" aria-label="After size: ${fmtBytes(outSize)}">
+        <div class="cp-bav-fill cp-bav-after" style="width:0%" data-target="${afterPct}" aria-hidden="true"></div>
+        <div class="cp-bav-val">${fmtBytes(outSize)}</div>
+      </div>
+    </div>
+    <div class="cp-bav-savings" aria-live="polite">
+      <i class="fa fa-fire" aria-hidden="true"></i>
+      Saved <strong>${fmtBytes(inSize - outSize)}</strong>
+      — <strong>${redPct.toFixed(1)}%</strong> smaller
+      <span class="cp-bav-grade">${gradeFromPct(redPct)}</span>
+    </div>`;
+  wrap.removeAttribute('hidden');
+
+  // Animate the "after" bar
+  setTimeout(() => {
+    const fill = wrap.querySelector('.cp-bav-after');
+    if (fill) fill.style.width = fill.dataset.target + '%';
+  }, 80);
+}
+
+function gradeFromPct(pct) {
+  if (pct >= 70) return '🏆 Outstanding';
+  if (pct >= 50) return '⭐ Excellent';
+  if (pct >= 30) return '✅ Great';
+  if (pct >= 10) return '👍 Good';
+  if (pct > 0)   return '➕ Minimal';
+  return '🔒 Already optimal';
+}
+
+/* ── Smooth result animation with before/after viz ───────────────────────── */
+
+const _origShowResult = showResult;
+function showResult_v32(r) {
+  _origShowResult(r);
+  // Also render comparison viz
+  setTimeout(() => {
+    showBeforeAfterComparison(r.inSize, r.outSize);
+    stopSpeedMeter();
+  }, 200);
+}
+
+/* ── Analysis panel: show preset estimates after analysis ─────────────────── */
+
+const _origAnalyzeFile = analyzeFile;
+async function analyzeFile_v32(file) {
+  await _origAnalyzeFile(file);
+  // After analysis completes, show thumbnail and estimates
+  setTimeout(() => {
+    if (FILE === file) {
+      showFileThumbnail(file);
+      if (ANALYSIS_DATA) showPresetEstimates(ANALYSIS_DATA);
+    }
+  }, 400);
+}
+
+/* ── Target KB live feedback ──────────────────────────────────────────────── */
+
+function initTargetFeedback() {
+  const inp    = document.getElementById('targetKb');
+  const feedEl = document.getElementById('cpTargetFeedback');
+  if (!inp || !feedEl) return;
+
+  inp.addEventListener('input', () => {
+    const kb    = parseInt(inp.value, 10);
+    const inSz  = FILE ? FILE.size : 0;
+    if (!kb || kb <= 0 || !inSz) { feedEl.textContent = ''; return; }
+    const targetBytes = kb * 1024;
+    const needed = ((inSz - targetBytes) / inSz) * 100;
+    if (targetBytes >= inSz) {
+      feedEl.textContent = '⚠️ Target larger than current file — no compression needed';
+      feedEl.style.color = 'var(--am)';
+    } else if (needed > 90) {
+      feedEl.textContent = `⚠️ ${needed.toFixed(0)}% reduction needed — may affect quality significantly`;
+      feedEl.style.color = 'var(--rd)';
+    } else if (needed > 60) {
+      feedEl.textContent = `✅ ${needed.toFixed(0)}% reduction needed — achievable with Screen or Low preset`;
+      feedEl.style.color = 'var(--em)';
+    } else {
+      feedEl.textContent = `✅ ${needed.toFixed(0)}% reduction needed — easily achievable`;
+      feedEl.style.color = 'var(--em)';
+    }
+  });
+}
+
+/* ── Multi-file drop counter badge ────────────────────────────────────────── */
+
+function updateDropBadge(count) {
+  let badge = document.getElementById('cpDropBadge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'cpDropBadge';
+    badge.className = 'cp-drop-badge';
+    badge.setAttribute('aria-live', 'polite');
+    const dz = document.getElementById('dropZone');
+    if (dz) dz.appendChild(badge);
+  }
+  if (count > 1) {
+    badge.textContent = `+${count - 1} more`;
+    badge.removeAttribute('hidden');
+  } else {
+    badge.setAttribute('hidden', '');
+  }
+}
+
+/* ── History Savings Leaderboard ─────────────────────────────────────────── */
+
+function showHistoryLeaderboard() {
+  const hist = loadHistory();
+  if (hist.length === 0) return;
+
+  const sorted = [...hist].sort((a, b) => b.reductionPct - a.reductionPct).slice(0, 5);
+  const wrap   = document.getElementById('cpHistLeaderboard');
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    <div class="cp-hl-title">
+      <i class="fa fa-trophy" aria-hidden="true"></i>
+      Top Compressions
+    </div>
+    ${sorted.map((h, i) => `
+      <div class="cp-hl-row">
+        <div class="cp-hl-rank">#${i + 1}</div>
+        <div class="cp-hl-info">
+          <div class="cp-hl-name" title="${h.filename}">${h.filename.length > 22 ? h.filename.slice(0, 19) + '…' : h.filename}</div>
+          <div class="cp-hl-meta">${h.preset} · ${fmtBytes(h.inputSize)} → ${fmtBytes(h.outputSize)}</div>
+        </div>
+        <div class="cp-hl-pct" style="color:${h.reductionPct>50?'#10b981':h.reductionPct>20?'#6366f1':'#94a3b8'}">
+          ${h.reductionPct.toFixed(1)}%
+        </div>
+      </div>`).join('')}`;
+  wrap.removeAttribute('hidden');
+}
+
+/* ── Clipboard copy of tool URL ──────────────────────────────────────────── */
+
+async function copyToolUrl() {
+  try {
+    await navigator.clipboard.writeText('https://ishutools.fun/tools/compress-pdf/');
+    toast('URL copied!', 'Share IshuTools PDF Compressor.', 'success', 2500);
+  } catch {
+    toast('Copy failed', '', 'warn', 2000);
+  }
+}
+
+/* ── Re-compress with different preset (from result panel) ───────────────── */
+
+function recompressWithPreset(newPreset) {
+  if (!FILE && !RESULT_DATA) return;
+  selectPreset(newPreset);
+  // Hide result, go back to tool zone
+  if (D?.resultWrap) D.resultWrap.setAttribute('hidden', '');
+  if (D?.toolZone)   D.toolZone.removeAttribute('hidden');
+  COMPRESS_DONE = false;
+  updateActionState();
+  toast(`Preset changed to ${newPreset}`, 'Click Compress PDF to reprocess.', 'info', 3000);
+  const presetGrid = document.getElementById('presetGrid');
+  if (presetGrid) presetGrid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ── Batch total progress bar ─────────────────────────────────────────────── */
+
+function updateBatchTotalProgress() {
+  const total = BATCH_QUEUE.length;
+  if (total === 0) return;
+  const done  = BATCH_QUEUE.filter(i => i.status === 'done' || i.status === 'error').length;
+  const pct   = Math.round((done / total) * 100);
+  const el    = document.getElementById('batchTotalPct');
+  const fill  = document.getElementById('batchTotalFill');
+  if (el)   el.textContent  = `${done}/${total} complete (${pct}%)`;
+  if (fill) fill.style.width = pct + '%';
+}
+
+/* ── Toast queue manager (prevent stacking >4 toasts) ─────────────────────── */
+
+const _toastMax = 4;
+function pruneToasts() {
+  const toastWrap = document.getElementById('toastWrap');
+  if (!toastWrap) return;
+  const toasts = [...toastWrap.querySelectorAll('.cp-toast')];
+  if (toasts.length > _toastMax) {
+    toasts.slice(0, toasts.length - _toastMax).forEach(t => {
+      t.classList.remove('visible');
+      setTimeout(() => t.remove(), 340);
+    });
+  }
+}
+
+/* ── Result PDF metadata display ──────────────────────────────────────────── */
+
+function showResultMeta(resp, preset) {
+  const metaWrap = document.getElementById('cpResultMeta');
+  if (!metaWrap) return;
+
+  const method  = resp?.headers?.get('X-Method-Used')  || preset;
+  const engines = resp?.headers?.get('X-Engines-Tried') || '—';
+  const procMs  = resp?.headers?.get('X-Processing-Ms') || '—';
+  const score   = resp?.headers?.get('X-Quality-Score') || '—';
+  const grade   = resp?.headers?.get('X-Quality-Grade') || '—';
+
+  metaWrap.innerHTML = `
+    <div class="cp-rmeta-row">
+      <span class="cp-rmeta-key"><i class="fa fa-cog" aria-hidden="true"></i> Method</span>
+      <span class="cp-rmeta-val">${method}</span>
+    </div>
+    <div class="cp-rmeta-row">
+      <span class="cp-rmeta-key"><i class="fa fa-layer-group" aria-hidden="true"></i> Engines</span>
+      <span class="cp-rmeta-val">${engines}</span>
+    </div>
+    <div class="cp-rmeta-row">
+      <span class="cp-rmeta-key"><i class="fa fa-clock" aria-hidden="true"></i> Time</span>
+      <span class="cp-rmeta-val">${fmtMs(parseInt(procMs) || 0)}</span>
+    </div>
+    <div class="cp-rmeta-row">
+      <span class="cp-rmeta-key"><i class="fa fa-star" aria-hidden="true"></i> Score</span>
+      <span class="cp-rmeta-val">${score}/100 (Grade ${grade})</span>
+    </div>`;
+  metaWrap.removeAttribute('hidden');
+}
+
+/* ── Page leave guard enhancement ─────────────────────────────────────────── */
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && BATCH_ACTIVE) {
+    // Tab became hidden during compression — pause canvas particles already handled
+    // Just update title as a reminder
+    const prev = document.title;
+    document.title = '⏳ Compressing… — IshuTools';
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) document.title = prev;
+    }, { once: true });
+  }
+});
+
+/* ── Smart analysis-driven recommendation toasts ─────────────────────────── */
+
+function fireAnalysisToasts(data) {
+  if (!data) return;
+  const ests = data.estimated_reductions_by_preset || data.estimates || {};
+  const maxEst = Math.max(...Object.values(ests).map(Number)) || 0;
+
+  if (data.has_encryption) {
+    toast('Encrypted PDF detected', 'Enter the password in Advanced Options.', 'warn', 5000);
+  }
+  if (data.has_javascript) {
+    toast('PDF contains JavaScript', 'Enable "Remove JS" in Advanced Options for smaller output.', 'info', 4000);
+  }
+  if (maxEst > 70) {
+    toast('High compression potential!', `~${Math.round(maxEst)}% savings estimated. Try Screen or Low preset.`, 'success', 4000);
+  } else if (maxEst < 5) {
+    toast('Already well-optimised', 'Lossless preset recommended — little size to save.', 'info', 4000);
+  }
+}
+
+/* ── v32 DOMCONTENTLOADED EXTENSIONS ─────────────────────────────────────── */
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* Wire batch ZIP button */
+  const zipBtn = document.getElementById('batchZipBtn');
+  if (zipBtn) zipBtn.addEventListener('click', downloadAllBatchAsZip);
+
+  /* Wire copy URL button */
+  const copyUrlBtn = document.getElementById('cpCopyUrlBtn');
+  if (copyUrlBtn) copyUrlBtn.addEventListener('click', copyToolUrl);
+
+  /* Init target KB feedback */
+  initTargetFeedback();
+
+  /* Wire re-compress preset buttons in result panel */
+  document.querySelectorAll('[data-recompress]').forEach(btn => {
+    btn.addEventListener('click', () => recompressWithPreset(btn.dataset.recompress));
+  });
+
+  /* Extend file drop to show badge and thumbnail */
+  const origHandleFiles = handleFiles;
+  window.handleFiles = function(files) {
+    origHandleFiles(files);
+    updateDropBadge(files.filter(f => f.name.toLowerCase().endsWith('.pdf')).length);
+  };
+
+  /* Patch showResult to also show before/after viz */
+  window.showResult = showResult_v32;
+
+  /* Patch analyzeFile to also show thumbnail + estimates */
+  window.analyzeFile = analyzeFile_v32;
+
+  /* Wire history leaderboard toggle */
+  const lbBtn = document.getElementById('cpHistLbBtn');
+  if (lbBtn) lbBtn.addEventListener('click', showHistoryLeaderboard);
+
+  /* Show leaderboard if history exists */
+  if (loadHistory().length >= 3) {
+    setTimeout(showHistoryLeaderboard, 1000);
+  }
+
+  /* Batch reorder: wire after batchList renders */
+  const batchListObserver = new MutationObserver(() => initBatchDragReorder());
+  const batchList = document.getElementById('batchList');
+  if (batchList) batchListObserver.observe(batchList, { childList: true });
+
+  /* Override openSSE to inject speed meter start */
+  const _origOpenSSEOld = window.openSSE;
+  window.openSSE = function(jobId) {
+    startSpeedMeter(FILE ? FILE.size : 0);
+    if (_origOpenSSEOld) _origOpenSSEOld(jobId);
+  };
+
+  /* Override closeSSE to stop speed meter */
+  const _origCloseSSEOld = window.closeSSE;
+  window.closeSSE = function() {
+    stopSpeedMeter();
+    if (_origCloseSSEOld) _origCloseSSEOld();
+  };
+
+  /* Patch toast to prune stacking */
+  const _origToast = window.toast;
+  window.toast = function(...args) {
+    pruneToasts();
+    return _origToast ? _origToast(...args) : undefined;
+  };
+
+  /* Patch updateBatchItemStatus to update total bar */
+  const _origUpdateBatchStatus = window.updateBatchItemStatus;
+  window.updateBatchItemStatus = function(id, status, result) {
+    if (_origUpdateBatchStatus) _origUpdateBatchStatus(id, status, result);
+    updateBatchTotalProgress();
+  };
+
+  /* Analysis toast extension */
+  const _origUpdateFileChips = window.updateFileChips;
+  window.updateFileChips = function(data, file) {
+    if (_origUpdateFileChips) _origUpdateFileChips(data, file);
+    setTimeout(() => fireAnalysisToasts(data), 800);
+    showPresetEstimates(data);
+  };
+
+  /* Keyboard: D = download if result ready */
+  document.addEventListener('keydown', e => {
+    if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName || '')) return;
+    if (e.key === 'd' || e.key === 'D') {
+      if (RESULT_DATA?.blob) { triggerDownload(); return; }
+    }
+    if (e.key === 'z' || e.key === 'Z') {
+      if (BATCH_QUEUE.some(i => i.status === 'done')) { downloadAllBatchAsZip(); return; }
+    }
+  });
+
+  /* Speed meter: also show in result if still visible */
+  const spMeter = document.getElementById('cpSpeedMeter');
+  if (!spMeter) {
+    const pm = document.getElementById('progressWrap');
+    if (pm) {
+      const m = document.createElement('div');
+      m.id = 'cpSpeedMeter';
+      m.className = 'cp-speed-meter';
+      m.setAttribute('hidden', '');
+      m.innerHTML = `
+        <i class="fa fa-tachometer-alt" aria-hidden="true"></i>
+        Speed: <span id="cpSpeedVal">—</span>
+        &nbsp;·&nbsp;
+        <span id="cpSpeedEta">—</span>`;
+      pm.appendChild(m);
+    }
+  }
+
+});

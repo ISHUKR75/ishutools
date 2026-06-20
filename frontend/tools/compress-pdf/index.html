@@ -1231,6 +1231,12 @@
       </button>
     </div>
     <div id="historyList" aria-live="polite"></div>
+    <!-- v32: Top savings leaderboard toggle -->
+    <button id="cpHistLbBtn" aria-label="Show top compression savings leaderboard">
+      <i class="fa fa-trophy" aria-hidden="true"></i> Top Savings
+    </button>
+    <!-- v32: Leaderboard container (populated by JS) -->
+    <div id="cpHistLeaderboard" hidden aria-label="Top compression savings" role="region"></div>
   </div>
 </div>
 
@@ -1244,7 +1250,18 @@
       <span class="cp-batch-title">Batch Compression Queue</span>
       <span class="cp-batch-count" id="batchCount"></span>
     </div>
+    <!-- v32: Total batch progress bar -->
+    <div class="cp-batch-total-label">
+      <span id="batchTotalPct" aria-live="polite"></span>
+    </div>
+    <div class="cp-batch-total-bar" role="progressbar" aria-label="Batch overall progress" aria-valuemin="0" aria-valuemax="100">
+      <div id="batchTotalFill" class="cp-batch-total-fill" style="width:0%"></div>
+    </div>
     <div id="batchList"></div>
+    <!-- v32: Download all as ZIP -->
+    <button id="batchZipBtn" aria-label="Download all compressed files as a single ZIP archive">
+      <i class="fa fa-file-archive" aria-hidden="true"></i> Download All as ZIP
+    </button>
   </div>
 </div>
 
@@ -1391,6 +1408,9 @@
         <canvas id="compressChart" role="img" aria-label="Bar chart showing estimated compression savings for each preset"></canvas>
       </div>
 
+      <!-- Preset size estimator panel — v32 (populated dynamically by JS after analysis) -->
+      <div id="presetEstPanel" hidden aria-label="Preset size estimates" role="region"></div>
+
       <!-- ── Quality Presets ───────────────────────────────────────────────── -->
       <div class="cp-section-label cp-mt-6">
         <i class="fa fa-sliders-h" aria-hidden="true"></i>
@@ -1497,6 +1517,8 @@
             <button class="cp-tpr" data-kb="2000" aria-label="Target 2 MB">2 MB</button>
             <button class="cp-tpr" data-kb="5000" aria-label="Target 5 MB">5 MB</button>
           </div>
+          <!-- v32: Live feedback for target KB input -->
+          <div id="cpTargetFeedback" aria-live="polite"></div>
         </div>
       </div>
 
@@ -1759,10 +1781,33 @@
         </div>
         <div id="resEngineList" class="cp-eng-list" aria-label="Compression engines used"></div>
 
+        <!-- v32: Before/After size comparison bar -->
+        <div id="cpBeforeAfterViz" hidden aria-label="Before and after file size comparison" role="region"></div>
+
+        <!-- v32: Result PDF metadata table -->
+        <div id="cpResultMeta" hidden aria-label="Compression technical details"></div>
+
         <!-- Zero-reduction note -->
         <div id="resZeroNote" class="cp-zero-note" hidden role="note">
           <i class="fa fa-info-circle" aria-hidden="true"></i>
           <span>This PDF is already highly optimised — the compressed version may be the same size. Try <strong>Screen</strong> preset for more aggressive compression.</span>
+        </div>
+
+        <!-- v32: Re-compress with different preset buttons -->
+        <div class="cp-recompress-row" aria-label="Try another preset">
+          <span style="font-size:.72rem;color:var(--t4);align-self:center;margin-right:var(--sp-1)">Try again with:</span>
+          <button class="cp-recompress-btn" data-recompress="lossless" aria-label="Re-compress with Lossless preset">🔮 Lossless</button>
+          <button class="cp-recompress-btn" data-recompress="high"     aria-label="Re-compress with High preset">💎 High</button>
+          <button class="cp-recompress-btn" data-recompress="medium"   aria-label="Re-compress with Medium preset">⚖️ Medium</button>
+          <button class="cp-recompress-btn" data-recompress="low"      aria-label="Re-compress with Low preset">📧 Low</button>
+          <button class="cp-recompress-btn" data-recompress="screen"   aria-label="Re-compress with Screen preset">🔥 Screen</button>
+        </div>
+
+        <!-- v32: Copy tool URL button -->
+        <div style="margin-top:var(--sp-3);display:flex;justify-content:center">
+          <button id="cpCopyUrlBtn" aria-label="Copy link to this tool">
+            <i class="fa fa-link" aria-hidden="true"></i> Copy Tool Link
+          </button>
         </div>
 
         <!-- Action buttons -->
