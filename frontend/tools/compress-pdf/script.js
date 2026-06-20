@@ -1,119 +1,152 @@
 /**
- * IshuTools.fun — Compress PDF script.js v30.0
+ * IshuTools.fun — Compress PDF script.js v31.0
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75) — ishutools.fun
  * GitHub: https://github.com/ISHUKR41 | https://github.com/ISHUKR75
  *
  * ══════════════════════════════════════════════════════════════════════════════
- * FEATURES v30.0 — COMPLETE PROFESSIONAL PDF COMPRESSION SUITE
+ * v31.0 — COMPLETE PROFESSIONAL PDF COMPRESSION SUITE
  * ══════════════════════════════════════════════════════════════════════════════
- *  CORE:
- *  • Drag-and-drop + click upload (PDF only, absolutely NO size limit)
- *  • Batch file queue — process multiple PDFs sequentially with results
- *  • PDF deep analysis via /api/compress-pdf/analyze
- *  • 5-preset quality selector (lossless / high / medium / low / screen)
- *  • Target file size mode (binary-search on backend)
- *  • 13 advanced option toggles + password field
- *  • Quick preset combos (email / archive / web / max / print / reset)
- *  • SSE real-time progress with elapsed time counter
- *  • Result card: grade badge, before/after sizes, reduction bar, engine report
+ * CRITICAL FIXES v31:
+ *   ✅ Backend now reads 'preset' correctly (was reading 'quality' — now FIXED)
+ *   ✅ Response headers now match: X-Input-Size, X-Output-Size, X-Reduction-Pct,
+ *      X-Engine-Used, X-Quality-Score, X-Quality-Grade, X-Engines-Tried
+ *   ✅ Download name = largest file's stem for batch mode
+ *   ✅ Fahhhhh sound on every download
+ *   ✅ No quality auto-compromise — user's chosen preset is ALWAYS respected
  *
- *  VISUALS:
- *  • Chart.js visualization — compression savings by preset (live bar chart)
- *  • Animated background canvas (floating emerald particles with connections)
- *  • Canvas confetti on success (3-burst salvo)
- *  • Animated trust counters (IntersectionObserver threshold 0.5)
- *  • Before/after animated size comparison with smooth bar transitions
- *  • Micro-animations on preset selection, toggle, and action buttons
- *  • Smooth FAQ accordion with max-height animation
- *  • Loading skeleton on analysis phase
+ * FEATURES:
+ *   CORE:
+ *   • Drag-and-drop + click upload (PDF only, NO size limit)
+ *   • Batch file queue — multiple PDFs, sequential processing
+ *   • PDF deep analysis via /api/compress-pdf/analyze
+ *   • 5-preset quality selector (lossless / high / medium / low / screen)
+ *   • Target file size mode (binary-search on backend)
+ *   • 13 advanced option toggles + password field
+ *   • Quick preset combos (email / web / archive / max / print / reset)
+ *   • SSE real-time progress with elapsed time counter
+ *   • Live stage-by-stage progress breakdown
+ *   • Result card: grade badge, before/after sizes, reduction bar, engine report
+ *   • Animated size comparison bar (before vs after)
  *
- *  AUDIO:
- *  • Download sound: SOUNDS.fahhhhh (fahhhhh.mp3)
- *  • Compress start: SOUNDS.cameraman_focus_karo
- *  • File added: SOUNDS.are_bhai_bhai_bhai
- *  • Preset change: SOUNDS.waah_kya_scene_hai
- *  • Error: SOUNDS.eh_eh_eh_ehhhhhh
- *  • Cancel: SOUNDS.jaldi_waha_sa_hato
+ *   VISUALS:
+ *   • Chart.js bar chart — compression savings by preset (live data)
+ *   • Animated background canvas (emerald floating particles + connections)
+ *   • Canvas confetti on success (3-burst salvo)
+ *   • Animated trust counters (IntersectionObserver)
+ *   • Smooth animated progress ring (SVG stroke-dashoffset)
+ *   • Preset card glow on hover/select
+ *   • Before/after animated reduction bar
+ *   • Micro-animations on all interactive elements
  *
- *  UX:
- *  • Compression history — last 20 compressions persisted in localStorage
- *  • Web Share API for sharing results (mobile-native share sheet)
- *  • Clipboard copy for full compression report (JSON + human text)
- *  • Download filename = [original-filename]_compressed.pdf
- *  • Dark/Light theme toggle with localStorage persistence
- *  • Sound on/off toggle with localStorage persistence
- *  • beforeunload guard when compression is in progress
+ *   AUDIO (from merge-pdf/sounds/ folder):
+ *   • Download success: SOUNDS.fahhhhh (fahhhhh.mp3)
+ *   • Compress start: SOUNDS.cameraman_focus_karo
+ *   • File added: SOUNDS.are_bhai_bhai_bhai
+ *   • Preset change: SOUNDS.waah_kya_scene_hai
+ *   • Error: SOUNDS.eh_eh_eh_ehhhhhh
+ *   • Cancel: SOUNDS.jaldi_waha_sa_hato
+ *   • Click/toggle: SOUNDS.click (synthetic)
  *
- *  KEYBOARD:
- *  • Ctrl+Enter  — Start compression
- *  • Escape      — Close panels / cancel compression
- *  • Ctrl+O      — Open file picker
- *  • H           — Toggle history panel
- *  • R           — Reset / clear file
- *  • T           — Toggle theme
- *  • ?           — Show keyboard shortcuts
+ *   UX:
+ *   • Compression history — last 20 in localStorage
+ *   • Web Share API (mobile-native share sheet)
+ *   • Clipboard copy for compression report
+ *   • Dark/Light theme toggle with localStorage persistence
+ *   • Sound on/off with localStorage persistence
+ *   • beforeunload guard during compression
+ *   • Password show/hide toggle
+ *   • Auto-focus management after state changes
+ *   • Scroll-to-top button
+ *   • Mobile FAB button
+ *   • Live engine status panel (from /api/compress-pdf/engines)
  *
- *  ACCESSIBILITY:
- *  • aria-live regions for progress and results
- *  • aria-checked on preset buttons
- *  • aria-expanded on collapsible panels
- *  • Focus management after modal open/close
- *  • Screen reader announcements for all major state changes
- *  • Reduced motion support (prefers-reduced-motion)
+ *   KEYBOARD:
+ *   • Ctrl+Enter  — Start compression
+ *   • Ctrl+O      — Open file picker
+ *   • Escape      — Close panels / cancel
+ *   • H           — Toggle history panel
+ *   • R           — Reset tool
+ *   • T           — Toggle theme
+ *   • S           — Toggle sound
+ *   • ?           — Show keyboard shortcuts
+ *   • ↑/↓         — Navigate presets
  *
- *  PERFORMANCE:
- *  • requestAnimationFrame particle loop with visibility pause
- *  • Passive event listeners on scroll/resize
- *  • Debounced resize handler
- *  • IntersectionObserver for counter animation (fires once)
- *  • Lazy Chart.js init on first result render
+ *   ACCESSIBILITY:
+ *   • aria-live regions for progress and results
+ *   • aria-checked on preset buttons
+ *   • aria-expanded on collapsible panels
+ *   • Focus management after modal open/close
+ *   • Screen reader announcements for all state changes
+ *   • Reduced motion support
+ *
+ *   PERFORMANCE:
+ *   • requestAnimationFrame particle loop (pauses on hidden tab)
+ *   • Passive event listeners on scroll/resize
+ *   • Debounced resize handler
+ *   • IntersectionObserver for counter animation (fires once)
+ *   • Lazy Chart.js init on first result
  */
 
 'use strict';
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    MODULE-SCOPE STATE
-═══════════════════════════════════════════════════════════════════════════════ */
-let FILE            = null;    // Primary selected File object
-let STEM            = '';      // Filename stem (no extension)
-let JOB_ID          = '';      // SSE job identifier
-let SSE_SOURCE      = null;    // EventSource instance
-let SSE_TIMER       = null;    // setInterval fallback for simulated progress
-let COMPRESS_DONE   = false;   // True after compression completes
-let RESULT_DATA     = null;    // Last compression result
-let ANALYSIS_DATA   = null;    // Last analysis result
-let CHART_INSTANCE  = null;    // Chart.js instance
-let _t0             = 0;       // Compression start timestamp
-let _timerInterval  = null;    // Elapsed timer interval
+══════════════════════════════════════════════════════════════════════════════ */
+let FILE            = null;   // Primary selected File object
+let STEM            = '';     // Filename stem (no extension)
+let JOB_ID          = '';     // SSE job identifier
+let SSE_SOURCE      = null;   // EventSource instance
+let SSE_TIMER       = null;   // setInterval fallback progress
+let COMPRESS_DONE   = false;  // True after compression completes
+let RESULT_DATA     = null;   // Last compression result
+let ANALYSIS_DATA   = null;   // Last analysis result
+let CHART_INSTANCE  = null;   // Chart.js instance
+let _t0             = 0;      // Compression start timestamp ms
+let _timerInterval  = null;   // Elapsed time interval
 let _reduced        = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Batch queue state
-let BATCH_QUEUE     = [];      // Array of {file, id, status, result}
-let BATCH_ACTIVE    = false;   // True when batch processing
-let BATCH_IDX       = 0;       // Current batch index
+// Batch queue
+let BATCH_QUEUE     = [];     // [{file, id, status, result, stem}]
+let BATCH_ACTIVE    = false;
+let BATCH_IDX       = 0;
+let BATCH_LARGEST   = null;   // Largest file in batch (for download name)
 
-// DOM refs — populated in DOMContentLoaded
+// DOM refs (populated in DOMContentLoaded)
 let D = null;
 
-// Compression history (from localStorage)
-const HISTORY_KEY   = 'cp-history-v2';
-const HISTORY_MAX   = 20;
+// History
+const HISTORY_KEY = 'cp-history-v3';
+const HISTORY_MAX = 20;
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+// Progress stages for display
+const PROGRESS_STAGES = [
+  { pct: 5,  label: 'Initialising…',        sub: 'Loading compression engines' },
+  { pct: 12, label: 'Analysing PDF…',        sub: 'Scanning images, fonts, streams' },
+  { pct: 25, label: 'Engine 1: pikepdf…',    sub: 'Lossless stream recompression' },
+  { pct: 38, label: 'Engine 2: Ghostscript…',sub: 'Applying distiller preset' },
+  { pct: 50, label: 'Engine 3: PyMuPDF…',   sub: 'Image DPI optimisation' },
+  { pct: 62, label: 'Engine 4: qpdf…',      sub: 'Stream linearisation' },
+  { pct: 72, label: 'Engine 5-8…',          sub: 'Pillow, mutool, dedup, content streams' },
+  { pct: 84, label: 'Engine 9-12…',         sub: 'Chain passes — picking best result' },
+  { pct: 93, label: 'Post-processing…',     sub: 'Applying advanced options' },
+  { pct: 98, label: 'Finalising…',          sub: 'Verifying output & preparing download' },
+];
+
+/* ══════════════════════════════════════════════════════════════════════════════
    UTILITY FUNCTIONS
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 
-/** Format bytes → human readable string */
+/** Format bytes → human-readable string */
 function fmtBytes(b) {
   if (b == null || isNaN(b) || b < 0) return '—';
   if (b === 0) return '0 B';
-  const u = ['B','KB','MB','GB','TB'];
+  const u = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.min(Math.floor(Math.log(Math.abs(b)) / Math.log(1024)), u.length - 1);
   const v = b / Math.pow(1024, i);
   return (i === 0 ? v : v < 10 ? v.toFixed(2) : v.toFixed(1)) + '\u202F' + u[i];
 }
 
-/** Format milliseconds → human readable */
+/** Format milliseconds → human-readable */
 function fmtMs(ms) {
   if (ms == null || isNaN(ms)) return '—';
   if (ms < 1000) return ms + '\u202Fms';
@@ -121,7 +154,7 @@ function fmtMs(ms) {
   return Math.floor(ms / 60000) + 'm\u202F' + Math.floor((ms % 60000) / 1000) + 's';
 }
 
-/** Format seconds elapsed */
+/** Format elapsed seconds */
 function fmtElapsed(s) {
   if (s < 60) return s.toFixed(1) + 's';
   return Math.floor(s / 60) + 'm\u202F' + Math.floor(s % 60) + 's';
@@ -139,10 +172,10 @@ function getStem(name) {
   return dot > 0 ? name.slice(0, dot) : name;
 }
 
-/** Clamp a number to [lo, hi] */
+/** Clamp value */
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-/** Debounce a function */
+/** Debounce */
 function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
@@ -158,7 +191,7 @@ function lsSet(key, val) {
   try { localStorage.setItem(key, val); } catch {}
 }
 
-/** Announce to screen readers */
+/** Screen reader announcement */
 function announce(msg, priority = 'polite') {
   const el = document.getElementById('cp-sr-announce');
   if (!el) return;
@@ -167,7 +200,7 @@ function announce(msg, priority = 'polite') {
   setTimeout(() => { el.textContent = msg; }, 50);
 }
 
-/** Safe call into window.SOUNDS */
+/** Safe sound call */
 function S(key) {
   try {
     if (window.SOUNDS && typeof window.SOUNDS[key] === 'function') {
@@ -176,37 +209,72 @@ function S(key) {
   } catch (_) {}
 }
 
-/** Fire canvas-confetti 3-burst salvo */
+/** Canvas confetti 3-burst salvo */
 function launchConfetti() {
   if (_reduced) return;
   try {
-    if (typeof confetti !== 'function') return;
+    if (typeof confetti !== 'function') {
+      // CSS fallback
+      _cssConfettiFallback();
+      return;
+    }
     const opts = {
-      colors: ['#10b981','#34d399','#6ee7b7','#ffffff','#6366f1','#a78bfa'],
+      colors: ['#10b981', '#34d399', '#6ee7b7', '#ffffff', '#6366f1', '#a78bfa', '#f59e0b'],
       disableForReducedMotion: true,
     };
-    confetti({ ...opts, particleCount: 90,  spread: 70,  origin: { y: 0.55 } });
-    setTimeout(() => confetti({ ...opts, particleCount: 60, spread: 90, angle: 60,  origin: { y: 0.45 } }), 230);
-    setTimeout(() => confetti({ ...opts, particleCount: 60, spread: 90, angle: 120, origin: { y: 0.45 } }), 460);
-  } catch (_) {}
+    confetti({ ...opts, particleCount: 100, spread: 70,  origin: { y: 0.6 } });
+    setTimeout(() => confetti({ ...opts, particleCount: 70, spread: 100, angle: 60,  origin: { y: 0.5 } }), 250);
+    setTimeout(() => confetti({ ...opts, particleCount: 70, spread: 100, angle: 120, origin: { y: 0.5 } }), 500);
+  } catch (_) { _cssConfettiFallback(); }
 }
 
-/** Animate a number from start to end */
+function _cssConfettiFallback() {
+  if (_reduced) return;
+  const colors = ['#10b981', '#34d399', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6'];
+  for (let i = 0; i < 18; i++) {
+    const el = document.createElement('div');
+    el.className = 'cp-confetti-p';
+    el.style.cssText = `
+      left:${10 + Math.random() * 80}%;
+      background:${colors[i % colors.length]};
+      animation-duration:${0.8 + Math.random() * 0.8}s;
+      animation-delay:${Math.random() * 0.4}s;
+      width:${6 + Math.random() * 6}px;
+      height:${6 + Math.random() * 6}px;
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
+    `;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+/** Animate number from start→end */
 function animateNumber(el, start, end, dur = 900, fmt = v => Math.round(v)) {
   if (!el || _reduced) { if (el) el.textContent = fmt(end); return; }
   const t0 = performance.now();
   function tick(now) {
-    const p = clamp((now - t0) / dur, 0, 1);
-    const ease = p < .5 ? 2 * p * p : -1 + (4 - 2 * p) * p; // ease-in-out
+    const p    = clamp((now - t0) / dur, 0, 1);
+    const ease = p < .5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
     el.textContent = fmt(start + (end - start) * ease);
     if (p < 1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/** Animate progress ring SVG */
+function setProgressRing(pct) {
+  const ring = document.querySelector('.cp-progress-ring-fill');
+  if (!ring) return;
+  const r        = 50;
+  const circ     = 2 * Math.PI * r;
+  const offset   = circ - (clamp(pct, 0, 100) / 100) * circ;
+  ring.style.strokeDasharray  = circ;
+  ring.style.strokeDashoffset = offset;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    TOAST NOTIFICATIONS
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function toast(title, sub = '', type = 'info', dur = 4000) {
   if (!D?.toastWrap) return;
   const icons = {
@@ -225,24 +293,26 @@ function toast(title, sub = '', type = 'info', dur = 4000) {
       <div class="cp-toast-title">${title}</div>
       ${sub ? `<div class="cp-toast-sub">${sub}</div>` : ''}
     </div>
-    <button class="cp-toast-close" aria-label="Dismiss notification">
+    <button class="cp-toast-close" aria-label="Dismiss">
       <i class="fa fa-times" aria-hidden="true"></i>
     </button>`;
   D.toastWrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('visible'));
 
   function dismiss() {
+    el.classList.remove('visible');
     el.classList.add('cp-toast-out');
-    setTimeout(() => el.remove(), 320);
+    setTimeout(() => el.remove(), 340);
   }
   el.querySelector('.cp-toast-close').addEventListener('click', dismiss);
-  el.addEventListener('click', (e) => { if (!el.querySelector('.cp-toast-close').contains(e.target)) dismiss(); });
+  el.addEventListener('click', e => { if (!el.querySelector('.cp-toast-close').contains(e.target)) dismiss(); });
   if (dur > 0) setTimeout(dismiss, dur);
   return el;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    KEYBOARD SHORTCUTS MODAL
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function showShortcutsModal() {
   const existing = document.getElementById('cp-shortcuts-modal');
   if (existing) { existing.remove(); return; }
@@ -256,7 +326,7 @@ function showShortcutsModal() {
     <div class="cp-shortcuts-card">
       <div class="cp-shortcuts-header">
         <h3><i class="fa fa-keyboard" aria-hidden="true"></i> Keyboard Shortcuts</h3>
-        <button class="cp-shortcuts-close" aria-label="Close shortcuts">
+        <button class="cp-shortcuts-close" aria-label="Close">
           <i class="fa fa-times" aria-hidden="true"></i>
         </button>
       </div>
@@ -265,8 +335,9 @@ function showShortcutsModal() {
         <li><kbd>Ctrl</kbd>+<kbd>O</kbd><span>Open file picker</span></li>
         <li><kbd>Escape</kbd><span>Close panels / cancel</span></li>
         <li><kbd>H</kbd><span>Toggle history panel</span></li>
-        <li><kbd>R</kbd><span>Reset tool / clear file</span></li>
+        <li><kbd>R</kbd><span>Reset tool</span></li>
         <li><kbd>T</kbd><span>Toggle dark/light theme</span></li>
+        <li><kbd>S</kbd><span>Toggle sounds on/off</span></li>
         <li><kbd>?</kbd><span>Show this shortcuts panel</span></li>
         <li><kbd>↑</kbd><kbd>↓</kbd><span>Navigate presets</span></li>
       </ul>
@@ -277,13 +348,13 @@ function showShortcutsModal() {
     </div>`;
   document.body.appendChild(modal);
   modal.querySelector('.cp-shortcuts-close').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   setTimeout(() => modal.classList.add('visible'), 10);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   THEME & SOUND TOGGLES
-═══════════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   THEME & SOUND
+══════════════════════════════════════════════════════════════════════════════ */
 function initTheme() {
   const saved = lsGet('cp-theme');
   const sys   = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -312,8 +383,8 @@ function initSoundToggle() {
 
 function updateSoundIcon(on) {
   if (!D) return;
-  D.soundIcon.className  = on ? 'fa fa-volume-up' : 'fa fa-volume-mute';
-  D.soundToggle.title    = on ? 'Mute sounds' : 'Unmute sounds';
+  D.soundIcon.className = on ? 'fa fa-volume-up' : 'fa fa-volume-mute';
+  D.soundToggle.title   = on ? 'Mute sounds' : 'Unmute sounds';
   D.soundToggle.setAttribute('aria-label', D.soundToggle.title);
   D.soundToggle.setAttribute('aria-pressed', String(on));
 }
@@ -326,16 +397,17 @@ function toggleSound() {
   if (newOn) S('click');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    ANIMATED BACKGROUND CANVAS (particles + connections)
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function initBgCanvas() {
   const canvas = document.getElementById('bgCanvas');
   if (!canvas || _reduced) return;
   const ctx = canvas.getContext('2d');
-  const PARTICLE_COUNT = 38;
+  const PARTICLE_COUNT = 42;
   const particles = [];
   let rafId;
+  let mouseX = -9999, mouseY = -9999;
 
   function resize() {
     canvas.width  = window.innerWidth;
@@ -347,24 +419,38 @@ function initBgCanvas() {
     reset(init) {
       this.x     = Math.random() * window.innerWidth;
       this.y     = init ? Math.random() * window.innerHeight : window.innerHeight + 12;
-      this.r     = Math.random() * 2.4 + 0.7;
-      this.vx    = (Math.random() - 0.5) * 0.22;
-      this.vy    = -(Math.random() * 0.45 + 0.14);
-      this.op    = Math.random() * 0.20 + 0.04;
+      this.r     = Math.random() * 2.5 + 0.6;
+      this.vx    = (Math.random() - 0.5) * 0.25;
+      this.vy    = -(Math.random() * 0.48 + 0.12);
+      this.op    = Math.random() * 0.22 + 0.04;
       this.phase = Math.random() * Math.PI * 2;
-      this.pulse = Math.random() * 0.03 + 0.015;
+      this.pulse = Math.random() * 0.035 + 0.012;
+      this.hue   = Math.random() > 0.85 ? 240 : 160; // mostly green, some blue
     }
     update() {
       this.x     += this.vx;
       this.y     += this.vy;
       this.phase += this.pulse;
+      // Repel from mouse
+      const dx   = this.x - mouseX;
+      const dy   = this.y - mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 80) {
+        const force = (80 - dist) / 80 * 0.3;
+        this.x += (dx / dist) * force;
+        this.y += (dy / dist) * force;
+      }
       if (this.y < -12 || this.x < -12 || this.x > window.innerWidth + 12) this.reset(false);
     }
     draw(c) {
       c.beginPath();
       c.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-      const alpha = this.op * (0.7 + 0.3 * Math.sin(this.phase));
-      c.fillStyle = `rgba(16,185,129,${alpha})`;
+      const alpha = this.op * (0.65 + 0.35 * Math.sin(this.phase));
+      if (this.hue === 160) {
+        c.fillStyle = `rgba(16,185,129,${alpha})`;
+      } else {
+        c.fillStyle = `rgba(99,102,241,${alpha * 0.7})`;
+      }
       c.fill();
     }
   }
@@ -375,11 +461,11 @@ function initBgCanvas() {
         const dx   = particles[i].x - particles[j].x;
         const dy   = particles[i].y - particles[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 120) {
+        if (dist < 130) {
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(16,185,129,${0.06 * (1 - dist / 120)})`;
+          ctx.strokeStyle = `rgba(16,185,129,${0.055 * (1 - dist / 130)})`;
           ctx.lineWidth   = 0.5;
           ctx.stroke();
         }
@@ -389,6 +475,9 @@ function initBgCanvas() {
 
   resize();
   window.addEventListener('resize', debounce(resize, 200), { passive: true });
+  window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; }, { passive: true });
+  window.addEventListener('mouseleave', () => { mouseX = -9999; mouseY = -9999; }, { passive: true });
+
   for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
 
   function loop() {
@@ -400,47 +489,40 @@ function initBgCanvas() {
   loop();
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) cancelAnimationFrame(rafId);
-    else loop();
+    if (document.hidden) { cancelAnimationFrame(rafId); }
+    else { loop(); }
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    COMPRESSION HISTORY
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function loadHistory() {
-  try {
-    return JSON.parse(lsGet(HISTORY_KEY) || '[]');
-  } catch { return []; }
+  try { return JSON.parse(lsGet(HISTORY_KEY) || '[]'); } catch { return []; }
 }
-
 function saveHistory(hist) {
-  try {
-    lsSet(HISTORY_KEY, JSON.stringify(hist.slice(0, HISTORY_MAX)));
-  } catch {}
+  try { lsSet(HISTORY_KEY, JSON.stringify(hist.slice(0, HISTORY_MAX))); } catch {}
 }
-
 function addToHistory(entry) {
   const hist = loadHistory();
   hist.unshift({
-    id:          Date.now(),
-    filename:    entry.filename    || 'document.pdf',
-    preset:      entry.preset      || 'medium',
-    inputSize:   entry.inputSize   || 0,
-    outputSize:  entry.outputSize  || 0,
-    reductionPct:entry.reductionPct|| 0,
-    grade:       entry.grade       || 'B',
-    engine:      entry.engine      || '—',
-    timeMs:      entry.timeMs      || 0,
-    ts:          new Date().toISOString(),
+    id:           Date.now(),
+    filename:     entry.filename     || 'document.pdf',
+    preset:       entry.preset       || 'medium',
+    inputSize:    entry.inputSize    || 0,
+    outputSize:   entry.outputSize   || 0,
+    reductionPct: entry.reductionPct || 0,
+    grade:        entry.grade        || 'B',
+    engine:       entry.engine       || '—',
+    timeMs:       entry.timeMs       || 0,
+    ts:           new Date().toISOString(),
   });
   saveHistory(hist);
 }
-
 function clearHistory() {
   saveHistory([]);
   renderHistory();
-  toast('History cleared', 'All compression records removed.', 'info', 3000);
+  toast('History cleared', 'All records removed.', 'info', 3000);
 }
 
 function renderHistory() {
@@ -448,10 +530,8 @@ function renderHistory() {
   const list  = document.getElementById('historyList');
   const count = document.getElementById('historyCount');
   if (!panel || !list) return;
-
   const hist = loadHistory();
   if (count) count.textContent = hist.length;
-
   if (hist.length === 0) {
     list.innerHTML = `<div class="cp-hist-empty">
       <i class="fa fa-history" aria-hidden="true"></i>
@@ -460,9 +540,7 @@ function renderHistory() {
     </div>`;
     return;
   }
-
-  const gradeColors = { S:'#10b981', A:'#34d399', B:'#6ee7b7', C:'#f59e0b', D:'#ef4444', F:'#dc2626' };
-
+  const gradeColors = { S:'#10b981', A:'#34d399', B:'#6366f1', C:'#f59e0b', D:'#ef4444', F:'#dc2626' };
   list.innerHTML = hist.map(h => `
     <div class="cp-hist-item" data-id="${h.id}">
       <div class="cp-hist-grade" style="color:${gradeColors[h.grade] || '#94a3b8'}">${h.grade}</div>
@@ -476,8 +554,7 @@ function renderHistory() {
         </div>
       </div>
       <div class="cp-hist-date">${new Date(h.ts).toLocaleDateString()}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function toggleHistory() {
@@ -492,18 +569,18 @@ function toggleHistory() {
   S('click');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    CHART.JS COMPRESSION SAVINGS VISUALIZATION
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function initOrUpdateChart(data) {
   const canvas = document.getElementById('compressChart');
   if (!canvas) return;
 
   const estimates = data?.estimates || data?.estimated_reductions_by_preset || {};
-  const presets   = ['screen','low','medium','high','lossless'];
-  const labels    = ['Screen','Low','Medium','High','Lossless'];
+  const presets   = ['screen', 'low', 'medium', 'high', 'lossless'];
+  const labels    = ['Screen', 'Low', 'Medium', 'High', 'Lossless'];
   const values    = presets.map(p => Math.round(estimates[p] ?? 0));
-  const colors    = ['#ef4444','#f59e0b','#6366f1','#10b981','#8b5cf6'];
+  const colors    = ['#ef4444', '#f59e0b', '#6366f1', '#10b981', '#8b5cf6'];
   const isDark    = document.documentElement.getAttribute('data-theme') !== 'light';
 
   const chartData = {
@@ -514,7 +591,7 @@ function initOrUpdateChart(data) {
       backgroundColor: colors.map(c => c + 'cc'),
       borderColor:     colors,
       borderWidth:     2,
-      borderRadius:    8,
+      borderRadius:    10,
       borderSkipped:   false,
     }],
   };
@@ -523,7 +600,7 @@ function initOrUpdateChart(data) {
     type: 'bar',
     data: chartData,
     options: {
-      animation: { duration: _reduced ? 0 : 700, easing: 'easeOutQuart' },
+      animation: { duration: _reduced ? 0 : 800, easing: 'easeOutQuart' },
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
@@ -531,30 +608,25 @@ function initOrUpdateChart(data) {
         tooltip: {
           backgroundColor: isDark ? '#1a2235' : '#ffffff',
           titleColor:      isDark ? '#f1f5f9' : '#0f172a',
-          bodyColor:       isDark ? '#94a3b8' : '#475569',
+          bodyColor:       isDark ? '#94a3b8'  : '#475569',
           borderColor:     isDark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
           borderWidth:     1,
           cornerRadius:    8,
-          callbacks: {
-            label: ctx => ` ~${ctx.parsed.y}% size reduction`,
-          },
+          callbacks: { label: ctx => ` ~${ctx.parsed.y}% size reduction` },
         },
       },
       scales: {
         x: {
-          ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { family: 'Inter', size: 12 } },
-          grid:  { display: false },
-          border:{ display: false },
+          grid: { display: false },
+          ticks: { color: isDark ? '#94a3b8' : '#475569', font: { size: 11 } },
+          border: { display: false },
         },
         y: {
-          min: 0, max: 100,
-          ticks: {
-            color: isDark ? '#94a3b8' : '#64748b',
-            font:  { family: 'Inter', size: 11 },
-            callback: v => v + '%',
-          },
-          grid:  { color: isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)' },
-          border:{ display: false },
+          min: 0,
+          max: 100,
+          grid: { color: isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)', drawBorder: false },
+          ticks: { color: isDark ? '#94a3b8' : '#475569', font: { size: 10 }, callback: v => v + '%' },
+          border: { display: false },
         },
       },
     },
@@ -562,405 +634,404 @@ function initOrUpdateChart(data) {
 
   if (CHART_INSTANCE) {
     CHART_INSTANCE.data = chartData;
-    CHART_INSTANCE.update('active');
+    CHART_INSTANCE.update();
   } else {
-    try {
-      if (typeof Chart !== 'undefined') {
-        CHART_INSTANCE = new Chart(canvas, config);
-      }
-    } catch (_) {}
+    CHART_INSTANCE = new Chart(canvas, config);
   }
-}
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   FILE HANDLING (single + batch)
-═══════════════════════════════════════════════════════════════════════════════ */
-function initDropZone() {
-  const dz = D.dropZone;
-
-  dz.addEventListener('click', (e) => {
-    if (D.fiRemove && (e.target === D.fiRemove || D.fiRemove.contains(e.target))) return;
-    D.fileInput.click();
+  // Update preset estimate labels
+  presets.forEach((p, i) => {
+    const el = document.getElementById(`save-${p}`);
+    if (el && values[i] > 0) el.textContent = `~${values[i]}% smaller`;
   });
 
-  dz.addEventListener('keydown', (e) => {
+  // Show the chart wrapper
+  const chartWrap = document.getElementById('chartWrap');
+  if (chartWrap) chartWrap.removeAttribute('hidden');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   FILE HANDLING (upload / drag-drop)
+══════════════════════════════════════════════════════════════════════════════ */
+function initDropZone() {
+  const dz = D.dropZone;
+  if (!dz) return;
+
+  // Click → open file picker
+  dz.addEventListener('click', () => D.fileInput.click());
+  dz.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fileInput.click(); }
   });
 
+  // Also handle the browse link inside
   const browseLink = dz.querySelector('.cp-drop-link');
-  if (browseLink) browseLink.addEventListener('click', (e) => { e.stopPropagation(); D.fileInput.click(); });
+  if (browseLink) {
+    browseLink.addEventListener('click', e => { e.stopPropagation(); D.fileInput.click(); });
+    browseLink.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fileInput.click(); }
+    });
+  }
 
-  ['dragenter','dragover'].forEach(ev => {
-    dz.addEventListener(ev, (e) => {
+  // Drag events
+  ['dragenter', 'dragover'].forEach(ev => {
+    dz.addEventListener(ev, e => {
       e.preventDefault(); e.stopPropagation();
-      dz.classList.add('cp-drag-over');
+      dz.classList.add('drag-over');
+    }, { passive: false });
+  });
+  ['dragleave', 'dragend'].forEach(ev => {
+    dz.addEventListener(ev, e => {
+      if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
     });
   });
-  ['dragleave','dragend'].forEach(ev => {
-    dz.addEventListener(ev, (e) => {
-      if (!dz.contains(e.relatedTarget)) dz.classList.remove('cp-drag-over');
-    });
-  });
-  dz.addEventListener('drop', (e) => {
+  dz.addEventListener('drop', e => {
     e.preventDefault(); e.stopPropagation();
-    dz.classList.remove('cp-drag-over');
-    const files = Array.from(e.dataTransfer.files).filter(f =>
-      f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
-    );
+    dz.classList.remove('drag-over');
+    const files = [...(e.dataTransfer?.files || [])].filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
     if (files.length === 0) {
-      toast('Not a PDF', 'Please drop PDF files only.', 'error');
-      S('eh_eh_eh_ehhhhhh');
+      toast('Not a PDF', 'Please drop PDF files only.', 'warn');
+      S('jaldi_waha_sa_hato');
       return;
     }
-    if (files.length === 1) {
-      handleFile(files[0]);
-    } else {
-      handleBatchFiles(files);
-    }
+    handleFiles(files);
   });
 
+  // File input change
   D.fileInput.addEventListener('change', () => {
-    const files = Array.from(D.fileInput.files || []).filter(f =>
-      f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
-    );
-    if (files.length === 1) handleFile(files[0]);
-    else if (files.length > 1) handleBatchFiles(files);
+    const files = [...D.fileInput.files];
+    if (files.length) handleFiles(files);
     D.fileInput.value = '';
   });
-
-  if (D.fiRemove) {
-    D.fiRemove.addEventListener('click', (e) => { e.stopPropagation(); resetTool(); });
-  }
 }
 
-function handleFile(file) {
-  if (!file) return;
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-  if (!isPdf) {
-    toast('Not a PDF', `"${file.name}" is not a PDF file.`, 'error');
-    S('eh_eh_eh_ehhhhhh');
+function handleFiles(files) {
+  const pdfs = files.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if (pdfs.length === 0) {
+    toast('No valid PDFs', 'Only PDF files are accepted.', 'warn');
     return;
   }
 
-  FILE          = file;
-  STEM          = getStem(file.name);
-  COMPRESS_DONE = false;
-  RESULT_DATA   = null;
-  ANALYSIS_DATA = null;
-
-  hideBatchPanel();
-  showFileInfo(file);
-  S('are_bhai_bhai_bhai');
-  updateActionState();
-  analyzeFile(file);
-  updateFab();
-  announce(`File loaded: ${file.name}, ${fmtBytes(file.size)}`);
-}
-
-function handleBatchFiles(files) {
-  BATCH_QUEUE = files.map((f, i) => ({
-    file:   f,
-    id:     `batch-${Date.now()}-${i}`,
-    status: 'pending',
-    result: null,
-  }));
-  showBatchPanel();
-  toast(`${files.length} PDFs queued`, 'Compressing in sequence…', 'info', 3000);
-  S('are_bhai_bhai_bhai');
-  startBatchCompression();
+  if (pdfs.length === 1) {
+    // Single file mode
+    FILE = pdfs[0];
+    STEM = getStem(FILE.name);
+    S('are_bhai_bhai_bhai');
+    showFileInfo(FILE);
+    analyzeFile(FILE);
+    updateActionState();
+    updateFab();
+    announce(`File loaded: ${FILE.name} (${fmtBytes(FILE.size)})`);
+  } else {
+    // Batch mode
+    BATCH_QUEUE = pdfs.map((f, i) => ({
+      file: f,
+      id:   `batch-${Date.now()}-${i}`,
+      status: 'pending',
+      result: null,
+      stem: getStem(f.name),
+    }));
+    // Find largest file for batch download name
+    BATCH_LARGEST = pdfs.reduce((a, b) => b.size > a.size ? b : a, pdfs[0]);
+    FILE = pdfs[0];
+    STEM = getStem(FILE.name);
+    S('are_bhai_bhai_bhai');
+    showBatchPanel();
+    showFileInfo(FILE);
+    analyzeFile(FILE);
+    updateActionState();
+    updateFab();
+    toast(`${pdfs.length} PDFs queued`, 'Batch mode — same settings for all files.', 'info', 4000);
+    announce(`${pdfs.length} files loaded for batch compression`);
+  }
 }
 
 function showFileInfo(file) {
-  D.fileInfo.removeAttribute('hidden');
-  D.fiName.textContent  = file.name;
-  D.fiName.title        = file.name;
-  D.fiSize.innerHTML    = `<i class="fa fa-weight-hanging" aria-hidden="true"></i> ${fmtBytes(file.size)}`;
-  D.fiPages.innerHTML   = `<i class="fa fa-file-pdf" aria-hidden="true"></i> Analysing…`;
-  D.fiType.innerHTML    = `<i class="fa fa-tag" aria-hidden="true"></i> PDF`;
-  D.fiVersion.innerHTML = `<i class="fa fa-code" aria-hidden="true"></i> —`;
-  D.fiChips.setAttribute('hidden', '');
-  D.fiAnalyze.removeAttribute('hidden');
-  D.analyzeFill.style.width = '0%';
-  D.recBanner.setAttribute('hidden', '');
-
-  const title = D.dropZone.querySelector('.cp-drop-title');
-  const sub   = D.dropZone.querySelector('.cp-drop-sub');
-  if (title) title.textContent = '✅ File ready';
-  if (sub)   sub.innerHTML     = `<span class="cp-drop-link">Change file</span> to select a different PDF`;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   BATCH COMPRESSION PANEL
-═══════════════════════════════════════════════════════════════════════════════ */
-function showBatchPanel() {
-  const panel = document.getElementById('batchPanel');
-  if (!panel) return;
-  panel.removeAttribute('hidden');
-  renderBatchList();
-}
-
-function hideBatchPanel() {
-  const panel = document.getElementById('batchPanel');
-  if (panel) panel.setAttribute('hidden', '');
-  BATCH_QUEUE  = [];
-  BATCH_ACTIVE = false;
-  BATCH_IDX    = 0;
-}
-
-function renderBatchList() {
-  const list = document.getElementById('batchList');
-  if (!list) return;
-  const statusIcons = {
-    pending:    '<i class="fa fa-clock" aria-hidden="true"></i>',
-    processing: '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>',
-    done:       '<i class="fa fa-check-circle" style="color:#10b981" aria-hidden="true"></i>',
-    error:      '<i class="fa fa-times-circle" style="color:#ef4444" aria-hidden="true"></i>',
-  };
-  list.innerHTML = BATCH_QUEUE.map((item, idx) => {
-    const r = item.result;
-    const pct = r ? r.reduction_pct?.toFixed(1) + '% saved' : '';
-    return `<div class="cp-batch-item cp-batch-${item.status}" data-id="${item.id}">
-      <span class="cp-batch-icon">${statusIcons[item.status] || ''}</span>
-      <span class="cp-batch-name" title="${item.file.name}">${item.file.name}</span>
-      <span class="cp-batch-size">${fmtBytes(item.file.size)}</span>
-      ${r ? `<span class="cp-batch-result">${pct}</span>` : ''}
-      ${item.status === 'done' && r?.download_url ? `
-        <a class="cp-batch-dl" href="${r.download_url}" download="${getStem(item.file.name)}_compressed.pdf">
-          <i class="fa fa-download" aria-hidden="true"></i>
-        </a>` : ''}
-    </div>`;
-  }).join('');
-}
-
-async function startBatchCompression() {
-  if (BATCH_ACTIVE) return;
-  BATCH_ACTIVE = true;
-  BATCH_IDX    = 0;
-
-  for (let i = 0; i < BATCH_QUEUE.length; i++) {
-    BATCH_IDX = i;
-    const item = BATCH_QUEUE[i];
-    item.status = 'processing';
-    renderBatchList();
-
-    try {
-      const preset  = getPreset();
-      const advOpts = getAdvOptions();
-      const fd      = new FormData();
-      fd.append('file',   item.file);
-      fd.append('preset', preset);
-      Object.entries(advOpts).forEach(([k, v]) => fd.append(k, String(v)));
-
-      const resp = await fetch('/api/compress-pdf', { method: 'POST', body: fd });
-      if (resp.ok) {
-        const blob    = await resp.blob();
-        const url     = URL.createObjectURL(blob);
-        const inSize  = item.file.size;
-        const outSize = parseInt(resp.headers.get('X-Output-Size') || blob.size, 10);
-        const redPct  = parseFloat(resp.headers.get('X-Reduction-Pct') || calcReduction(inSize, outSize));
-        item.status   = 'done';
-        item.result   = {
-          reduction_pct: redPct,
-          download_url:  url,
-          output_size:   outSize,
-        };
-        addToHistory({
-          filename:    item.file.name,
-          preset,
-          inputSize:   inSize,
-          outputSize:  outSize,
-          reductionPct:redPct,
-          grade:       resp.headers.get('X-Quality-Grade') || 'B',
-          engine:      resp.headers.get('X-Engine-Used')   || '—',
-          timeMs:      parseInt(resp.headers.get('X-Processing-Ms') || 0, 10),
-        });
-      } else {
-        item.status = 'error';
-      }
-    } catch (err) {
-      item.status = 'error';
-    }
-
-    renderBatchList();
+  if (!D.fileInfo) return;
+  const nameEl = document.getElementById('fiName');
+  const sizeEl = document.getElementById('fiSize');
+  const typeEl = document.getElementById('fiType');
+  if (nameEl) {
+    nameEl.textContent = file.name;
+    nameEl.title       = file.name;
   }
+  if (sizeEl) sizeEl.innerHTML = `<i class="fa fa-weight-hanging" aria-hidden="true"></i> ${fmtBytes(file.size)}`;
+  if (typeEl) typeEl.innerHTML = `<i class="fa fa-tag" aria-hidden="true"></i> PDF`;
 
-  BATCH_ACTIVE = false;
-  const done  = BATCH_QUEUE.filter(x => x.status === 'done').length;
-  const total = BATCH_QUEUE.length;
-  toast(`Batch complete! ${done}/${total} compressed`, 'Click download icons to save files.', 'success', 6000);
-  S('fahhhhh');
-  launchConfetti();
-  announce(`Batch compression complete. ${done} of ${total} files compressed successfully.`);
+  D.fileInfo.removeAttribute('hidden');
+  if (D.fiChips)   D.fiChips.setAttribute('hidden', '');
+  if (D.recBanner) D.recBanner.setAttribute('hidden', '');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ANALYSIS
-═══════════════════════════════════════════════════════════════════════════════ */
 async function analyzeFile(file) {
-  let pct = 0;
-  const barInterval = setInterval(() => {
-    pct = Math.min(pct + Math.random() * 8 + 3, 88);
-    if (D.analyzeFill) D.analyzeFill.style.width = pct + '%';
+  if (!D.fiAnalyze) return;
+  D.fiAnalyze.removeAttribute('hidden');
+  const fill = document.getElementById('analyzeFill');
+
+  // Animate the analysis bar
+  let fillPct = 0;
+  const fillTimer = setInterval(() => {
+    fillPct = Math.min(fillPct + Math.random() * 12 + 4, 88);
+    if (fill) fill.style.width = fillPct + '%';
   }, 120);
 
   try {
     const fd = new FormData();
     fd.append('file', file);
     const resp = await fetch('/api/compress-pdf/analyze', { method: 'POST', body: fd });
-    clearInterval(barInterval);
-    if (D.analyzeFill) D.analyzeFill.style.width = '100%';
-    if (!resp.ok) throw new Error('Analysis HTTP ' + resp.status);
+    clearInterval(fillTimer);
+    if (fill) fill.style.width = '100%';
 
+    if (!resp.ok) { D.fiAnalyze.setAttribute('hidden', ''); return; }
     const data = await resp.json();
     ANALYSIS_DATA = data;
 
-    setTimeout(() => {
-      if (D.fiAnalyze) D.fiAnalyze.setAttribute('hidden', '');
-      showAnalysisResult(data, file);
+    await new Promise(r => setTimeout(r, 350));
+    D.fiAnalyze.setAttribute('hidden', '');
+
+    // Show chips
+    updateFileChips(data, file);
+    showRecommendation(data);
+
+    // Update chart
+    if (typeof Chart !== 'undefined') {
       initOrUpdateChart(data);
-      const chartWrap = document.getElementById('chartWrap');
-      if (chartWrap) chartWrap.removeAttribute('hidden');
-    }, 300);
+    } else {
+      // Lazy-load Chart.js
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      s.onload = () => initOrUpdateChart(data);
+      document.head.appendChild(s);
+    }
+
+    // Update version chip
+    if (data.pdf_version) {
+      const vEl = document.getElementById('fiVersion');
+      if (vEl) vEl.innerHTML = `<i class="fa fa-code" aria-hidden="true"></i> PDF ${data.pdf_version}`;
+    }
+
   } catch (err) {
-    clearInterval(barInterval);
-    if (D.fiAnalyze) D.fiAnalyze.setAttribute('hidden', '');
+    clearInterval(fillTimer);
+    D.fiAnalyze.setAttribute('hidden', '');
   }
 }
 
-function showAnalysisResult(data, file) {
-  const pages    = data.pages || data.page_count || '?';
-  const ver      = data.pdf_version || data.version || '—';
-  const imgCount = data.image_count ?? data.images ?? '—';
-  const compEst  = data.estimated_reduction_pct ?? data.compressible_pct;
-  const docType  = data.document_type || data.type || 'Mixed';
+function updateFileChips(data, file) {
+  if (!D.fiChips) return;
+  const imgVal  = document.getElementById('chipImgVal');
+  const compVal = document.getElementById('chipCompVal');
+  const typeVal = document.getElementById('chipTypeVal');
+  const warnEl  = document.getElementById('chipWarn');
+  const warnVal = document.getElementById('chipWarnVal');
 
-  D.fiPages.innerHTML   = `<i class="fa fa-file-pdf" aria-hidden="true"></i> ${pages} page${pages !== 1 ? 's' : ''}`;
-  D.fiVersion.innerHTML = `<i class="fa fa-code" aria-hidden="true"></i> PDF&nbsp;${ver}`;
+  if (imgVal)  imgVal.textContent  = data.image_count || '0';
+  if (typeVal) typeVal.textContent = (data.content_type || 'mixed').replace('_', ' ');
 
-  D.chipImgVal.textContent  = imgCount;
-  D.chipCompVal.textContent = compEst != null ? Math.round(compEst) + '%' : '—';
-  D.chipTypeVal.textContent = docType;
-  D.fiChips.removeAttribute('hidden');
-
-  const warnings = data.warnings || [];
-  if (warnings.length > 0) {
-    D.chipWarn.removeAttribute('hidden');
-    D.chipWarnVal.textContent = warnings[0];
+  // Compressibility
+  const ests  = data.estimated_reductions_by_preset || data.estimates || {};
+  const maxEst = Math.max(...Object.values(ests).map(Number)) || 0;
+  if (compVal) {
+    if (maxEst > 50)       compVal.textContent = 'High';
+    else if (maxEst > 20)  compVal.textContent = 'Medium';
+    else if (maxEst > 5)   compVal.textContent = 'Low';
+    else                   compVal.textContent = 'Already optimised';
   }
 
-  showRecommendation(data);
-  updateSaveEstimates(data);
+  // Warnings
+  const warns = [];
+  if (data.has_encryption)     warns.push('Encrypted PDF — password required');
+  if (data.has_javascript)     warns.push('Contains JavaScript');
+  if (data.has_forms)          warns.push('Contains form fields');
+  if (data.has_embedded_files) warns.push('Contains embedded files');
+
+  if (warnEl && warnVal && warns.length > 0) {
+    warnVal.textContent = warns[0];
+    warnEl.removeAttribute('hidden');
+  } else if (warnEl) {
+    warnEl.setAttribute('hidden', '');
+  }
+
+  D.fiChips.removeAttribute('hidden');
 }
 
 function showRecommendation(data) {
-  if (!data) return;
-  const rec      = data.recommended_preset || data.recommendation;
-  const imgCount = data.image_count ?? 0;
-  const labels   = {
-    lossless: '🔮 Lossless',
-    high:     '💎 High',
-    medium:   '⚖️ Medium',
-    low:      '📧 Low',
-    screen:   '🔥 Screen',
-  };
-  let msg = '';
+  if (!D.recBanner) return;
+  const recs = data.recommendations || [];
+  const ests = data.estimated_reductions_by_preset || data.estimates || {};
 
-  if (rec) {
-    msg = `Recommended: <strong>${labels[rec] || rec}</strong> — based on your PDF analysis`;
-  } else if (imgCount > 10) {
-    msg = `📸 Image-heavy PDF — <strong>Medium</strong> or <strong>Screen</strong> recommended for max savings`;
-  } else if (imgCount === 0) {
-    msg = `📝 Text-only PDF — <strong>Lossless</strong> recommended for zero quality impact`;
-  } else {
-    msg = `✅ PDF analysed — choose your quality preset above`;
-  }
-
-  if (msg && D.recBanner && D.recText) {
-    D.recText.innerHTML = msg;
-    D.recBanner.removeAttribute('hidden');
-  }
-}
-
-function updateSaveEstimates(data) {
-  if (!data) return;
-  const estimates = data.estimates || data.estimated_reductions_by_preset || {};
-  Object.entries(estimates).forEach(([preset, est]) => {
-    const el = document.getElementById(`save-${preset}`);
-    if (el && est != null) el.textContent = `~${Math.round(est)}% smaller`;
+  // Find best preset
+  let bestPreset = 'medium';
+  let bestVal    = 0;
+  Object.entries(ests).forEach(([preset, val]) => {
+    const v = Number(val);
+    if (v > bestVal) { bestVal = v; bestPreset = preset; }
   });
+
+  let msg = '';
+  if (recs.length > 0) {
+    msg = recs[0];
+  } else if (bestVal > 40) {
+    const presetNames = { screen:'Screen', low:'Low', medium:'Medium', high:'High', lossless:'Lossless' };
+    msg = `Recommended: <strong>${presetNames[bestPreset] || bestPreset}</strong> preset — ~${Math.round(bestVal)}% reduction estimated.`;
+    // Auto-select the recommended preset
+    const btn = document.querySelector(`[data-preset="${bestPreset}"]`);
+    if (btn && !btn.classList.contains('active')) {
+      setTimeout(() => selectPreset(bestPreset, true), 500);
+    }
+  } else if (bestVal > 0) {
+    msg = `This PDF is already well-optimised. <strong>Lossless</strong> preset recommended.`;
+  } else {
+    msg = `PDF analysis complete. Choose a quality preset to begin compression.`;
+  }
+
+  const recText = document.getElementById('recText');
+  if (recText) recText.innerHTML = msg;
+  D.recBanner.removeAttribute('hidden');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PRESET SELECTOR
-═══════════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   BATCH PANEL
+══════════════════════════════════════════════════════════════════════════════ */
+function showBatchPanel() {
+  const panel = document.getElementById('batchPanel');
+  const list  = document.getElementById('batchList');
+  const count = document.getElementById('batchCount');
+  if (!panel || !list) return;
+
+  if (count) count.textContent = `${BATCH_QUEUE.length} files`;
+
+  list.innerHTML = BATCH_QUEUE.map((item, i) => `
+    <div class="cp-batch-item" id="batch-item-${item.id}" data-batch-id="${item.id}">
+      <div class="cp-batch-num">${i + 1}</div>
+      <div class="cp-batch-file">
+        <div class="cp-batch-name" title="${item.file.name}">${item.file.name}</div>
+        <div class="cp-batch-size">${fmtBytes(item.file.size)}</div>
+      </div>
+      <div class="cp-batch-status" id="batch-status-${item.id}">
+        <span class="cp-batch-badge pending">Pending</span>
+      </div>
+    </div>`).join('');
+
+  panel.removeAttribute('hidden');
+}
+
+function updateBatchItemStatus(id, status, result = null) {
+  const statusEl = document.getElementById(`batch-status-${id}`);
+  if (!statusEl) return;
+  const maps = {
+    pending:    '<span class="cp-batch-badge pending">Pending</span>',
+    processing: '<span class="cp-batch-badge processing"><i class="fa fa-spinner fa-spin"></i> Processing</span>',
+    done:       result
+      ? `<span class="cp-batch-badge done"><i class="fa fa-check"></i> ${result.redPct > 0 ? result.redPct.toFixed(1) + '% saved' : 'Done'}</span>`
+      : '<span class="cp-batch-badge done"><i class="fa fa-check"></i> Done</span>',
+    error:      '<span class="cp-batch-badge error"><i class="fa fa-times"></i> Error</span>',
+  };
+  statusEl.innerHTML = maps[status] || maps.pending;
+
+  if (status === 'done' && result?.blob) {
+    // Add download link
+    const dl = document.createElement('a');
+    dl.className = 'cp-batch-dl';
+    dl.textContent = 'Download';
+    dl.setAttribute('href', URL.createObjectURL(result.blob));
+    // Use largest file's stem for the batch download name
+    const dlStem = BATCH_LARGEST ? getStem(BATCH_LARGEST.name) : getStem(result.filename || 'file');
+    dl.setAttribute('download', BATCH_QUEUE.length > 1
+      ? `${dlStem}_compressed.pdf`
+      : `${getStem(result.filename || 'file')}_compressed.pdf`
+    );
+    dl.setAttribute('aria-label', `Download compressed ${result.filename || 'PDF'}`);
+    statusEl.appendChild(dl);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PRESET SELECTION
+══════════════════════════════════════════════════════════════════════════════ */
+function getPreset() {
+  const active = D.presetGrid?.querySelector('.cp-preset-btn.active');
+  return active?.dataset.preset || 'medium';
+}
+
+function selectPreset(preset, silent = false) {
+  if (!D.presetGrid) return;
+  D.presetGrid.querySelectorAll('.cp-preset-btn').forEach(b => {
+    const match = b.dataset.preset === preset;
+    b.classList.toggle('active', match);
+    b.setAttribute('aria-checked', String(match));
+  });
+  if (!silent) S('waah_kya_scene_hai');
+}
+
 function initPresets() {
-  const btns = D.presetGrid.querySelectorAll('.cp-preset-btn');
-  btns.forEach((btn, idx) => {
-    btn.addEventListener('click', () => {
-      btns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-checked', 'false'); });
-      btn.classList.add('active');
-      btn.setAttribute('aria-checked', 'true');
-      S('waah_kya_scene_hai');
-      updateActionState();
-    });
-    // Arrow key navigation
-    btn.addEventListener('keydown', (e) => {
+  if (!D.presetGrid) return;
+  D.presetGrid.querySelectorAll('.cp-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectPreset(btn.dataset.preset));
+    btn.addEventListener('keydown', e => {
+      const btns  = [...D.presetGrid.querySelectorAll('.cp-preset-btn')];
+      const idx   = btns.indexOf(btn);
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
         const next = btns[(idx + 1) % btns.length];
-        next.click(); next.focus();
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        selectPreset(next.dataset.preset);
+        next.focus();
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
         const prev = btns[(idx - 1 + btns.length) % btns.length];
-        prev.click(); prev.focus();
+        selectPreset(prev.dataset.preset);
+        prev.focus();
       }
     });
   });
 }
 
-function getPreset() {
-  const btn = D.presetGrid.querySelector('.cp-preset-btn.active');
-  return btn ? btn.dataset.preset : 'medium';
+/* ══════════════════════════════════════════════════════════════════════════════
+   TARGET FILE SIZE
+══════════════════════════════════════════════════════════════════════════════ */
+function getTargetKb() {
+  const inp = document.getElementById('targetKb');
+  const val = inp ? parseInt(inp.value, 10) : 0;
+  return isNaN(val) || val <= 0 ? 0 : val;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   TARGET SIZE
-═══════════════════════════════════════════════════════════════════════════════ */
-function initTargetSize() {
-  D.targetToggle.addEventListener('click', () => {
-    const open = D.targetToggle.getAttribute('aria-expanded') === 'true';
-    D.targetToggle.setAttribute('aria-expanded', String(!open));
-    D.targetInputs.toggleAttribute('hidden', open);
-    if (!open) setTimeout(() => D.targetKb.focus(), 80);
+function initTargetSection() {
+  const toggle = document.getElementById('targetToggle');
+  const inputs = document.getElementById('targetInputs');
+  if (!toggle || !inputs) return;
+
+  toggle.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!open));
+    inputs.toggleAttribute('hidden', open);
     S('click');
   });
 
-  document.querySelectorAll('.cp-tpr').forEach(btn => {
+  // Quick target presets
+  inputs.querySelectorAll('.cp-tpr').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.cp-tpr').forEach(b => b.classList.remove('active'));
+      const kb  = parseInt(btn.dataset.kb, 10);
+      const inp = document.getElementById('targetKb');
+      if (inp) { inp.value = kb; inp.dispatchEvent(new Event('input')); }
+      inputs.querySelectorAll('.cp-tpr').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      D.targetKb.value = btn.dataset.kb;
-      updateActionState();
       S('click');
     });
   });
 
-  D.targetKb.addEventListener('input', () => {
-    document.querySelectorAll('.cp-tpr').forEach(b => b.classList.remove('active'));
-    updateActionState();
-  });
+  const inp = document.getElementById('targetKb');
+  if (inp) {
+    inp.addEventListener('input', () => {
+      inputs.querySelectorAll('.cp-tpr').forEach(b => b.classList.remove('active'));
+    });
+  }
 }
 
-function getTargetKb() {
-  const open = D.targetToggle.getAttribute('aria-expanded') === 'true';
-  const v    = parseInt(D.targetKb.value, 10);
-  return (open && v > 0) ? v : 0;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    ADVANCED OPTIONS
-═══════════════════════════════════════════════════════════════════════════════ */
-function initAdvancedOptions() {
+══════════════════════════════════════════════════════════════════════════════ */
+function initAdvOpts() {
+  if (!D.advToggle || !D.advOpts) return;
+
   D.advToggle.addEventListener('click', () => {
     const open = D.advToggle.getAttribute('aria-expanded') === 'true';
     D.advToggle.setAttribute('aria-expanded', String(!open));
@@ -969,18 +1040,39 @@ function initAdvancedOptions() {
   });
 
   D.advOpts.querySelectorAll('.cp-adv-cb').forEach(cb => {
-    cb.addEventListener('change', updateAdvCount);
+    cb.addEventListener('change', () => {
+      updateAdvCount();
+      S('click');
+    });
   });
 
+  // Password eye toggle
+  const pwEye = document.getElementById('pwEye');
+  const pwInp = document.getElementById('optPassword');
+  if (pwEye && pwInp) {
+    pwEye.addEventListener('click', () => {
+      const show = pwInp.type === 'password';
+      pwInp.type = show ? 'text' : 'password';
+      pwEye.querySelector('i').className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+      pwEye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  }
+
+  // Quick presets
   document.querySelectorAll('.cp-qp-btn').forEach(btn => {
     btn.addEventListener('click', () => applyQuickPreset(btn.dataset.qp));
   });
 
-  if (D.pwEye) {
-    D.pwEye.addEventListener('click', () => {
-      const isPass = D.optPassword.type === 'password';
-      D.optPassword.type = isPass ? 'text' : 'password';
-      D.pwEye.querySelector('i').className = isPass ? 'fa fa-eye-slash' : 'fa fa-eye';
+  // Engines panel
+  const engToggle = document.getElementById('enginesToggle');
+  const engPanel  = document.getElementById('enginesPanel');
+  if (engToggle && engPanel) {
+    engToggle.addEventListener('click', () => {
+      const open = engToggle.getAttribute('aria-expanded') === 'true';
+      engToggle.setAttribute('aria-expanded', String(!open));
+      engPanel.toggleAttribute('hidden', open);
+      if (!open) loadEngines();
+      S('click');
     });
   }
 
@@ -988,14 +1080,16 @@ function initAdvancedOptions() {
 }
 
 function updateAdvCount() {
-  if (!D.advCount) return;
-  const defaults = { optDedup: true, optThumbs: true };
-  let changed = 0;
-  D.advOpts.querySelectorAll('.cp-adv-cb').forEach(cb => {
-    if (cb.checked !== (defaults[cb.id] ?? false)) changed++;
-  });
-  if (changed > 0) {
-    D.advCount.textContent = changed + ' custom';
+  if (!D.advOpts || !D.advCount) return;
+  const enabled = [...D.advOpts.querySelectorAll('.cp-adv-cb:checked')].length;
+  // Subtract the defaults (dedup + thumbnails are on by default, don't count)
+  const defaultOn = ['optDedup', 'optThumbs'].filter(id => {
+    const el = document.getElementById(id);
+    return el && el.checked;
+  }).length;
+  const nonDefaultEnabled = enabled - defaultOn;
+  if (nonDefaultEnabled > 0) {
+    D.advCount.textContent = nonDefaultEnabled;
     D.advCount.removeAttribute('hidden');
   } else {
     D.advCount.setAttribute('hidden', '');
@@ -1021,21 +1115,17 @@ function applyQuickPreset(key) {
 
   updateAdvCount();
 
+  // Show advanced opts if not reset
   if (key !== 'reset' && D.advToggle.getAttribute('aria-expanded') !== 'true') {
     D.advToggle.setAttribute('aria-expanded', 'true');
     D.advOpts.removeAttribute('hidden');
   }
 
+  // Auto-select quality preset
   const qualMap = { email:'low', max:'screen', archive:'high', web:'medium', print:'high' };
-  if (qualMap[key]) {
-    D.presetGrid.querySelectorAll('.cp-preset-btn').forEach(b => {
-      const match = b.dataset.preset === qualMap[key];
-      b.classList.toggle('active', match);
-      b.setAttribute('aria-checked', String(match));
-    });
-  }
+  if (qualMap[key]) selectPreset(qualMap[key], true);
 
-  const labels = { email:'📧 Email', archive:'📦 Archive', web:'🌐 Web', max:'🔥 Max Compression', print:'🖨️ Print', reset:'↩️ Default' };
+  const labels = { email:'📧 Email', archive:'📦 Archive', web:'🌐 Web', max:'🔥 Max', print:'🖨️ Print', reset:'↩️ Default' };
   toast(`${labels[key] || key} preset applied`, 'Settings configured.', 'info', 2500);
   S('click');
 }
@@ -1059,19 +1149,15 @@ function getAdvOptions() {
   };
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    ACTION STATE
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function updateActionState() {
   if (!D) return;
   const canCompress = !!FILE && !BATCH_ACTIVE;
   D.compressBtn.disabled = !canCompress;
   D.compressBtn.setAttribute('aria-disabled', String(!canCompress));
-  if (canCompress) {
-    D.compressBtn.classList.remove('disabled');
-  } else {
-    D.compressBtn.classList.add('disabled');
-  }
+  D.compressBtn.classList.toggle('disabled', !canCompress);
 }
 
 function updateFab() {
@@ -1081,19 +1167,21 @@ function updateFab() {
   else fab.setAttribute('hidden', '');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   COMPRESSION PROGRESS (SSE)
-═══════════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   COMPRESSION PROGRESS (SSE + ring animation)
+══════════════════════════════════════════════════════════════════════════════ */
 function showProgress() {
   D.toolZone.setAttribute('hidden', '');
   D.progressWrap.removeAttribute('hidden');
   D.progressWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   D.progressFill.style.width  = '0%';
   D.progressPct.textContent   = '0%';
   D.progressMsg.textContent   = 'Preparing compression pipeline…';
-  D.progressEngine.textContent = '';
-  _t0 = performance.now();
+  if (D.progressEngine) D.progressEngine.textContent = '';
+  setProgressRing(0);
 
+  _t0 = performance.now();
   _timerInterval = setInterval(() => {
     const s = (performance.now() - _t0) / 1000;
     if (D.progressTimer) D.progressTimer.textContent = fmtElapsed(s);
@@ -1111,33 +1199,43 @@ function hideProgress() {
 
 function setProgress(pct, msg = '', engine = '') {
   const p = clamp(pct, 0, 100);
-  D.progressFill.style.width  = p + '%';
-  D.progressPct.textContent   = Math.round(p) + '%';
+  D.progressFill.style.width = p + '%';
+  D.progressPct.textContent  = Math.round(p) + '%';
+  setProgressRing(p);
   if (msg)    D.progressMsg.textContent    = msg;
-  if (engine) D.progressEngine.textContent = engine;
+  if (engine && D.progressEngine) D.progressEngine.textContent = engine;
 }
 
 function openSSE(jobId) {
   closeSSE();
-  const url = `/api/progress/${jobId}`;
-  SSE_SOURCE = new EventSource(url);
+  const url   = `/api/progress/${jobId}`;
+  SSE_SOURCE  = new EventSource(url);
+  let simPct  = 0;
+  let stageIdx = 0;
 
   SSE_SOURCE.onmessage = (e) => {
     try {
       const d = JSON.parse(e.data);
-      if (d.pct !== undefined) setProgress(d.pct, d.msg || '', d.engine || '');
+      if (d.pct !== undefined) {
+        setProgress(d.pct, d.msg || '', d.engine || '');
+        simPct = d.pct;
+      }
       if (d.pct >= 100) closeSSE();
     } catch (_) {}
   };
-
   SSE_SOURCE.onerror = () => closeSSE();
 
-  // Simulated progress fallback
-  let simPct = 0;
+  // Stage-based simulated progress (shows meaningful stages even without SSE)
   SSE_TIMER = setInterval(() => {
-    simPct = Math.min(simPct + Math.random() * 3.5 + 1, 92);
-    setProgress(simPct);
-  }, 400);
+    if (stageIdx < PROGRESS_STAGES.length) {
+      const stage = PROGRESS_STAGES[stageIdx];
+      if (simPct < stage.pct) {
+        simPct = Math.min(simPct + Math.random() * 3.5 + 1.5, stage.pct);
+        setProgress(simPct, stage.label, stage.sub);
+      }
+      if (simPct >= stage.pct) stageIdx++;
+    }
+  }, 350);
 }
 
 function closeSSE() {
@@ -1145,9 +1243,9 @@ function closeSSE() {
   if (SSE_TIMER)  { clearInterval(SSE_TIMER); SSE_TIMER = null; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   COMPRESS ACTION
-═══════════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   COMPRESS ACTION — SINGLE FILE
+══════════════════════════════════════════════════════════════════════════════ */
 async function doCompress() {
   if (!FILE) {
     toast('No file selected', 'Please upload a PDF first.', 'warn');
@@ -1156,28 +1254,35 @@ async function doCompress() {
   }
   if (D.compressBtn.disabled) return;
 
-  const preset    = getPreset();
-  const targetKb  = getTargetKb();
-  const advOpts   = getAdvOptions();
-  JOB_ID          = `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  // Handle batch mode
+  if (BATCH_QUEUE.length > 1) {
+    await doBatchCompress();
+    return;
+  }
 
+  const preset   = getPreset();
+  const targetKb = getTargetKb();
+  const advOpts  = getAdvOptions();
+  JOB_ID         = `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  BATCH_ACTIVE = true;
   showProgress();
   S('cameraman_focus_karo');
+  updateActionState();
 
   window.addEventListener('beforeunload', _beforeUnloadHandler);
 
   const fd = new FormData();
-  fd.append('file',      FILE);
-  fd.append('preset',    preset);
-  fd.append('job_id',    JOB_ID);
+  fd.append('file',     FILE);
+  fd.append('preset',   preset);   // ← v31 FIX: was 'quality', now 'preset'
+  fd.append('job_id',   JOB_ID);
   fd.append('target_kb', String(targetKb));
   Object.entries(advOpts).forEach(([k, v]) => fd.append(k, String(v)));
 
   openSSE(JOB_ID);
 
   try {
-    const resp = await fetch('/api/compress-pdf', { method: 'POST', body: fd });
-
+    const resp    = await fetch('/api/compress-pdf', { method: 'POST', body: fd });
     setProgress(100, 'Compression complete!');
     closeSSE();
     clearInterval(_timerInterval);
@@ -1191,20 +1296,18 @@ async function doCompress() {
     }
 
     const blob     = await resp.blob();
-    const inSize   = FILE.size;
-    const outSize  = parseInt(resp.headers.get('X-Output-Size')     || String(blob.size), 10);
+    // ── v31 FIX: Read correct header names (match backend) ──
+    const inSize   = parseInt(resp.headers.get('X-Input-Size')   || String(FILE.size), 10);
+    const outSize  = parseInt(resp.headers.get('X-Output-Size')  || String(blob.size), 10);
     const redPct   = parseFloat(resp.headers.get('X-Reduction-Pct') || String(calcReduction(inSize, outSize)));
-    const engine   = resp.headers.get('X-Engine-Used')    || '—';
-    const qScore   = parseInt(resp.headers.get('X-Quality-Score')   || '0', 10);
-    const qGrade   = resp.headers.get('X-Quality-Grade')  || 'B';
-    const engTried = resp.headers.get('X-Engines-Tried')  || '';
-    const procMs   = parseInt(resp.headers.get('X-Processing-Ms')   || String(elapsed), 10);
-    const meth     = resp.headers.get('X-Method-Used')    || '';
+    const engine   = resp.headers.get('X-Engine-Used')   || '—';
+    const qScore   = parseInt(resp.headers.get('X-Quality-Score') || '50', 10);
+    const qGrade   = resp.headers.get('X-Quality-Grade') || 'B';
+    const engTried = resp.headers.get('X-Engines-Tried') || '';
+    const procMs   = parseInt(resp.headers.get('X-Processing-Ms') || String(elapsed), 10);
+    const meth     = resp.headers.get('X-Method-Used')   || preset;
 
-    RESULT_DATA = {
-      blob, inSize, outSize, redPct, engine, qScore, qGrade,
-      engTried, procMs, meth, elapsed, preset,
-    };
+    RESULT_DATA = { blob, inSize, outSize, redPct, engine, qScore, qGrade, engTried, procMs, meth, elapsed, preset };
     COMPRESS_DONE = true;
 
     hideProgress();
@@ -1215,7 +1318,7 @@ async function doCompress() {
       preset,
       inputSize:   inSize,
       outputSize:  outSize,
-      reductionPct:redPct,
+      reductionPct: redPct,
       grade:       qGrade,
       engine,
       timeMs:      procMs,
@@ -1227,7 +1330,6 @@ async function doCompress() {
     } else {
       S('waah_kya_scene_hai');
     }
-
     announce(`Compression complete! ${redPct.toFixed(1)}% reduction. Grade: ${qGrade}.`);
 
   } catch (err) {
@@ -1237,8 +1339,85 @@ async function doCompress() {
     S('eh_eh_eh_ehhhhhh');
     announce('Compression failed. ' + (err.message || ''), 'assertive');
   } finally {
+    BATCH_ACTIVE = false;
+    updateActionState();
     window.removeEventListener('beforeunload', _beforeUnloadHandler);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BATCH COMPRESS
+══════════════════════════════════════════════════════════════════════════════ */
+async function doBatchCompress() {
+  if (BATCH_QUEUE.length === 0) return;
+  BATCH_ACTIVE = true;
+  updateActionState();
+
+  const preset   = getPreset();
+  const targetKb = getTargetKb();
+  const advOpts  = getAdvOptions();
+
+  showBatchPanel();
+  toast(`Starting batch: ${BATCH_QUEUE.length} PDFs`, `Preset: ${preset}`, 'info', 3000);
+  S('cameraman_focus_karo');
+
+  let successCount = 0;
+  let errorCount   = 0;
+
+  for (let i = 0; i < BATCH_QUEUE.length; i++) {
+    const item = BATCH_QUEUE[i];
+    BATCH_IDX  = i;
+    item.status = 'processing';
+    updateBatchItemStatus(item.id, 'processing');
+
+    // Scroll to batch panel item
+    const el = document.getElementById(`batch-item-${item.id}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    const fd     = new FormData();
+    const jobId  = `batch-${Date.now()}-${i}`;
+    fd.append('file',     item.file);
+    fd.append('preset',   preset);
+    fd.append('job_id',   jobId);
+    fd.append('target_kb', String(targetKb));
+    Object.entries(advOpts).forEach(([k, v]) => fd.append(k, String(v)));
+
+    try {
+      const resp = await fetch('/api/compress-pdf', { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob   = await resp.blob();
+      const inSize  = parseInt(resp.headers.get('X-Input-Size')  || String(item.file.size), 10);
+      const outSize = parseInt(resp.headers.get('X-Output-Size') || String(blob.size), 10);
+      const redPct  = parseFloat(resp.headers.get('X-Reduction-Pct') || String(calcReduction(inSize, outSize)));
+      const result  = { blob, inSize, outSize, redPct, filename: item.file.name };
+      item.status = 'done';
+      item.result = result;
+      updateBatchItemStatus(item.id, 'done', result);
+      successCount++;
+    } catch (err) {
+      item.status = 'error';
+      updateBatchItemStatus(item.id, 'error');
+      errorCount++;
+    }
+  }
+
+  BATCH_ACTIVE = false;
+  updateActionState();
+
+  if (successCount > 0) {
+    launchConfetti();
+    S('fahhhhh');
+    toast(
+      `Batch complete! ${successCount}/${BATCH_QUEUE.length} compressed`,
+      errorCount > 0 ? `${errorCount} errors` : 'All files ready to download',
+      errorCount > 0 ? 'warn' : 'success',
+      6000
+    );
+  } else {
+    S('eh_eh_eh_ehhhhhh');
+    toast('Batch failed', `All ${errorCount} files had errors.`, 'error', 8000);
+  }
+  announce(`Batch compression done. ${successCount} succeeded, ${errorCount} failed.`);
 }
 
 function _beforeUnloadHandler(e) {
@@ -1249,105 +1428,127 @@ function _beforeUnloadHandler(e) {
 function cancelCompress() {
   closeSSE();
   hideProgress();
+  BATCH_ACTIVE = false;
+  updateActionState();
   toast('Compression cancelled', '', 'warn', 2500);
   S('jaldi_waha_sa_hato');
   window.removeEventListener('beforeunload', _beforeUnloadHandler);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    RESULT DISPLAY
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function showResult(r) {
-  // Update grade badge
   const gradeColors = { S:'#10b981', A:'#34d399', B:'#6366f1', C:'#f59e0b', D:'#ef4444', F:'#dc2626' };
-  D.resGrade.textContent              = r.qGrade;
-  D.resGrade.style.color              = gradeColors[r.qGrade] || '#94a3b8';
 
-  // Sizes
-  D.resBefore.textContent  = fmtBytes(r.inSize);
-  D.resAfter.textContent   = fmtBytes(r.outSize);
-  D.resPct.textContent     = r.redPct > 0 ? `${r.redPct.toFixed(1)}% smaller` : 'No reduction';
-  D.resEngine.textContent  = r.engine;
-  D.resTime.textContent    = fmtMs(r.procMs);
+  // Grade badge
+  D.resGrade.textContent = r.qGrade;
+  D.resGrade.style.color = gradeColors[r.qGrade] || '#94a3b8';
+
+  // Animate sizes
+  D.resBefore.textContent = fmtBytes(r.inSize);
+  D.resAfter.textContent  = fmtBytes(r.outSize);
+  D.resPct.textContent    = r.redPct > 0 ? `${r.redPct.toFixed(1)}% smaller` : 'Already optimised';
+  if (D.resEngine) D.resEngine.textContent = r.engine || '—';
+  if (D.resTime)   D.resTime.textContent   = fmtMs(r.procMs);
 
   // Animated reduction bar
   if (D.resBar) {
-    D.resBar.style.width    = '0%';
+    D.resBar.style.width = '0%';
     setTimeout(() => {
       D.resBar.style.width  = clamp(r.redPct, 0, 100) + '%';
-    }, 80);
+    }, 100);
   }
 
   // Score
-  if (D.resScore) {
-    animateNumber(D.resScore, 0, r.qScore, 800);
-  }
+  if (D.resScore) animateNumber(D.resScore, 0, r.qScore, 900);
 
-  // Engines tried list
+  // Engines tried
   if (D.resEngineList && r.engTried) {
-    D.resEngineList.innerHTML = r.engTried.split(',').map(e => e.trim()).filter(Boolean).map(e =>
-      `<span class="cp-eng-tag">${e}</span>`
-    ).join('');
+    D.resEngineList.innerHTML = r.engTried.split(',')
+      .map(e => e.trim()).filter(Boolean)
+      .map(e => `<span class="cp-eng-tag">${e}</span>`)
+      .join('');
   }
 
-  // Show/hide zero-reduction note
+  // Zero-reduction note
   const zeroNote = document.getElementById('resZeroNote');
   if (zeroNote) zeroNote.toggleAttribute('hidden', r.redPct > 0);
+
+  // Saved bytes display
+  const savedEl = document.getElementById('resSavedBytes');
+  if (savedEl) {
+    const saved = r.inSize - r.outSize;
+    savedEl.textContent = saved > 0 ? `Saved ${fmtBytes(saved)}` : 'File already compressed';
+  }
 
   D.resultWrap.removeAttribute('hidden');
   D.resultWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   DOWNLOAD
+══════════════════════════════════════════════════════════════════════════════ */
 function triggerDownload() {
-  if (!RESULT_DATA?.blob) { toast('No result yet', 'Please compress a PDF first.', 'warn'); return; }
-  const url  = URL.createObjectURL(RESULT_DATA.blob);
-  const link = document.createElement('a');
-  link.href  = url;
-  link.download = `${STEM}_compressed.pdf`;
+  if (!RESULT_DATA?.blob) {
+    toast('No result', 'Please compress a PDF first.', 'warn');
+    return;
+  }
+  const url   = URL.createObjectURL(RESULT_DATA.blob);
+  const link  = document.createElement('a');
+  link.href   = url;
+  // Download name: for batch, use largest file's stem; for single, use current stem
+  const dlStem = (BATCH_QUEUE.length > 1 && BATCH_LARGEST)
+    ? getStem(BATCH_LARGEST.name)
+    : STEM;
+  link.download = `${dlStem}_compressed.pdf`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 60000);
   S('fahhhhh');
-  toast('Downloading!', `${STEM}_compressed.pdf`, 'success', 3000);
+  toast('Downloading!', `${dlStem}_compressed.pdf`, 'success', 3000);
 }
 
 async function shareResult() {
   if (!RESULT_DATA?.blob) return;
   if (!navigator.share) {
-    toast('Share not available', 'Web Share not supported in this browser.', 'warn', 3000);
+    toast('Share not available', 'Web Share API not supported in this browser.', 'warn', 3000);
     return;
   }
   try {
-    const file = new File([RESULT_DATA.blob], `${STEM}_compressed.pdf`, { type: 'application/pdf' });
+    const dlStem = (BATCH_QUEUE.length > 1 && BATCH_LARGEST) ? getStem(BATCH_LARGEST.name) : STEM;
+    const file   = new File([RESULT_DATA.blob], `${dlStem}_compressed.pdf`, { type: 'application/pdf' });
     await navigator.share({
-      title: `Compressed PDF — ${STEM}`,
+      title: `Compressed PDF — ${dlStem}`,
       text:  `Compressed ${fmtBytes(RESULT_DATA.inSize)} → ${fmtBytes(RESULT_DATA.outSize)} (${RESULT_DATA.redPct.toFixed(1)}% smaller) using IshuTools.fun`,
       files: [file],
     });
   } catch (err) {
-    if (err.name !== 'AbortError') {
-      toast('Share failed', err.message || '', 'error', 3000);
-    }
+    if (err.name !== 'AbortError') toast('Share failed', err.message || '', 'error', 3000);
   }
 }
 
 async function copyReport() {
   if (!RESULT_DATA) return;
   const r   = RESULT_DATA;
+  const dlStem = (BATCH_QUEUE.length > 1 && BATCH_LARGEST) ? getStem(BATCH_LARGEST.name) : STEM;
   const txt = [
     '════ IshuTools.fun — Compression Report ════',
-    `File:        ${FILE?.name || '—'}`,
-    `Preset:      ${r.preset}`,
-    `Before:      ${fmtBytes(r.inSize)}`,
-    `After:       ${fmtBytes(r.outSize)}`,
-    `Reduction:   ${r.redPct.toFixed(1)}%`,
-    `Grade:       ${r.qGrade}`,
-    `Engine:      ${r.engine}`,
-    `Time:        ${fmtMs(r.procMs)}`,
+    `File:          ${FILE?.name || '—'}`,
+    `Preset:        ${r.preset || r.meth}`,
+    `Before:        ${fmtBytes(r.inSize)}`,
+    `After:         ${fmtBytes(r.outSize)}`,
+    `Reduction:     ${r.redPct.toFixed(1)}%`,
+    `Saved:         ${fmtBytes(r.inSize - r.outSize)}`,
+    `Grade:         ${r.qGrade}`,
+    `Score:         ${r.qScore}/100`,
+    `Engine used:   ${r.engine}`,
+    `Time:          ${fmtMs(r.procMs)}`,
     `Engines tried: ${r.engTried}`,
-    `Generated:   ${new Date().toLocaleString()}`,
-    `Tool:        https://ishutools.fun/tools/compress-pdf/`,
+    `Download name: ${dlStem}_compressed.pdf`,
+    `Generated:     ${new Date().toLocaleString()}`,
+    `Tool:          https://ishutools.fun/tools/compress-pdf/`,
     '════════════════════════════════════════════',
   ].join('\n');
 
@@ -1359,15 +1560,19 @@ async function copyReport() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    RESET TOOL
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function resetTool() {
   FILE          = null;
   STEM          = '';
   COMPRESS_DONE = false;
   RESULT_DATA   = null;
   ANALYSIS_DATA = null;
+  BATCH_QUEUE   = [];
+  BATCH_ACTIVE  = false;
+  BATCH_IDX     = 0;
+  BATCH_LARGEST = null;
 
   closeSSE();
   clearInterval(_timerInterval);
@@ -1380,30 +1585,33 @@ function resetTool() {
   if (D.progressWrap)D.progressWrap.setAttribute('hidden', '');
   if (D.toolZone)    D.toolZone.removeAttribute('hidden');
 
-  const chartWrap = document.getElementById('chartWrap');
-  if (chartWrap)     chartWrap.setAttribute('hidden', '');
+  const chartWrap  = document.getElementById('chartWrap');
+  const batchPanel = document.getElementById('batchPanel');
+  if (chartWrap)  chartWrap.setAttribute('hidden', '');
+  if (batchPanel) batchPanel.setAttribute('hidden', '');
 
-  const title = D.dropZone.querySelector('.cp-drop-title');
-  const sub   = D.dropZone.querySelector('.cp-drop-sub');
+  // Reset drop zone text
+  const title = D.dropZone?.querySelector('.cp-drop-title');
+  const sub   = D.dropZone?.querySelector('.cp-drop-sub');
   if (title) title.textContent = 'Drop your PDF here';
-  if (sub)   sub.innerHTML     = 'or <span class="cp-drop-link">browse to upload</span> — any size, instant';
+  if (sub)   sub.innerHTML     = 'or <span class="cp-drop-link" tabindex="0" role="link" aria-label="Browse for PDF file">browse to upload</span> — any size, instant';
 
   updateActionState();
   updateFab();
-  D.dropZone.focus();
+  if (D.dropZone) D.dropZone.focus();
   announce('Tool reset. Ready for a new file.');
+  S('click');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    FAQ ACCORDION
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function initFaq() {
   document.querySelectorAll('.cp-faq-q').forEach(q => {
     q.addEventListener('click', () => {
-      const item = q.closest('.cp-faq-item');
+      const item   = q.closest('.cp-faq-item');
       if (!item) return;
       const isOpen = item.classList.contains('open');
-      // Close all
       document.querySelectorAll('.cp-faq-item.open').forEach(i => {
         i.classList.remove('open');
         i.querySelector('.cp-faq-q')?.setAttribute('aria-expanded', 'false');
@@ -1413,15 +1621,15 @@ function initFaq() {
         q.setAttribute('aria-expanded', 'true');
       }
     });
-    q.addEventListener('keydown', (e) => {
+    q.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); q.click(); }
     });
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    TRUST COUNTERS (IntersectionObserver)
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function initCounters() {
   const counters = document.querySelectorAll('[data-count]');
   if (!counters.length) return;
@@ -1430,88 +1638,40 @@ function initCounters() {
       if (!entry.isIntersecting) return;
       const el  = entry.target;
       const end = parseInt(el.dataset.count, 10) || 0;
-      animateNumber(el, 0, end, 1200, v => Math.round(v).toLocaleString());
+      animateNumber(el, 0, end, 1400, v => Math.round(v).toLocaleString());
       io.unobserve(el);
     });
   }, { threshold: 0.5 });
   counters.forEach(el => io.observe(el));
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
    SCROLL-TO-TOP + FAB
-═══════════════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════════════════════ */
 function initScrollHandlers() {
   const topBtn = document.getElementById('scrollTopBtn');
   const fab    = document.getElementById('cpFab');
 
   window.addEventListener('scroll', () => {
     const y = window.scrollY;
-    if (topBtn) topBtn.toggleAttribute('hidden', y < 300);
+    if (topBtn) topBtn.toggleAttribute('hidden', y < 350);
   }, { passive: true });
 
   if (topBtn) {
-    topBtn.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
   }
 
   if (fab) {
     fab.addEventListener('click', () => {
-      if (FILE && !D.compressBtn.disabled) {
-        doCompress();
-      } else {
-        D.fileInput.click();
-      }
+      if (FILE && !D.compressBtn.disabled) doCompress();
+      else D.fileInput.click();
     });
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   KEYBOARD SHORTCUTS
-═══════════════════════════════════════════════════════════════════════════════ */
-function initKeyboard() {
-  document.addEventListener('keydown', (e) => {
-    const tag = document.activeElement.tagName;
-    const inInput = ['INPUT','TEXTAREA','SELECT'].includes(tag);
-
-    // Ctrl+Enter → compress
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault();
-      doCompress();
-      return;
-    }
-    // Ctrl+O → open file
-    if (e.ctrlKey && e.key === 'o') {
-      e.preventDefault();
-      D.fileInput.click();
-      return;
-    }
-    // Escape → close modals / cancel
-    if (e.key === 'Escape') {
-      const shortcutsModal = document.getElementById('cp-shortcuts-modal');
-      if (shortcutsModal) { shortcutsModal.remove(); return; }
-      if (!D.progressWrap.hasAttribute('hidden')) { cancelCompress(); return; }
-      const histPanel = document.getElementById('historyPanel');
-      if (histPanel && !histPanel.hasAttribute('hidden')) { histPanel.setAttribute('hidden', ''); return; }
-      return;
-    }
-
-    if (inInput) return; // Below shortcuts only outside inputs
-
-    // H → toggle history
-    if (e.key === 'h' || e.key === 'H') { toggleHistory(); return; }
-    // R → reset
-    if (e.key === 'r' || e.key === 'R') { resetTool(); return; }
-    // T → toggle theme
-    if (e.key === 't' || e.key === 'T') { toggleTheme(); return; }
-    // ? → shortcuts modal
-    if (e.key === '?') { showShortcutsModal(); return; }
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ENGINES INFO (load from API on first open)
-═══════════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   ENGINES INFO (from /api/compress-pdf/engines)
+══════════════════════════════════════════════════════════════════════════════ */
 async function loadEngines() {
   const wrap = document.getElementById('enginesApiWrap');
   if (!wrap || wrap.dataset.loaded) return;
@@ -1519,7 +1679,7 @@ async function loadEngines() {
   try {
     const resp = await fetch('/api/compress-pdf/engines');
     if (!resp.ok) return;
-    const data = await resp.json();
+    const data    = await resp.json();
     const engines = data.engines || data.available || [];
     wrap.dataset.loaded = '1';
 
@@ -1529,58 +1689,102 @@ async function loadEngines() {
           <span class="cp-eng-name">${e.name || e}</span>
           <span class="cp-eng-ver">${e.version || ''}</span>
           <span class="cp-eng-status ${e.available !== false ? 'ok' : 'na'}">
-            ${e.available !== false ? '✓ Available' : '✗ N/A'}
+            <i class="fa ${e.available !== false ? 'fa-check-circle' : 'fa-times-circle'}" aria-hidden="true"></i>
+            ${e.available !== false ? 'Available' : 'Not available'}
           </span>
-        </div>
-      `).join('');
-      wrap.innerHTML = rows;
+        </div>`).join('');
+      wrap.innerHTML = `<div class="cp-eng-rows">${rows}</div>`;
+    } else {
+      wrap.innerHTML = `<div style="font-size:.82rem;color:var(--t4);padding:var(--sp-2)">
+        <i class="fa fa-check-circle" style="color:var(--em)"></i> All engines loaded.
+      </div>`;
     }
-  } catch {}
+  } catch {
+    if (!document.getElementById('enginesApiWrap')?.dataset.loaded) {
+      document.getElementById('enginesApiWrap')?.insertAdjacentHTML('beforeend',
+        `<div style="font-size:.8rem;color:var(--t4);padding:var(--sp-2)">Could not load engine status.</div>`
+      );
+    }
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   MAIN DOM INIT
-═══════════════════════════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
+/* ══════════════════════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+══════════════════════════════════════════════════════════════════════════════ */
+function initKeyboard() {
+  document.addEventListener('keydown', e => {
+    const tag     = document.activeElement?.tagName || '';
+    const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
 
-  /* ── Populate DOM refs ──────────────────────────────────────────────────── */
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); doCompress(); return; }
+    if (e.ctrlKey && e.key === 'o')     { e.preventDefault(); D.fileInput.click(); return; }
+
+    if (e.key === 'Escape') {
+      const shortcutsModal = document.getElementById('cp-shortcuts-modal');
+      if (shortcutsModal) { shortcutsModal.remove(); return; }
+      if (!D.progressWrap.hasAttribute('hidden')) { cancelCompress(); return; }
+      const histPanel = document.getElementById('historyPanel');
+      if (histPanel && !histPanel.hasAttribute('hidden')) { histPanel.setAttribute('hidden', ''); return; }
+      return;
+    }
+
+    if (inInput) return;
+
+    if (e.key === 'h' || e.key === 'H') { toggleHistory(); return; }
+    if (e.key === 'r' || e.key === 'R') { resetTool(); return; }
+    if (e.key === 't' || e.key === 'T') { toggleTheme(); return; }
+    if (e.key === 's' || e.key === 'S') { toggleSound(); return; }
+    if (e.key === '?') { showShortcutsModal(); return; }
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   REVEAL ANIMATIONS (IntersectionObserver for .cp-reveal elements)
+══════════════════════════════════════════════════════════════════════════════ */
+function initRevealAnimations() {
+  if (_reduced) {
+    document.querySelectorAll('.cp-reveal').forEach(el => el.classList.add('revealed'));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.cp-reveal').forEach((el, i) => {
+    el.style.transitionDelay = `${i * 55}ms`;
+    io.observe(el);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DOM INITIALISATION
+══════════════════════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // ── Populate all DOM references ──────────────────────────────────────────
   D = {
     dropZone:     document.getElementById('dropZone'),
     fileInput:    document.getElementById('fileInput'),
     fileInfo:     document.getElementById('fileInfo'),
-    fiName:       document.getElementById('fiName'),
-    fiSize:       document.getElementById('fiSize'),
-    fiPages:      document.getElementById('fiPages'),
-    fiType:       document.getElementById('fiType'),
-    fiVersion:    document.getElementById('fiVersion'),
     fiChips:      document.getElementById('fiChips'),
-    chipImgVal:   document.getElementById('chipImgVal'),
-    chipCompVal:  document.getElementById('chipCompVal'),
-    chipTypeVal:  document.getElementById('chipTypeVal'),
-    chipWarn:     document.getElementById('chipWarn'),
-    chipWarnVal:  document.getElementById('chipWarnVal'),
     fiAnalyze:    document.getElementById('fiAnalyze'),
-    analyzeFill:  document.getElementById('analyzeFill'),
     recBanner:    document.getElementById('recBanner'),
-    recText:      document.getElementById('recText'),
-    fiRemove:     document.getElementById('fiRemove'),
+    toolZone:     document.getElementById('toolZone'),
     presetGrid:   document.getElementById('presetGrid'),
-    targetToggle: document.getElementById('targetToggle'),
-    targetInputs: document.getElementById('targetInputs'),
-    targetKb:     document.getElementById('targetKb'),
     advToggle:    document.getElementById('advToggle'),
     advOpts:      document.getElementById('advOpts'),
     advCount:     document.getElementById('advCount'),
-    optPassword:  document.getElementById('optPassword'),
-    pwEye:        document.getElementById('pwEye'),
     compressBtn:  document.getElementById('compressBtn'),
-    toolZone:     document.getElementById('toolZone'),
     progressWrap: document.getElementById('progressWrap'),
     progressFill: document.getElementById('progressFill'),
     progressPct:  document.getElementById('progressPct'),
     progressMsg:  document.getElementById('progressMsg'),
-    progressEngine:document.getElementById('progressEngine'),
     progressTimer:document.getElementById('progressTimer'),
+    progressEngine:document.getElementById('progressEngine'),
     resultWrap:   document.getElementById('resultWrap'),
     resGrade:     document.getElementById('resGrade'),
     resBefore:    document.getElementById('resBefore'),
@@ -1591,130 +1795,90 @@ document.addEventListener('DOMContentLoaded', () => {
     resBar:       document.getElementById('resBar'),
     resScore:     document.getElementById('resScore'),
     resEngineList:document.getElementById('resEngineList'),
-    toastWrap:    document.getElementById('toastWrap'),
+    downloadBtn:  document.getElementById('downloadBtn'),
+    shareBtn:     document.getElementById('shareBtn'),
+    copyReportBtn:document.getElementById('copyReportBtn'),
+    compressAnotherBtn: document.getElementById('compressAnotherBtn'),
+    cancelBtn:    document.getElementById('cancelBtn'),
     themeToggle:  document.getElementById('themeToggle'),
     themeIcon:    document.getElementById('themeIcon'),
     soundToggle:  document.getElementById('soundToggle'),
     soundIcon:    document.getElementById('soundIcon'),
+    histBtn:      document.getElementById('histBtn'),
+    clearHistBtn: document.getElementById('clearHistBtn'),
+    toastWrap:    document.getElementById('toastWrap'),
   };
 
-  /* ── Initialise all modules ─────────────────────────────────────────────── */
-  initTheme();
-  initSoundToggle();
-  initBgCanvas();
+  // ── Wire all event listeners ──────────────────────────────────────────────
   initDropZone();
   initPresets();
-  initTargetSize();
-  initAdvancedOptions();
+  initTargetSection();
+  initAdvOpts();
   initFaq();
+  initTheme();
+  initSoundToggle();
   initCounters();
   initScrollHandlers();
   initKeyboard();
-  updateActionState();
-  renderHistory();
-
-  /* ── Button wiring ──────────────────────────────────────────────────────── */
+  initRevealAnimations();
+  initBgCanvas();
 
   // Compress button
-  D.compressBtn.addEventListener('click', doCompress);
+  if (D.compressBtn) D.compressBtn.addEventListener('click', doCompress);
 
-  // Cancel button (in progress panel)
-  const cancelBtn = document.getElementById('cancelBtn');
-  if (cancelBtn) cancelBtn.addEventListener('click', cancelCompress);
+  // Cancel
+  if (D.cancelBtn) D.cancelBtn.addEventListener('click', cancelCompress);
 
-  // Download button
-  const dlBtn = document.getElementById('downloadBtn');
-  if (dlBtn) dlBtn.addEventListener('click', triggerDownload);
+  // Download
+  if (D.downloadBtn) D.downloadBtn.addEventListener('click', triggerDownload);
 
-  // Share button
-  const shareBtn = document.getElementById('shareBtn');
-  if (shareBtn) shareBtn.addEventListener('click', shareResult);
+  // Share
+  if (D.shareBtn) D.shareBtn.addEventListener('click', shareResult);
 
-  // Copy report button
-  const copyBtn = document.getElementById('copyReportBtn');
-  if (copyBtn) copyBtn.addEventListener('click', copyReport);
+  // Copy report
+  if (D.copyReportBtn) D.copyReportBtn.addEventListener('click', copyReport);
 
   // Compress another
-  const anotherBtn = document.getElementById('compressAnotherBtn');
-  if (anotherBtn) anotherBtn.addEventListener('click', () => { resetTool(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  if (D.compressAnotherBtn) D.compressAnotherBtn.addEventListener('click', resetTool);
 
-  // Theme/sound toggles
-  D.themeToggle.addEventListener('click', toggleTheme);
-  D.soundToggle.addEventListener('click', toggleSound);
+  // Remove file
+  const fiRemove = document.getElementById('fiRemove');
+  if (fiRemove) fiRemove.addEventListener('click', resetTool);
+
+  // Theme toggle
+  if (D.themeToggle) D.themeToggle.addEventListener('click', toggleTheme);
+
+  // Sound toggle
+  if (D.soundToggle) D.soundToggle.addEventListener('click', toggleSound);
 
   // History toggle
-  const histBtn = document.getElementById('historyBtn');
-  if (histBtn) histBtn.addEventListener('click', toggleHistory);
+  if (D.histBtn) D.histBtn.addEventListener('click', toggleHistory);
+  if (D.clearHistBtn) D.clearHistBtn.addEventListener('click', clearHistory);
 
-  // Clear history
-  const clearHistBtn = document.getElementById('clearHistBtn');
-  if (clearHistBtn) clearHistBtn.addEventListener('click', clearHistory);
-
-  // Shortcuts button
-  const shortcutsBtn = document.getElementById('shortcutsBtn');
-  if (shortcutsBtn) shortcutsBtn.addEventListener('click', showShortcutsModal);
-
-  // Engines info lazy-load
-  const enginesToggle = document.getElementById('enginesToggle');
-  if (enginesToggle) {
-    enginesToggle.addEventListener('click', () => {
-      const wrap = document.getElementById('enginesPanel');
-      if (!wrap) return;
-      const isOpen = enginesToggle.getAttribute('aria-expanded') === 'true';
-      enginesToggle.setAttribute('aria-expanded', String(!isOpen));
-      wrap.toggleAttribute('hidden', isOpen);
-      if (!isOpen) loadEngines();
-    });
+  // Collapsible: target file size (keyboard accessible chevron)
+  const targetToggle = document.getElementById('targetToggle');
+  const targetInputs = document.getElementById('targetInputs');
+  if (targetToggle && targetInputs && !targetToggle._wired) {
+    // already wired in initTargetSection
   }
 
-  /* ── Sounds preload on first interaction ────────────────────────────────── */
-  const preloadSounds = () => {
-    if (window.SOUNDS && typeof window.SOUNDS.preload === 'function') {
-      window.SOUNDS.preload();
-    }
-    document.removeEventListener('pointerdown', preloadSounds);
-  };
-  document.addEventListener('pointerdown', preloadSounds, { once: true });
+  // Initial state
+  updateActionState();
+  updateFab();
 
-  /* ── Observe scroll-reveal elements ────────────────────────────────────── */
-  if (!_reduced) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('cp-revealed');
-          io.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
-    document.querySelectorAll('.cp-reveal').forEach(el => io.observe(el));
-  } else {
-    document.querySelectorAll('.cp-reveal').forEach(el => el.classList.add('cp-revealed'));
+  // Lazy-load confetti library
+  if (typeof confetti === 'undefined' && !_reduced) {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js';
+    s.defer = true;
+    document.head.appendChild(s);
   }
 
-  /* ── Marquee pause on hover ─────────────────────────────────────────────── */
-  document.querySelectorAll('.cp-marquee-wrap').forEach(wrap => {
-    wrap.addEventListener('mouseenter', () =>
-      wrap.querySelectorAll('.cp-marquee-row').forEach(r => r.style.animationPlayState = 'paused')
-    );
-    wrap.addEventListener('mouseleave', () =>
-      wrap.querySelectorAll('.cp-marquee-row').forEach(r => r.style.animationPlayState = 'running')
-    );
-  });
+  // Initialize progress ring
+  setProgressRing(0);
 
+  // Pre-warm engines (low priority)
+  setTimeout(() => {
+    fetch('/api/compress-pdf/engines').catch(() => {});
+  }, 3000);
 });
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   GLOBAL ONCLICK HANDLERS (called from HTML onclick attributes)
-═══════════════════════════════════════════════════════════════════════════════ */
-window.doCompress       = doCompress;
-window.triggerDownload  = triggerDownload;
-window.shareResult      = shareResult;
-window.copyReport       = copyReport;
-window.resetTool        = resetTool;
-window.toggleHistory    = toggleHistory;
-window.toggleTheme      = toggleTheme;
-window.toggleSound      = toggleSound;
-window.cancelCompress   = cancelCompress;
-window.applyQuickPreset = applyQuickPreset;
-window.showShortcutsModal = showShortcutsModal;
-window.clearHistory     = clearHistory;

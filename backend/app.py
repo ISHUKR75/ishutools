@@ -869,33 +869,70 @@ def api_compress_pdf_analyze():
         from tools.pdf_compress import get_compression_estimate
         data = get_compression_estimate(path)
         return jsonify({
-            'success': True,
-            'page_count':    data.get('page_count', 0),
-            'image_count':   data.get('image_count', 0),
-            'font_count':    data.get('font_count', 0),
-            'file_size_kb':  data.get('file_size_kb', 0),
-            'content_type':  data.get('content_type', 'mixed'),
-            'has_javascript': data.get('has_javascript', False),
-            'has_forms':     data.get('has_forms', False),
-            'has_encryption': data.get('has_encryption', False),
-            'has_annotations': data.get('has_annotations', False),
+            'success':            True,
+            'page_count':         data.get('page_count', 0),
+            'image_count':        data.get('image_count', 0),
+            'font_count':         data.get('font_count', 0),
+            'file_size_kb':       data.get('file_size_kb', 0),
+            'content_type':       data.get('content_type', 'mixed'),
+            'has_javascript':     data.get('has_javascript', False),
+            'has_forms':          data.get('has_forms', False),
+            'has_encryption':     data.get('has_encryption', False),
+            'has_annotations':    data.get('has_annotations', False),
             'has_embedded_files': data.get('has_embedded_files', False),
-            'is_linearized': data.get('is_linearized', False),
+            'is_linearized':      data.get('is_linearized', False),
+            'pdf_version':        data.get('pdf_version', ''),
+            'compressibility':    data.get('compressibility_score', 0),
             'estimated_reductions_by_preset': data.get('estimated_reductions_by_preset', {}),
-            'engines_available': data.get('engines', []),
+            'estimates':          data.get('estimated_reductions_by_preset', {}),
+            'engines_available':  data.get('engines', []),
+            'recommendations':    data.get('recommendations', []),
         })
     except Exception as e:
         logger.exception("compress-pdf/analyze error")
         return error_response(str(e))
 
 
+@app.route('/api/compress-pdf/engines', methods=['GET'])
+def api_compress_pdf_engines():
+    """Return available compression engines, versions, and status."""
+    try:
+        from tools.pdf_compress import get_available_engines
+        engines = get_available_engines()
+        return jsonify({'success': True, 'engines': engines})
+    except Exception as e:
+        logger.exception("compress-pdf/engines error")
+        return jsonify({'success': False, 'engines': [], 'error': str(e)})
+
+
 @app.route('/api/compress-pdf', methods=['POST'])
 def api_compress_pdf():
     """
-    Compress PDF — multi-engine pipeline with SSE progress.
-    Options: quality, grayscale, strip_metadata, remove_annotations, linearize, target_size_kb, job_id
-    Response headers: X-Original-Size, X-Compressed-Size, X-Reduction, X-Method-Used,
-                      X-Page-Count, X-Image-Count, X-Processing-Ms
+    Compress PDF — full 12-engine pipeline with SSE progress.
+
+    Form fields (all read explicitly — v31 FIX: now reads 'preset' not 'quality'):
+      preset / quality        — lossless | high | medium | low | screen
+      grayscale               — bool
+      strip_metadata          — bool
+      remove_annotations      — bool
+      linearize               — bool
+      remove_javascript       — bool
+      remove_thumbnails       — bool  (default true)
+      remove_embedded_files   — bool
+      flatten_transparency    — bool
+      subset_fonts            — bool
+      remove_icc_profiles     — bool
+      remove_forms            — bool
+      remove_links            — bool
+      remove_duplicate_images — bool  (default true)
+      target_kb / target_size_kb — int KB (0 = no target)
+      password                — str  (PDF decryption password)
+      job_id                  — str  (SSE progress channel)
+
+    Response headers (matching JS expectations):
+      X-Input-Size, X-Output-Size, X-Reduction-Pct,
+      X-Engine-Used, X-Quality-Score, X-Quality-Grade,
+      X-Engines-Tried, X-Processing-Ms, X-Method-Used
     """
     import time as _time
     t_start = _time.time()
@@ -904,123 +941,131 @@ def api_compress_pdf():
         if not file:
             return error_response('No file uploaded.')
 
-        quality            = request.form.get('quality', 'medium').strip()
-        grayscale          = request.form.get('grayscale', 'false').lower() == 'true'
-        strip_metadata     = request.form.get('strip_metadata', 'false').lower() == 'true'
-        remove_annotations = request.form.get('remove_annotations', 'false').lower() == 'true'
-        linearize          = request.form.get('linearize', 'false').lower() == 'true'
-        target_size_kb     = int(request.form.get('target_size_kb', '0') or '0')
-        job_id             = request.form.get('job_id', '').strip()[:64]
+        # ── Read preset (v31 FIX: JS sends 'preset', backend was reading 'quality') ──
+        quality = request.form.get('preset', request.form.get('quality', 'medium')).strip().lower()
+        if quality not in ('lossless', 'high', 'medium', 'low', 'screen'):
+            quality = 'medium'
 
-        def push(pct, title='', sub=''):
+        # ── Read all advanced options ─────────────────────────────────────────
+        def _bool(key, default='false'):
+            return request.form.get(key, default).lower() in ('true', '1', 'yes', 'on')
+
+        grayscale               = _bool('grayscale')
+        strip_metadata          = _bool('strip_metadata')
+        remove_annotations      = _bool('remove_annotations')
+        linearize               = _bool('linearize')
+        remove_javascript       = _bool('remove_javascript')
+        remove_thumbnails       = _bool('remove_thumbnails', 'true')
+        remove_embedded_files   = _bool('remove_embedded_files')
+        flatten_transparency    = _bool('flatten_transparency')
+        subset_fonts            = _bool('subset_fonts')
+        remove_icc_profiles     = _bool('remove_icc_profiles')
+        remove_forms            = _bool('remove_forms')
+        remove_links            = _bool('remove_links')
+        remove_duplicate_images = _bool('remove_duplicate_images', 'true')
+
+        # Target size: JS sends 'target_kb', old code used 'target_size_kb'
+        target_size_kb = int(
+            request.form.get('target_kb',
+            request.form.get('target_size_kb', '0')) or '0'
+        )
+
+        # Password: JS sends 'password' or 'optPassword'
+        password = (
+            request.form.get('password', '') or
+            request.form.get('optPassword', '')
+        ).strip()
+
+        job_id = request.form.get('job_id', '').strip()[:64]
+
+        def push(pct, title='', sub='', done=False):
             if job_id:
-                _push_progress(job_id, pct, title, sub)
+                _push_progress(job_id, int(pct), title, sub)
 
-        stem    = file_stem(file)
-        path    = save_uploaded_file(file)
-        out     = output_path('compressed.pdf')
+        stem = file_stem(file)
+        path = save_uploaded_file(file)
+        out  = output_path('compressed.pdf')
 
-        original_size = os.path.getsize(path)
-        push(10, 'Analysing PDF…', 'Checking content type and images…')
+        push(5, 'Initialising…', f'Preset: {quality} · Loading engines…')
 
-        # Analyse first (for header info)
-        page_count  = 0
-        image_count = 0
-        try:
-            from tools.pdf_compress import get_compression_estimate
-            info = get_compression_estimate(path)
-            page_count  = info.get('page_count', 0)
-            image_count = info.get('image_count', 0)
-        except Exception:
-            pass
+        # ── Run the full compression engine with ALL options ──────────────────
+        push(12, 'Analysing PDF…', 'Scanning images, fonts, streams…')
 
-        push(22, 'Compressing…', f'Mode: {quality} · Engines: Ghostscript + PyMuPDF + pikepdf')
+        from tools.pdf_compress import compress_pdf as _do_compress
+        compress_result = _do_compress(
+            src=path,
+            dst=out,
+            quality=quality,
+            grayscale=grayscale,
+            strip_metadata=strip_metadata,
+            remove_annotations=remove_annotations,
+            linearize=linearize,
+            remove_javascript=remove_javascript,
+            remove_thumbnails=remove_thumbnails,
+            remove_embedded_files=remove_embedded_files,
+            flatten_transparency=flatten_transparency,
+            subset_fonts=subset_fonts,
+            remove_icc_profiles=remove_icc_profiles,
+            remove_forms=remove_forms,
+            remove_links=remove_links,
+            remove_duplicate_images=remove_duplicate_images,
+            target_size_kb=target_size_kb,
+            password=password,
+            job_id=job_id,
+        )
 
-        # ── Target-size mode (binary search across presets) ──────────────────
-        method_used = 'multi-engine'
-        if target_size_kb > 0:
-            push(30, 'Target Size Mode…', f'Aiming for ≤ {target_size_kb} KB')
+        # ── Check errors ──────────────────────────────────────────────────────
+        if compress_result.get('errors') and not os.path.exists(out):
+            err_msgs = compress_result.get('errors', [])
+            return error_response('; '.join(str(e) for e in err_msgs[:3]) or 'Compression failed')
+
+        # If output doesn't exist for some reason, fallback to input
+        if not os.path.exists(out) or os.path.getsize(out) == 0:
             try:
-                from tools.pdf_compress import compress_to_target_size
-                res = compress_to_target_size(path, out, target_kb=target_size_kb)
-                method_used = f"target-size ({res.get('quality_used','auto')})"
-            except Exception as e:
-                logger.warning(f'target-size failed: {e}, falling back to quality mode')
-                compress_pdf(path, out, quality=quality)
+                import shutil as _shutil
+                _shutil.copy2(path, out)
+            except Exception:
+                return error_response('Compression produced no output file')
+
+        push(95, 'Finalising…', 'Verifying output and preparing download…')
+
+        # ── Extract result metrics ────────────────────────────────────────────
+        in_size   = compress_result.get('input_size',  os.path.getsize(path))
+        out_size  = compress_result.get('output_size', os.path.getsize(out))
+        red_pct   = compress_result.get('reduction_pct',
+                        round((in_size - out_size) / max(in_size, 1) * 100, 1))
+        engine    = compress_result.get('engine_used',    'multi-engine')
+        q_score   = compress_result.get('quality_score',  50)
+        q_grade   = compress_result.get('quality_grade',  'B')
+        engines_tried = compress_result.get('engines_tried', [])
+        if isinstance(engines_tried, list):
+            eng_tried_str = ','.join(str(e) for e in engines_tried)
         else:
-            push(30, 'Ghostscript…', 'Applying distiller preset…')
-            compress_pdf(path, out, quality=quality)
-            push(60, 'PyMuPDF + pikepdf…', 'Recompressing images and streams…')
+            eng_tried_str = str(engines_tried)
+        proc_ms   = compress_result.get('processing_time_ms',
+                        int((_time.time() - t_start) * 1000))
+        method    = compress_result.get('preset', quality)
 
-        push(72, 'Applying extra options…', 'Grayscale / metadata / annotations…')
-
-        # ── Post-processing: grayscale ───────────────────────────────────────
-        if grayscale:
-            try:
-                from tools.pdf_compress import compress_grayscale
-                gs_out = out + '_gray.pdf'
-                compress_grayscale(out, gs_out)
-                if os.path.exists(gs_out) and os.path.getsize(gs_out) > 0:
-                    os.replace(gs_out, out)
-                    method_used += '+grayscale'
-            except Exception as e:
-                logger.warning(f'grayscale conversion failed: {e}')
-
-        # ── Post-processing: strip metadata ──────────────────────────────────
-        if strip_metadata:
-            try:
-                from tools.pdf_compress import compress_remove_metadata
-                meta_out = out + '_meta.pdf'
-                compress_remove_metadata(out, meta_out)
-                if os.path.exists(meta_out) and os.path.getsize(meta_out) > 0:
-                    os.replace(meta_out, out)
-                    method_used += '+strip-meta'
-            except Exception as e:
-                logger.warning(f'strip metadata failed: {e}')
-
-        # ── Post-processing: remove annotations ──────────────────────────────
-        if remove_annotations:
-            try:
-                from tools.pdf_compress import compress_flatten_annotations
-                annot_out = out + '_annot.pdf'
-                compress_flatten_annotations(out, annot_out)
-                if os.path.exists(annot_out) and os.path.getsize(annot_out) > 0:
-                    os.replace(annot_out, out)
-                    method_used += '+strip-annot'
-            except Exception as e:
-                logger.warning(f'annotation removal failed: {e}')
-
-        # ── Post-processing: linearize ────────────────────────────────────────
-        if linearize:
-            try:
-                import pikepdf as _pikepdf
-                lin_out = out + '_linear.pdf'
-                with _pikepdf.open(out, suppress_warnings=True) as _pdf:
-                    _pdf.save(lin_out, linearize=True, compress_streams=True)
-                if os.path.exists(lin_out) and os.path.getsize(lin_out) > 0:
-                    os.replace(lin_out, out)
-                    method_used += '+linearized'
-            except Exception as e:
-                logger.warning(f'linearize failed: {e}')
-
-        push(92, 'Finalising…', 'Preparing your download…')
-
-        new_size    = os.path.getsize(out) if os.path.exists(out) else original_size
-        reduction   = round((original_size - new_size) / max(original_size, 1) * 100, 1)
-        proc_ms     = int((_time.time() - t_start) * 1000)
-
-        push(100, 'Done! ✓', '', done=True)
+        push(100, 'Done! ✓', f'Saved {red_pct:.1f}% — grade {q_grade}', done=True)
 
         resp = send_result(out, f'{stem}_compressed.pdf')
-        expose = 'X-Original-Size,X-Compressed-Size,X-Reduction,X-Method-Used,X-Page-Count,X-Image-Count,X-Processing-Ms'
-        resp.headers['X-Original-Size']   = str(original_size)
-        resp.headers['X-Compressed-Size'] = str(new_size)
-        resp.headers['X-Reduction']       = f'{reduction}%'
-        resp.headers['X-Method-Used']     = method_used
-        resp.headers['X-Page-Count']      = str(page_count)
-        resp.headers['X-Image-Count']     = str(image_count)
+
+        # ── Response headers — matching exactly what JS expects ───────────────
+        expose_headers = ','.join([
+            'X-Input-Size', 'X-Output-Size', 'X-Reduction-Pct',
+            'X-Engine-Used', 'X-Quality-Score', 'X-Quality-Grade',
+            'X-Engines-Tried', 'X-Processing-Ms', 'X-Method-Used',
+        ])
+        resp.headers['X-Input-Size']      = str(in_size)
+        resp.headers['X-Output-Size']     = str(out_size)
+        resp.headers['X-Reduction-Pct']   = str(red_pct)
+        resp.headers['X-Engine-Used']     = str(engine)[:128]
+        resp.headers['X-Quality-Score']   = str(q_score)
+        resp.headers['X-Quality-Grade']   = str(q_grade)
+        resp.headers['X-Engines-Tried']   = eng_tried_str[:512]
         resp.headers['X-Processing-Ms']   = str(proc_ms)
-        resp.headers['Access-Control-Expose-Headers'] = expose
+        resp.headers['X-Method-Used']     = str(method)[:64]
+        resp.headers['Access-Control-Expose-Headers'] = expose_headers
         return resp
 
     except Exception as e:
