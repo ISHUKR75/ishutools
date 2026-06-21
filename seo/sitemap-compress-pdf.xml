@@ -12,13 +12,13 @@
     IshuTools.fun — Compress PDF Tool Dedicated Sitemap
     Built by Ishu Kumar (ISHUKR41 / ISHUKR75)
     https://ishutools.fun/tools/compress-pdf/
-    Last updated: 2026-06-20
+    Last updated: 2026-06-21
   -->
 
   <!-- ═══ COMPRESS PDF — Primary URL ═══════════════════════════════════════ -->
   <url>
     <loc>https://ishutools.fun/tools/compress-pdf/</loc>
-    <lastmod>2026-06-20</lastmod>
+    <lastmod>2026-06-21</lastmod>
     <changefreq>always</changefreq>
     <priority>1.0</priority>
 
@@ -79,7 +79,7 @@
         <news:name>IshuTools.fun by Ishu Kumar</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2026-06-20T00:00:00+05:30</news:publication_date>
+      <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
       <news:title>Compress PDF Online Free v5.0 — IshuTools.fun by Ishu Kumar (ISHUKR41) — 12-Engine, Lossless, Target Size</news:title>
       <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, compress pdf, pdf compressor, ishutools, ishutools.fun, compress pdf free, compress pdf online, lossless pdf compression, reduce pdf size, ishu compress pdf, ishu tools compress pdf, ishu kumar pdf compressor, pdf size kam karna, compress pdf india, compress scanned pdf, compress pdf to 100kb, batch compress pdf, pdf compressor no watermark, 12 engine pdf, target file size, binary search compression, best free pdf compressor india</news:keywords>
     </news:news>
@@ -88,9 +88,26 @@
   <!-- ═══ COMPRESS PDF — Alternate / AMP / Canonical variants ═══════════════ -->
   <url>
     <loc>https://ishutools.fun/tools/compress-pdf</loc>
-    <lastmod>2026-06-20</lastmod>
+    <lastmod>2026-06-21</lastmod>
     <changefreq>always</changefreq>
     <priority>0.9</priority>
+  </url>
+
+  <!-- ═══ ISHU KUMAR / ISHUKR41 AUTHOR PAGE — entity signal ═══════════════ -->
+  <url>
+    <loc>https://ishutools.fun/ishu-kumar/</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
+      <news:title>Ishu Kumar (ISHUKR41) — Indian PDF Tools Developer — IshuTools.fun Creator</news:title>
+      <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, ishutools, ishutools.fun, compress pdf, pdf tools india, free pdf tools, indian developer</news:keywords>
+    </news:news>
   </url>
 
 </urlset>

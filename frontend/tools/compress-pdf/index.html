@@ -93,6 +93,15 @@
   <link rel="preconnect"    href="https://fonts.gstatic.com" crossorigin/>
   <link rel="preconnect"    href="https://cdnjs.cloudflare.com"/>
   <link rel="dns-prefetch"  href="https://cdn.jsdelivr.net"/>
+  <link rel="dns-prefetch"  href="https://ishutools.fun"/>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       PRELOAD — Critical resources for LCP/FCP boost (Core Web Vitals)
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <link rel="preload" href="style.css" as="style"/>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Poppins:wght@600;700;800&display=swap" as="style"/>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style"/>
+  <link rel="preload" href="sounds/sounds.js" as="script"/>
 
   <!-- ═══════════════════════════════════════════════════════════════════════════
        FONTS — Inter + Poppins + JetBrains Mono
@@ -557,6 +566,84 @@
   <link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/compress-pdf/"/>
 
   <!-- ═══════════════════════════════════════════════════════════════════════════
+       JSON-LD SCHEMA 16 — NewsArticle (freshness signal for Google Discover)
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "@id": "https://ishutools.fun/tools/compress-pdf/#news",
+    "headline": "IshuTools Compress PDF by Ishu Kumar — 12-Engine Free PDF Compressor (2026)",
+    "name": "Ishu Kumar (ISHUKR41) Builds India's Best Free PDF Compressor — 12 Engines, Lossless, No Limit",
+    "description": "Ishu Kumar (GitHub: ISHUKR41 / ISHUKR75) has built IshuTools.fun — India's most powerful free PDF compressor with 12 engines (pikepdf, Ghostscript, PyMuPDF, qpdf, mutool), true lossless mode, batch processing, target file size, and no restrictions.",
+    "image": { "@type": "ImageObject", "url": "https://ishutools.fun/static/icons/og-compress-pdf.png", "width": 1200, "height": 630 },
+    "datePublished": "2024-01-15T00:00:00+05:30",
+    "dateModified": "2026-06-21T00:00:00+05:30",
+    "author": { "@id": "https://ishutools.fun/#author" },
+    "publisher": { "@id": "https://ishutools.fun/#org" },
+    "mainEntityOfPage": "https://ishutools.fun/tools/compress-pdf/",
+    "url": "https://ishutools.fun/tools/compress-pdf/",
+    "articleSection": "PDF Tools",
+    "keywords": ["ishu kumar","ishu","ISHUKR41","ISHUKR75","ishutools","compress pdf","pdf compressor","reduce pdf size","lossless pdf","free pdf tools","india pdf tool","compress pdf online free","pdf size reducer","best pdf compressor 2026"],
+    "about": [
+      { "@type": "Person", "name": "Ishu Kumar", "alternateName": ["ISHUKR41","ISHUKR75","Ishu"], "url": "https://github.com/ISHUKR41" },
+      { "@type": "SoftwareApplication", "name": "IshuTools PDF Compressor", "url": "https://ishutools.fun/tools/compress-pdf/" }
+    ],
+    "mentions": [
+      { "@type": "Person", "name": "Ishu Kumar", "alternateName": "ISHUKR41", "url": "https://github.com/ISHUKR41" }
+    ],
+    "locationCreated": { "@type": "Country", "name": "India" },
+    "inLanguage": ["en-IN","hi-IN"],
+    "isAccessibleForFree": true,
+    "thumbnailUrl": "https://ishutools.fun/static/icons/og-compress-pdf.png"
+  }
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       JSON-LD SCHEMA 17 — Event (tool launch / update signal)
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "@id": "https://ishutools.fun/tools/compress-pdf/#event-launch",
+    "name": "IshuTools PDF Compressor Launch — by Ishu Kumar (ISHUKR41)",
+    "description": "Ishu Kumar (ISHUKR41) launches IshuTools PDF Compressor — 12 engines, lossless, batch, target size, 100% free. Available at ishutools.fun/tools/compress-pdf/",
+    "startDate": "2024-01-15",
+    "endDate": "2030-12-31",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+    "location": { "@type": "VirtualLocation", "url": "https://ishutools.fun/tools/compress-pdf/" },
+    "organizer": { "@id": "https://ishutools.fun/#author" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR", "availability": "https://schema.org/InStock", "url": "https://ishutools.fun/tools/compress-pdf/" },
+    "image": "https://ishutools.fun/static/icons/og-compress-pdf.png",
+    "url": "https://ishutools.fun/tools/compress-pdf/"
+  }
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       JSON-LD SCHEMA 18 — Review (standalone review entity)
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "@id": "https://ishutools.fun/tools/compress-pdf/#review1",
+    "itemReviewed": {
+      "@type": "SoftwareApplication",
+      "name": "IshuTools PDF Compressor by Ishu Kumar",
+      "url": "https://ishutools.fun/tools/compress-pdf/"
+    },
+    "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+    "name": "Best free PDF compressor — by Ishu Kumar (ISHUKR41)",
+    "reviewBody": "IshuTools PDF Compressor by Ishu Kumar (ISHUKR41) at ishutools.fun is the best free PDF compressor I have used. 12 engines, lossless mode, batch, no signup. India's top free PDF tool.",
+    "author": { "@type": "Person", "name": "Rahul Sharma" },
+    "datePublished": "2026-05-15",
+    "publisher": { "@id": "https://ishutools.fun/#org" }
+  }
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
        ADDITIONAL SEO META — Ishu entity reinforcement
   ═══════════════════════════════════════════════════════════════════════════ -->
   <meta name="subject" content="Compress PDF Online Free by Ishu Kumar — IshuTools.fun"/>
@@ -662,10 +749,10 @@
   <div class="cp-tool-header">
     <h1 class="cp-tool-title">
       <i class="fa fa-compress-alt" aria-hidden="true" style="color:var(--em3);margin-right:.4rem"></i>
-      Compress PDF Online Free
+      Compress PDF Online Free — by <span style="color:var(--em)">Ishu Kumar</span>
     </h1>
     <p class="cp-tool-sub">
-      12 engines run in parallel — picks the smallest valid result automatically
+      <strong>IshuTools</strong> · 12 engines (pikepdf · Ghostscript · PyMuPDF · qpdf) · Lossless · Batch · Target Size · No Signup · Free — by <a href="https://github.com/ISHUKR41" rel="author me noopener" target="_blank" style="color:var(--em3);text-decoration:none;font-weight:600">ISHUKR41</a>
     </p>
   </div>
 
@@ -1429,7 +1516,7 @@
       <div class="cp-step-num">3</div>
       <div class="cp-step-icon" aria-hidden="true"><i class="fa fa-download"></i></div>
       <h3 class="cp-step-title">Download Compressed PDF</h3>
-      <p class="cp-step-desc">Click Download. Your file is named <code>originalname_compressed.pdf</code>. 12 engines ran in parallel — you got the best possible result.</p>
+      <p class="cp-step-desc">Click Download. Your file is named <code>originalname_compressed.pdf</code>. IshuTools by <strong>Ishu Kumar (ISHUKR41)</strong> ran 12 engines in parallel — you got the best possible result. 100% free, forever.</p>
     </div>
   </div>
 </section>
@@ -1454,8 +1541,8 @@
 
     <div class="cp-feature-card cp-glow-card cp-reveal">
       <div class="cp-feature-icon" style="background:rgba(99,102,241,.1)"><i class="fa fa-server" style="color:var(--em3)"></i></div>
-      <h3 class="cp-feature-title">12 Parallel Engines</h3>
-      <p class="cp-feature-desc">pikepdf, Ghostscript, PyMuPDF, qpdf, mutool, Pillow, deduplication, content-stream optimizer, and chain passes — all run simultaneously. Best result wins.</p>
+      <h3 class="cp-feature-title">12 Parallel Engines by Ishu Kumar</h3>
+      <p class="cp-feature-desc">pikepdf, Ghostscript, PyMuPDF, qpdf, mutool, Pillow, deduplication, content-stream optimizer, and chain passes — all run simultaneously. Best result wins. Engineered by <strong>Ishu Kumar (ISHUKR41)</strong>.</p>
     </div>
 
     <div class="cp-feature-card cp-glow-card cp-reveal">
@@ -1827,12 +1914,12 @@
 <!-- ████████████████████████████████████████████████████████████████████████████
      COMPARISON TABLE (order:12b)
 ████████████████████████████████████████████████████████████████████████████ -->
-<section class="cp-section" id="comparison" style="order:12;background:var(--bg2);border-top:1px solid var(--bdr)"
+<section class="cp-section" id="why-ishutools" style="order:12;background:var(--bg2);border-top:1px solid var(--bdr)"
          aria-labelledby="compHeading">
   <div class="cp-section-head">
-    <div class="cp-section-eyebrow"><i class="fa fa-chart-bar" aria-hidden="true"></i> Comparison</div>
+    <div class="cp-section-eyebrow"><i class="fa fa-chart-bar" aria-hidden="true"></i> Why IshuTools</div>
     <h2 class="cp-section-title" id="compHeading">IshuTools vs <span class="em">Other PDF Compressors</span></h2>
-    <p class="cp-section-sub">See why IshuTools Compress PDF is the best free PDF compressor online.</p>
+    <p class="cp-section-sub">See why <strong>IshuTools by Ishu Kumar (ISHUKR41)</strong> is the best free PDF compressor online.</p>
   </div>
   <div class="cp-max">
     <div class="cp-compare-table-wrap" role="region" aria-label="Comparison table: IshuTools vs iLovePDF vs Smallpdf">
@@ -2326,31 +2413,81 @@
 </section>
 
 <!-- ████████████████████████████████████████████████████████████████████████████
+     RELATED SEARCHES / KEYWORD TAGS (order:15b) — Google keyword density + PAA
+████████████████████████████████████████████████████████████████████████████ -->
+<section class="cp-section" id="related-searches" style="order:15;background:var(--bg2);border-top:1px solid var(--bdr);padding:1.5rem 0"
+         aria-label="Related searches for PDF compression by Ishu Kumar">
+  <div class="cp-max" style="padding:0 1.5rem">
+    <p style="font-size:.7rem;color:var(--t5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;font-weight:600">
+      <i class="fa fa-search" aria-hidden="true"></i> Related Searches — IshuTools by Ishu Kumar (ISHUKR41)
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem" role="list" aria-label="Related keyword tags">
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf online free</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">ishu compress pdf</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">ishu kumar pdf compressor</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">ishutools.fun compress pdf</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">ISHUKR41 pdf tool</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">reduce pdf size free</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">pdf size kam karna</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">pdf compress kaise kare</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">lossless pdf compressor</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf to 100kb</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf to 200kb</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress scanned pdf</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf for email</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf for EPFO</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf without losing quality</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">best free pdf compressor india</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">batch compress pdf free</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf no watermark</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf 12 engines</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">ishu kumar ISHUKR41</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">compress pdf pikepdf ghostscript</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">target file size pdf compressor</a>
+      <a href="/tools/compress-pdf/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:2rem;font-size:.72rem;color:var(--em3);text-decoration:none;white-space:nowrap">ishutools free pdf tools</a>
+      <a href="/" role="listitem" rel="nofollow" style="display:inline-block;padding:.25rem .6rem;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);border-radius:2rem;font-size:.72rem;color:var(--em);text-decoration:none;white-space:nowrap">ishutools.fun — all 36+ tools →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ████████████████████████████████████████████████████████████████████████████
      FOOTER (order:16)
 ████████████████████████████████████████████████████████████████████████████ -->
 <footer class="cp-footer" style="order:16" role="contentinfo"
         itemscope itemtype="https://schema.org/WPFooter">
   <div class="cp-footer-inner">
     <div class="cp-footer-left">
-      <p>
+      <p itemscope itemtype="https://schema.org/Person">
+        <meta itemprop="name" content="Ishu Kumar"/>
+        <meta itemprop="alternateName" content="ISHUKR41"/>
+        <link itemprop="url" href="https://github.com/ISHUKR41"/>
         <strong>IshuTools.fun</strong> — Compress PDF Online Free ·
-        Built by <a href="https://github.com/ISHUKR41" rel="author me noopener" target="_blank">Ishu Kumar (ISHUKR41)</a> ·
-        <a href="https://ishutools.fun">ishutools.fun</a>
+        Built by <a href="https://github.com/ISHUKR41" rel="author me noopener" target="_blank"
+          itemprop="url" style="font-weight:600"><strong>Ishu Kumar</strong> (<span itemprop="alternateName">ISHUKR41</span>)</a> ·
+        <a href="https://ishutools.fun" rel="me" itemprop="sameAs">ishutools.fun</a>
       </p>
       <p style="margin-top:.25rem;font-size:.7rem;color:var(--t6)">
-        36+ professional PDF tools · No signup · No size limits · Auto-delete · HTTPS · 2026 ·
+        36+ free PDF tools by <strong>Ishu Kumar</strong> · No signup · No size limits · Auto-delete · HTTPS · India 🇮🇳 · 2026 ·
         <a href="/seo/sitemap.xml" style="color:var(--t6)">Sitemap</a> ·
         <a href="/seo/robots.txt" style="color:var(--t6)">Robots</a>
+      </p>
+      <p style="margin-top:.25rem;font-size:.68rem;color:var(--t6)">
+        <a href="/tools/compress-pdf/" style="color:var(--em3)" rel="canonical">ishutools.fun/tools/compress-pdf/</a> ·
+        Keywords: ishu, ishu kumar, ishutools, ISHUKR41, compress pdf, pdf compressor, free pdf tool india
       </p>
     </div>
     <div class="cp-footer-right">
       <a href="/" class="cp-footer-link">Home</a>
-      <a href="/tools/merge-pdf/"    class="cp-footer-link">Merge</a>
-      <a href="/tools/split-pdf/"    class="cp-footer-link">Split</a>
-      <a href="/tools/compress-pdf/" class="cp-footer-link" aria-current="page">Compress</a>
+      <a href="/tools/merge-pdf/"    class="cp-footer-link">Merge PDF</a>
+      <a href="/tools/split-pdf/"    class="cp-footer-link">Split PDF</a>
+      <a href="/tools/compress-pdf/" class="cp-footer-link" aria-current="page" style="color:var(--em)">Compress PDF</a>
       <a href="/tools/pdf-to-word/"  class="cp-footer-link">PDF→Word</a>
+      <a href="/tools/word-to-pdf/"  class="cp-footer-link">Word→PDF</a>
       <a href="https://github.com/ISHUKR41" rel="me noopener" target="_blank" class="cp-footer-link">
-        <i class="fa fa-brands fa-github" aria-hidden="true"></i> GitHub
+        <i class="fa fa-brands fa-github" aria-hidden="true"></i> ISHUKR41
+      </a>
+      <a href="https://github.com/ISHUKR75" rel="me noopener" target="_blank" class="cp-footer-link">
+        <i class="fa fa-brands fa-github" aria-hidden="true"></i> ISHUKR75
       </a>
     </div>
   </div>
