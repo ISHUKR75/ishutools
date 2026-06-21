@@ -1,7 +1,7 @@
 # IshuTools.fun - robots.txt
 # Free PDF Tools Suite by Ishu Kumar (ISHUKR41 / ISHUKR75)
 # https://ishutools.fun
-# Last updated: 2026-06-18
+# Last updated: 2026-06-21
 
 User-agent: *
 Allow: /
