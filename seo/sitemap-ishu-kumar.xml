@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!--
+    IshuTools.fun — Ishu Kumar Author / Entity Dedicated Sitemap
+    Creator: Ishu Kumar (ISHUKR41 / ISHUKR75) — github.com/ISHUKR41
+    Purpose: Maximum Google entity signal for "ishu", "ishu kumar", "ISHUKR41"
+    Last updated: 2026-06-21
+    Keywords: ishu kumar, ishu, ISHUKR41, ISHUKR75, ishu ka tool, ishu tools,
+              ishu compress pdf, ishu pdf, ishu developer india, ishutools.fun
+  -->
+
+  <!-- ═══ ISHU KUMAR — Primary Author Page ═══════════════════════════════════ -->
+  <url>
+    <loc>https://ishutools.fun/ishu-kumar/</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+
+    <!-- Hreflang: all Indian variants -->
+    <xhtml:link rel="alternate" hreflang="en"        href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN"     href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="hi"        href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN"     href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/ishu-kumar/"/>
+
+    <!-- OG Image for Google Image Search — "Ishu Kumar" -->
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Ishu Kumar (ISHUKR41) — Indian Developer, Creator of IshuTools.fun — 36+ Free PDF Tools</image:title>
+      <image:caption>Ishu Kumar (ISHUKR41 / ISHUKR75) — Indian software developer who built IshuTools.fun: 36+ free professional PDF tools. Compress PDF, Merge PDF, Split PDF, OCR, AI Summarizer. ishu compress pdf, ishu kumar, ISHUKR41, ishu tools india, ishu ka tool, ishu developer</image:caption>
+      <image:geo_location>India</image:geo_location>
+      <image:license>https://ishutools.fun</image:license>
+    </image:image>
+
+    <!-- News entry — entity announcement -->
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
+      <news:title>Ishu Kumar (ISHUKR41) — Indian Developer who built 36+ Free PDF Tools at IshuTools.fun</news:title>
+      <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, ishu ka tool, ishu tools, ishu developer, ishu compress pdf, ishu pdf, ishu bhai, ishu kumar ne banaya, ishu kumar india, free pdf tools india, indian developer pdf tools, ishutools.fun, compress pdf india, best free pdf tools india 2026</news:keywords>
+    </news:news>
+  </url>
+
+  <!-- ═══ ISHU KUMAR — Alternate (no trailing slash) ═══════════════════════== -->
+  <url>
+    <loc>https://ishutools.fun/ishu-kumar</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- ═══ COMPRESS PDF — Ishu Kumar's flagship tool ═══════════════════════════ -->
+  <url>
+    <loc>https://ishutools.fun/tools/compress-pdf/</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="hi"        href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="bn-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="mr-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="ta-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="te-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/compress-pdf/"/>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
+      <news:title>Compress PDF Online Free — by Ishu Kumar (ISHUKR41) — 12 Engines, Lossless, No Signup, No Limit</news:title>
+      <news:keywords>ishu compress pdf, ishu kumar compress pdf, ishu pdf compressor, ISHUKR41 compress pdf, compress pdf free, compress pdf online, pdf size reducer, lossless pdf, pdf compress india, ishu ka compress tool, ishu tools compress, compress pdf 2026</news:keywords>
+    </news:news>
+  </url>
+
+  <!-- ═══ ISHU KUMAR — GitHub Profile (external, cross-links entity) ═══════════ -->
+  <url>
+    <loc>https://ishutools.fun/</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
+      <news:title>IshuTools.fun — 36+ Free PDF Tools by Ishu Kumar (ISHUKR41) — India's Best Free PDF Suite</news:title>
+      <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, ishu tools, ishutools.fun, ishu ka tool, free pdf tools india, ishu compress pdf, ishu pdf tools</news:keywords>
+    </news:news>
+  </url>
+
+</urlset>

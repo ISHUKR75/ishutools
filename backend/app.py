@@ -276,6 +276,12 @@ def sitemap_compress_pdf():
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-compress-pdf.xml',
                                mimetype='application/xml')
 
+@app.route('/sitemap-ishu-kumar.xml')
+def sitemap_ishu_kumar():
+    """Serve the dedicated Ishu Kumar author entity sitemap — ISHUKR41 ISHUKR75."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-ishu-kumar.xml',
+                               mimetype='application/xml')
+
 @app.route('/sitemap-index.xml')
 def sitemap_index():
     """Serve the sitemap index."""
