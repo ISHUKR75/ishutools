@@ -1265,6 +1265,29 @@ function showResult(data, engList) {
   // Download filename preview
   updateDownloadFilenamePreview();
 
+  // Chart.js donut chart
+  setTimeout(() => updateResultChart(data.inputSize, data.outputSize), 300);
+
+  // Before/after bar
+  renderBABar(data.inputSize, data.outputSize);
+
+  // Grade class on result card
+  const resultCard = rw.querySelector('.cp-result-card');
+  if (resultCard) {
+    resultCard.className = resultCard.className.replace(/\bgrade-\S+/g, '');
+    resultCard.classList.add(`grade-${(data.qGrade || 'b').toLowerCase()}`);
+  }
+
+  // Grade class on banner
+  if (banner) {
+    banner.className = banner.className.replace(/\bgrade-\S+/g, '');
+    banner.classList.add(`cp-result-grade-banner`, `grade-${(data.qGrade || 'b').toLowerCase()}`);
+  }
+
+  // Sticky download bar (mobile)
+  const dlName = `${data.stem || STEM || 'document'}_compressed.pdf`;
+  showStickyDlBar(data.reduction, dlName);
+
   // Scroll to result
   rw.scrollIntoView({ behavior: 'smooth', block: 'start' });
   announce(`Compression complete. ${data.reduction.toFixed(1)}% reduction. Grade ${data.qGrade}.`);
@@ -1279,9 +1302,218 @@ function animateCounter(el, from, to, durationMs, formatter) {
     const v = from + (to - from) * easeOutCubic(t);
     el.textContent = formatter(v);
     if (t < 1) requestAnimationFrame(update);
-    else el.textContent = formatter(to);
+    else {
+      el.textContent = formatter(to);
+      el.classList.add('pop');
+      setTimeout(() => el.classList.remove('pop'), 400);
+    }
   };
   requestAnimationFrame(update);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CHART.JS DOUGHNUT CHART (result visualization)
+════════════════════════════════════════════════════════════════════════════ */
+function initResultChart() {
+  const canvas = document.getElementById('resultDonutChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (CHART_INSTANCE) { CHART_INSTANCE.destroy(); CHART_INSTANCE = null; }
+
+  CHART_INSTANCE = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['Compressed', 'Original'],
+      datasets: [{
+        data: [0, 100],
+        backgroundColor: [
+          'rgba(16,185,129,.85)',
+          'rgba(99,102,241,.15)',
+        ],
+        borderColor: [
+          'rgba(16,185,129,1)',
+          'rgba(99,102,241,.3)',
+        ],
+        borderWidth: 2,
+        hoverOffset: 6,
+      }],
+    },
+    options: {
+      cutout: '72%',
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: {
+        animateRotate: true,
+        duration: 1200,
+        easing: 'easeOutQuart',
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const lbl = ctx.label;
+              const rd = RESULT_DATA;
+              if (!rd) return lbl;
+              if (lbl === 'Compressed') return `After: ${fmtBytes(rd.outputSize)}`;
+              return `Saved: ${fmtBytes(rd.inputSize - rd.outputSize)}`;
+            },
+          },
+          backgroundColor: 'rgba(15,20,40,.92)',
+          titleColor: '#e2e8f0',
+          bodyColor: '#94a3b8',
+          borderColor: 'rgba(99,102,241,.3)',
+          borderWidth: 1,
+          cornerRadius: 10,
+          padding: 10,
+        },
+      },
+    },
+  });
+}
+
+function updateResultChart(inputSize, outputSize) {
+  if (!CHART_INSTANCE && typeof Chart !== 'undefined') initResultChart();
+  if (!CHART_INSTANCE) return;
+  const pct    = inputSize > 0 ? ((inputSize - outputSize) / inputSize) * 100 : 0;
+  const saved  = inputSize - outputSize;
+  CHART_INSTANCE.data.datasets[0].data = [
+    Math.max(saved, 0),
+    outputSize,
+  ];
+  CHART_INSTANCE.update('active');
+
+  // Update center text
+  const pctEl = document.getElementById('donutPctText');
+  if (pctEl) {
+    if (_reduced) {
+      pctEl.textContent = pct.toFixed(1) + '%';
+    } else {
+      animateCounter(pctEl, 0, pct, 1200, v => v.toFixed(1) + '%');
+    }
+  }
+
+  // Update size stats
+  const statBefore = document.getElementById('chartStatBefore');
+  const statAfter  = document.getElementById('chartStatAfter');
+  const statSaved  = document.getElementById('chartStatSaved');
+  if (statBefore) statBefore.textContent = fmtBytes(inputSize);
+  if (statAfter)  statAfter.textContent  = fmtBytes(outputSize);
+  if (statSaved)  statSaved.textContent  = fmtBytes(Math.max(saved, 0));
+
+  // Show/animate the before/after bar
+  const baAfter = document.getElementById('baBarAfter');
+  if (baAfter && inputSize > 0) {
+    setTimeout(() => {
+      baAfter.style.width = ((outputSize / inputSize) * 100).toFixed(1) + '%';
+    }, 300);
+  }
+}
+
+function destroyResultChart() {
+  if (CHART_INSTANCE) { CHART_INSTANCE.destroy(); CHART_INSTANCE = null; }
+  const pctEl = document.getElementById('donutPctText');
+  if (pctEl) pctEl.textContent = '0%';
+  const baAfter = document.getElementById('baBarAfter');
+  if (baAfter) baAfter.style.width = '0%';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   STICKY DOWNLOAD BAR (mobile)
+════════════════════════════════════════════════════════════════════════════ */
+function showStickyDlBar(pct, filename) {
+  const bar = document.getElementById('cpStickyDlBar');
+  if (!bar) return;
+  const nameEl = document.getElementById('stickyDlName');
+  const pctEl  = document.getElementById('stickyDlPct');
+  if (nameEl) nameEl.textContent = filename || 'compressed.pdf';
+  if (pctEl)  pctEl.textContent  = `Saved ${pct.toFixed(1)}%`;
+  bar.classList.add('visible');
+}
+
+function hideStickyDlBar() {
+  const bar = document.getElementById('cpStickyDlBar');
+  if (bar) bar.classList.remove('visible');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BEFORE/AFTER BAR
+════════════════════════════════════════════════════════════════════════════ */
+function renderBABar(inputSize, outputSize) {
+  const baBefore = document.getElementById('baBarBefore');
+  const baAfter  = document.getElementById('baBarAfter');
+  const baLblL   = document.getElementById('baLabelLeft');
+  const baLblR   = document.getElementById('baLabelRight');
+
+  if (baBefore) baBefore.style.width = '100%';
+
+  if (baLblL) baLblL.textContent = fmtBytes(outputSize);
+  if (baLblR) baLblR.textContent = fmtBytes(inputSize);
+
+  if (baAfter && inputSize > 0) {
+    setTimeout(() => {
+      baAfter.style.width = ((outputSize / inputSize) * 100).toFixed(2) + '%';
+    }, 400);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   JSZIP BATCH DOWNLOAD (replaces simple loop)
+════════════════════════════════════════════════════════════════════════════ */
+async function downloadBatchZipJSZip() {
+  if (!BATCH_ZIP_PARTS.length) {
+    toast('No files ready', 'Run batch compression first', 'warn', 2500);
+    return;
+  }
+  if (BATCH_ZIP_PARTS.length === 1) {
+    _triggerBlobDownload(BATCH_ZIP_PARTS[0].blob, BATCH_ZIP_PARTS[0].filename);
+    S('DOWNLOAD');
+    toast('Downloading…', BATCH_ZIP_PARTS[0].filename, 'success', 2500);
+    return;
+  }
+
+  const zipBtn = $('batchZipBtn');
+  if (zipBtn) {
+    const orig = zipBtn.innerHTML;
+    zipBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating ZIP…';
+    zipBtn.disabled = true;
+
+    try {
+      if (typeof JSZip !== 'undefined') {
+        // Use JSZip for proper ZIP
+        const zip = new JSZip();
+        for (const part of BATCH_ZIP_PARTS) {
+          zip.file(part.filename, part.blob);
+        }
+        const zipBlob = await zip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 1 },
+        }, (meta) => {
+          zipBtn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${meta.percent.toFixed(0)}%…`;
+        });
+        const now = new Date();
+        const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        _triggerBlobDownload(zipBlob, `ishutools_compressed_${stamp}.zip`);
+        toast('ZIP Downloaded!', `${BATCH_ZIP_PARTS.length} files in ZIP`, 'success', 4000);
+        S('DOWNLOAD');
+      } else {
+        // Fallback: download individually with stagger
+        toast('Downloading files…', `${BATCH_ZIP_PARTS.length} PDFs (install JSZip for ZIP)`, 'info', 3000);
+        for (let i = 0; i < BATCH_ZIP_PARTS.length; i++) {
+          setTimeout(() => {
+            _triggerBlobDownload(BATCH_ZIP_PARTS[i].blob, BATCH_ZIP_PARTS[i].filename);
+          }, i * 400);
+        }
+        S('DOWNLOAD');
+      }
+    } catch (err) {
+      toast('ZIP Error', err.message, 'error', 4000);
+      S('ERROR');
+    } finally {
+      zipBtn.innerHTML = orig;
+      zipBtn.disabled  = false;
+    }
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1424,6 +1656,8 @@ function resetTool() {
   hideRecommend();
   updateActionState();
   updateDownloadFilenamePreview();
+  destroyResultChart();
+  hideStickyDlBar();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
   S('CLICK');
@@ -1660,25 +1894,8 @@ function retryBatchItem(id) {
 }
 
 async function downloadBatchZip() {
-  if (!BATCH_ZIP_PARTS.length) return;
-  try {
-    // Simple approach: prompt user to download individual files if JSZip not available
-    const blobs = BATCH_ZIP_PARTS;
-    if (blobs.length === 1) {
-      _triggerBlobDownload(blobs[0].blob, blobs[0].filename);
-      return;
-    }
-    // Without JSZip, download individually with notification
-    toast('Downloading files…', `Downloading ${blobs.length} compressed PDFs`, 'info', 3000);
-    for (let i = 0; i < blobs.length; i++) {
-      setTimeout(() => {
-        _triggerBlobDownload(blobs[i].blob, blobs[i].filename);
-      }, i * 500);
-    }
-    S('DOWNLOAD');
-  } catch (e) {
-    toast('ZIP download failed', e.message, 'error', 3000);
-  }
+  // Use JSZip-powered version
+  await downloadBatchZipJSZip();
 }
 
 // Drag-to-reorder batch
@@ -1874,10 +2091,25 @@ function initFaq() {
   document.querySelectorAll('.cp-faq-q').forEach(btn => {
     btn.addEventListener('click', () => {
       const isOpen  = btn.getAttribute('aria-expanded') === 'true';
+      const item    = btn.closest('.cp-faq-item');
       const answer  = btn.nextElementSibling;
       const chevron = btn.querySelector('.cp-faq-chevron');
 
+      // Close all others (accordion behavior)
+      if (!isOpen) {
+        document.querySelectorAll('.cp-faq-item.open').forEach(otherItem => {
+          if (otherItem !== item) {
+            const otherBtn = otherItem.querySelector('.cp-faq-q');
+            const otherAns = otherItem.querySelector('.cp-faq-a');
+            if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+            if (otherAns) otherAns.setAttribute('hidden', '');
+            otherItem.classList.remove('open');
+          }
+        });
+      }
+
       btn.setAttribute('aria-expanded', String(!isOpen));
+      if (item) item.classList.toggle('open', !isOpen);
       if (answer) {
         if (isOpen) answer.setAttribute('hidden', '');
         else        answer.removeAttribute('hidden');
@@ -1885,8 +2117,23 @@ function initFaq() {
       if (chevron) {
         chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
       }
+
+      // Smooth scroll to question if opening
+      if (!isOpen && item) {
+        setTimeout(() => item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      }
     });
   });
+
+  // Open first FAQ item by default
+  const firstQ   = document.querySelector('.cp-faq-q');
+  const firstItem = firstQ?.closest('.cp-faq-item');
+  const firstAns  = firstQ?.nextElementSibling;
+  if (firstQ && firstItem && firstAns) {
+    firstQ.setAttribute('aria-expanded', 'true');
+    firstItem.classList.add('open');
+    firstAns.removeAttribute('hidden');
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -2212,6 +2459,8 @@ document.addEventListener('DOMContentLoaded', () => {
 ════════════════════════════════════════════════════════════════════════════ */
 window.doCompress           = doCompress;
 window.resetTool            = resetTool;
+window.downloadBatchZipJSZip = downloadBatchZipJSZip;
+window.hideStickyDlBar      = hideStickyDlBar;
 window.cancelCompress       = cancelCompress;
 window.triggerDownload      = triggerDownload;
 window.shareResult          = shareResult;

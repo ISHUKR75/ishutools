@@ -2415,3 +2415,926 @@ input,select,textarea { font-family: var(--font); }
 ::-webkit-scrollbar-track { background: var(--bg3); }
 ::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--bg6); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §49 — 3D PRESET CARDS (perspective + tilt hover)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-presets {
+  perspective: 800px;
+}
+.cp-preset-card {
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+}
+.cp-preset-card:hover {
+  transform: translateY(-4px) rotateX(4deg) scale(1.04);
+  box-shadow: 0 12px 36px rgba(0,0,0,.35);
+}
+.cp-preset-card:active {
+  transform: translateY(0) rotateX(0) scale(.97);
+}
+.cp-preset-card.active {
+  transform: translateY(-2px) scale(1.02);
+}
+.cp-preset-card.active:hover {
+  transform: translateY(-4px) scale(1.04);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §50 — ENHANCED GLASSMORPHISM RESULT CARD
+───────────────────────────────────────────────────────────────────────────── */
+.cp-result-card {
+  background: rgba(22,28,46,.75);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: var(--r-2xl);
+  box-shadow: 0 24px 80px rgba(0,0,0,.5),
+              inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: hidden;
+  position: relative;
+}
+[data-theme="light"] .cp-result-card {
+  background: rgba(255,255,255,.82);
+  border-color: rgba(99,102,241,.15);
+  box-shadow: 0 12px 48px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.9);
+}
+.cp-result-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,.5), rgba(139,92,246,.5), transparent);
+  pointer-events: none;
+}
+
+/* Grade S/A special shimmer */
+.cp-result-card.grade-s::after,
+.cp-result-card.grade-a::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: conic-gradient(from 0deg at 50% 50%,
+    rgba(16,185,129,.03) 0deg,
+    rgba(99,102,241,.04) 90deg,
+    rgba(139,92,246,.03) 180deg,
+    rgba(16,185,129,.03) 270deg,
+    rgba(16,185,129,.03) 360deg);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: cardShimmerRotate 8s linear infinite;
+}
+@keyframes cardShimmerRotate {
+  to { transform: rotate(360deg) scale(1.5); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §51 — CHART.JS DOUGHNUT CONTAINER (enhanced)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-donut-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+.cp-donut-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.cp-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.cp-donut-pct {
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1;
+  font-family: var(--font-head);
+  color: var(--green);
+}
+.cp-donut-lbl {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--t5);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: .2rem;
+}
+
+/* Chart + stats layout */
+.cp-result-chart-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--bdr);
+}
+@media (max-width: 520px) {
+  .cp-result-chart-row {
+    flex-direction: column;
+    gap: .875rem;
+  }
+}
+
+.cp-result-size-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+}
+.cp-size-stat-row {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+}
+.cp-size-stat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cp-size-stat-dot.dot-before { background: rgba(148,163,184,.6); }
+.cp-size-stat-dot.dot-after  { background: #10b981; }
+.cp-size-stat-dot.dot-saved  { background: #6366f1; }
+.cp-size-stat-label {
+  font-size: .75rem;
+  color: var(--t5);
+  font-weight: 500;
+  flex: 1;
+}
+.cp-size-stat-value {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--t2);
+  font-family: var(--font-mono);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §52 — SKELETON LOADING STATES
+───────────────────────────────────────────────────────────────────────────── */
+.cp-skeleton {
+  background: linear-gradient(90deg, var(--bg5) 25%, var(--bg6) 50%, var(--bg5) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+  border-radius: var(--r-md);
+  color: transparent !important;
+  pointer-events: none;
+}
+.cp-skeleton * { visibility: hidden; }
+@keyframes skeletonShimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.cp-skeleton-line {
+  height: .875rem;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--bg5) 25%, var(--bg6) 50%, var(--bg5) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+.cp-skeleton-line.w-full  { width: 100%; }
+.cp-skeleton-line.w-3-4   { width: 75%; }
+.cp-skeleton-line.w-1-2   { width: 50%; }
+.cp-skeleton-line.w-1-3   { width: 33%; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §53 — BEFORE / AFTER VISUAL BAR (stacked)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-ba-bar-wrap {
+  background: var(--bg5);
+  border-radius: var(--r-pill);
+  height: 18px;
+  overflow: hidden;
+  position: relative;
+  margin: .625rem 0;
+  border: 1px solid var(--bdr);
+}
+.cp-ba-bar-before,
+.cp-ba-bar-after {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  border-radius: var(--r-pill);
+  transition: width 1.2s cubic-bezier(.23,1,.32,1);
+}
+.cp-ba-bar-before {
+  background: rgba(148,163,184,.35);
+  width: 100%;
+}
+.cp-ba-bar-after {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  box-shadow: 0 0 12px rgba(16,185,129,.4);
+  width: 0;
+}
+.cp-ba-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .7rem;
+  color: var(--t5);
+  margin-top: .25rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §54 — PROGRESS WAVE ANIMATION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-progress-wave {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 0 0 var(--r-2xl) var(--r-2xl);
+}
+.cp-progress-wave::before,
+.cp-progress-wave::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+}
+.cp-progress-wave::before {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #10b981, #6366f1);
+  animation: waveSlide 1.8s linear infinite;
+}
+.cp-progress-wave::after {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+  animation: waveSlide 1.8s linear infinite .4s;
+}
+@keyframes waveSlide {
+  from { left: -100%; }
+  to   { left: 100%; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §55 — ENGINE BADGE PILLS (inside result/progress)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-engine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  background: rgba(6,182,212,.08);
+  border: 1px solid rgba(6,182,212,.2);
+  border-radius: var(--r-pill);
+  padding: .2rem .6rem;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: .02em;
+}
+.cp-engine-badge.winner {
+  background: rgba(245,158,11,.1);
+  border-color: rgba(245,158,11,.3);
+  color: var(--am);
+}
+.cp-engine-badge.winner::before {
+  content: '✦';
+  font-size: .6rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §56 — PDF ANALYSIS CHART (mini bar chart)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-mini-chart-wrap {
+  background: var(--bg5);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-xl);
+  padding: .875rem 1rem;
+  margin-top: .625rem;
+  overflow: hidden;
+}
+.cp-mini-chart-title {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--t3);
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.cp-mini-chart-title i { color: var(--em3); font-size: .7rem; }
+.cp-mini-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.cp-mini-bar-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.cp-mini-bar-label {
+  font-size: .7rem;
+  color: var(--t4);
+  font-weight: 600;
+  width: 90px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cp-mini-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg6);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.cp-mini-bar-fill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  transition: width .8s cubic-bezier(.23,1,.32,1);
+}
+.cp-mini-bar-val {
+  font-size: .7rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--t3);
+  width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §57 — DOWNLOAD BUTTON SHIMMER ANIMATION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-dl-btn {
+  animation: dlBtnPulse 3s ease-in-out infinite;
+}
+@keyframes dlBtnPulse {
+  0%,100% { box-shadow: 0 4px 20px rgba(16,185,129,.35); }
+  50%      { box-shadow: 0 6px 32px rgba(16,185,129,.55), 0 0 0 4px rgba(16,185,129,.1); }
+}
+.cp-dl-btn:hover {
+  animation: none;
+}
+
+/* Download progress ring (spinner while initiating download) */
+.cp-dl-btn.loading i {
+  animation: dlSpinIcon 1s linear infinite;
+}
+@keyframes dlSpinIcon {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §58 — BATCH ITEM PROGRESS MINI-BAR (colored by status)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-batch-item {
+  position: relative;
+  overflow: hidden;
+}
+.cp-batch-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  background: var(--em);
+  width: 0;
+  transition: width .4s ease;
+  border-radius: var(--r-pill);
+}
+.cp-batch-item[data-status="running"]::after {
+  background: var(--em);
+  animation: batchItemProgress 2s ease-in-out infinite alternate;
+}
+.cp-batch-item[data-status="done"]::after {
+  background: var(--green);
+  width: 100%;
+}
+.cp-batch-item[data-status="error"]::after {
+  background: var(--red);
+  width: 100%;
+}
+@keyframes batchItemProgress {
+  from { width: 10%; }
+  to   { width: 90%; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §59 — ANALYSIS CHIP TOOLTIP IMPROVEMENTS
+───────────────────────────────────────────────────────────────────────────── */
+.cp-analysis-chip[data-tip] {
+  position: relative;
+  cursor: help;
+}
+.cp-analysis-chip[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg5);
+  border: 1px solid var(--bdr2);
+  border-radius: var(--r-md);
+  padding: .35rem .6rem;
+  font-size: .7rem;
+  font-weight: 500;
+  color: var(--t2);
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-panel);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.cp-analysis-chip[data-tip]:hover::after {
+  opacity: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §60 — NEW MICRO-ANIMATION KEYFRAMES
+───────────────────────────────────────────────────────────────────────────── */
+@keyframes bounceIn {
+  0%   { transform: scale(0) rotate(-6deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(3deg); opacity: 1; }
+  80%  { transform: scale(.93) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes zoomFadeIn {
+  from { transform: scale(.7); opacity: 0; filter: blur(4px); }
+  to   { transform: scale(1);  opacity: 1; filter: blur(0); }
+}
+@keyframes floatY {
+  0%,100% { transform: translateY(0); }
+  33%      { transform: translateY(-5px); }
+  66%      { transform: translateY(-2px); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes glowPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+  50%      { box-shadow: 0 0 24px 6px rgba(99,102,241,.2); }
+}
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes checkmarkDraw {
+  from { stroke-dashoffset: 50; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes wiggle {
+  0%,100% { transform: rotate(0); }
+  25%      { transform: rotate(-8deg); }
+  75%      { transform: rotate(8deg); }
+}
+@keyframes numberPop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.3) rotate(-3deg); }
+  60%  { transform: scale(.9) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §61 — HISTORY PANEL UPGRADES
+───────────────────────────────────────────────────────────────────────────── */
+.cp-hist-item {
+  position: relative;
+  overflow: hidden;
+}
+.cp-hist-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  opacity: 0;
+  transition: opacity var(--tx-base);
+}
+.cp-hist-item:hover::before { opacity: 1; }
+.cp-hist-item.grade-s::before { background: #8b5cf6; }
+.cp-hist-item.grade-a::before { background: #10b981; }
+.cp-hist-item.grade-b::before { background: #6366f1; }
+.cp-hist-item.grade-c::before { background: #f59e0b; }
+.cp-hist-item.grade-d::before { background: #ef4444; }
+.cp-hist-item.grade-f::before { background: #6b7280; }
+
+/* History mini spark line */
+.cp-hist-spark {
+  height: 28px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+.cp-hist-spark-bar {
+  flex: 1;
+  max-width: 8px;
+  border-radius: 2px 2px 0 0;
+  background: var(--em);
+  opacity: .6;
+  transition: opacity var(--tx-fast);
+}
+.cp-hist-spark-bar:hover { opacity: 1; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §62 — COMPARISON TABLE (vs competitors)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-compare-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--bdr);
+  margin-top: 1.5rem;
+}
+.cp-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+.cp-compare-table th {
+  padding: .75rem 1rem;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--t4);
+  text-align: center;
+  background: var(--bg5);
+  border-bottom: 1px solid var(--bdr);
+  white-space: nowrap;
+}
+.cp-compare-table th:first-child { text-align: left; }
+.cp-compare-table th.col-ishu {
+  color: var(--em3);
+  background: rgba(99,102,241,.07);
+  border-bottom-color: var(--em);
+}
+.cp-compare-table td {
+  padding: .65rem 1rem;
+  font-size: .8rem;
+  color: var(--t3);
+  border-bottom: 1px solid var(--bdr);
+  text-align: center;
+}
+.cp-compare-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: var(--t2);
+}
+.cp-compare-table td.col-ishu {
+  background: rgba(99,102,241,.04);
+  font-weight: 700;
+  color: var(--t1);
+}
+.cp-compare-table tr:last-child td { border-bottom: none; }
+.cp-compare-table tr:hover td { background: var(--bg5); }
+.cp-compare-table tr:hover td.col-ishu { background: rgba(99,102,241,.09); }
+.cp-check-yes { color: var(--green); }
+.cp-check-no  { color: var(--red); }
+.cp-check-par { color: var(--am); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §63 — STAT COUNTER ANIMATION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-counter-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .1em;
+}
+.cp-counter-num {
+  transition: transform .2s var(--tx-spring);
+}
+.cp-counter-num.pop {
+  animation: numberPop .4s var(--tx-spring);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §64 — CONFETTI CSS FALLBACK PARTICLES
+───────────────────────────────────────────────────────────────────────────── */
+.cp-confetti-p {
+  position: fixed;
+  pointer-events: none;
+  z-index: var(--z-top);
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg) scale(1); opacity: 1; }
+  70%  { opacity: .9; }
+  100% { transform: translateY(100vh) rotate(720deg) scale(.5); opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §65 — STICKY RESULT DOWNLOAD TOOLBAR (mobile)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-sticky-dl-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: calc(var(--z-panel) - 1);
+  background: var(--bg4);
+  border-top: 1px solid var(--bdr2);
+  padding: .75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: translateY(100%);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 -8px 32px rgba(0,0,0,.3);
+}
+.cp-sticky-dl-bar.visible {
+  transform: translateY(0);
+}
+.cp-sticky-dl-bar-info {
+  flex: 1;
+  min-width: 0;
+}
+.cp-sticky-dl-bar-name {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cp-sticky-dl-bar-pct {
+  font-size: .72rem;
+  color: var(--green);
+  font-weight: 600;
+}
+.cp-sticky-dl-btn {
+  background: var(--grad-g);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-xl);
+  padding: .65rem 1.25rem;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(16,185,129,.35);
+  transition: all var(--tx-spring);
+}
+.cp-sticky-dl-btn:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 6px 24px rgba(16,185,129,.45);
+}
+@media (hover:hover) {
+  .cp-sticky-dl-bar { display: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §66 — FAQ ACCORDION SMOOTH ANIMATION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-faq-item {
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  transition: border-color var(--tx-base), box-shadow var(--tx-base);
+}
+.cp-faq-item.open {
+  border-color: rgba(99,102,241,.3);
+  box-shadow: 0 4px 24px rgba(99,102,241,.08);
+}
+.cp-faq-q {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  background: var(--bg4);
+  transition: background var(--tx-base);
+  user-select: none;
+}
+.cp-faq-q:hover { background: var(--bg5); }
+.cp-faq-item.open .cp-faq-q { background: rgba(99,102,241,.06); }
+.cp-faq-q-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--r-md);
+  background: rgba(99,102,241,.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; color: var(--em3); flex-shrink: 0;
+  transition: background var(--tx-base);
+}
+.cp-faq-item.open .cp-faq-q-icon { background: rgba(99,102,241,.2); }
+.cp-faq-q-text {
+  flex: 1;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--t2);
+  line-height: 1.3;
+}
+.cp-faq-item.open .cp-faq-q-text { color: var(--t1); }
+.cp-faq-chevron {
+  font-size: .7rem;
+  color: var(--t5);
+  transition: transform var(--tx-base), color var(--tx-base);
+  flex-shrink: 0;
+}
+.cp-faq-item.open .cp-faq-chevron {
+  transform: rotate(180deg);
+  color: var(--em3);
+}
+.cp-faq-a {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .4s cubic-bezier(.23,1,.32,1), padding .3s ease;
+  background: var(--bg4);
+  padding: 0 1.25rem;
+}
+.cp-faq-item.open .cp-faq-a {
+  max-height: 500px;
+  padding: .875rem 1.25rem 1.125rem;
+}
+.cp-faq-a p,
+.cp-faq-a ul {
+  font-size: .84rem;
+  color: var(--t4);
+  line-height: 1.7;
+  margin: 0;
+}
+.cp-faq-a ul { padding-left: 1.25rem; }
+.cp-faq-a li { margin-bottom: .25rem; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §67 — QUICK ACTION STRIP (below result)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  padding: .875rem 1.25rem;
+  border-top: 1px solid var(--bdr);
+  background: var(--bg5);
+  border-radius: 0 0 var(--r-2xl) var(--r-2xl);
+}
+.cp-quick-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--bg6);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-pill);
+  padding: .3rem .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--t3);
+  cursor: pointer;
+  transition: all var(--tx-base);
+  white-space: nowrap;
+}
+.cp-quick-action-btn:hover {
+  background: rgba(99,102,241,.1);
+  border-color: var(--em);
+  color: var(--em3);
+  transform: translateY(-1px);
+}
+.cp-quick-action-btn i { font-size: .68rem; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §68 — TOOL ZONE GLOW RING (shows when file dropped)
+───────────────────────────────────────────────────────────────────────────── */
+#toolZone.has-file::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--r-2xl);
+  background: transparent;
+  pointer-events: none;
+  animation: toolZoneGlow 2s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes toolZoneGlow {
+  0%,100% { box-shadow: 0 0 0 0 transparent; }
+  50%      { box-shadow: 0 0 40px 4px rgba(99,102,241,.12); }
+}
+#toolZone {
+  position: relative;
+  border-radius: var(--r-2xl);
+  transition: all var(--tx-base);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §69 — SOCIAL PROOF BADGE STRIP
+───────────────────────────────────────────────────────────────────────────── */
+.cp-social-proof-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: .875rem 1.25rem;
+  background: var(--bg3);
+  border-top: 1px solid var(--bdr);
+  border-bottom: 1px solid var(--bdr);
+}
+.cp-sp-item {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--t4);
+}
+.cp-sp-item i { font-size: .75rem; }
+.cp-sp-item.sp-green { color: var(--green); }
+.cp-sp-item.sp-em    { color: var(--em3); }
+.cp-sp-item.sp-am    { color: var(--am); }
+.cp-sp-sep {
+  width: 1px; height: 18px;
+  background: var(--bdr2);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §70 — RESULT FINGERPRINT ENHANCED
+───────────────────────────────────────────────────────────────────────────── */
+.cp-fingerprint {
+  animation: fingerprintFadeIn .4s ease both .5s;
+}
+@keyframes fingerprintFadeIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.cp-fingerprint:active {
+  animation: wiggle .3s ease;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §71 — ENHANCED DROP ZONE DRAG-OVER RING
+───────────────────────────────────────────────────────────────────────────── */
+.cp-drop-zone.drag-over {
+  border-color: #10b981;
+  background: rgba(16,185,129,.06);
+  box-shadow: 0 0 0 4px rgba(16,185,129,.12),
+              0 8px 32px rgba(16,185,129,.15);
+  transform: scale(1.012);
+}
+.cp-drop-zone.drag-over .cp-drop-icon-wrap {
+  background: rgba(16,185,129,.15);
+  border-color: rgba(16,185,129,.3);
+  color: var(--green);
+  animation: none;
+  transform: scale(1.15) rotate(5deg);
+  transition: all .2s var(--tx-spring);
+}
+.cp-drop-zone.drag-over .cp-drop-title {
+  color: var(--green);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §72 — RESULT GRADE BANNER GRADIENTS (per grade)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-result-grade-banner.grade-s {
+  background: linear-gradient(90deg, #7c3aed, #6366f1, #7c3aed);
+  background-size: 200% 100%;
+  animation: gradientShift 4s ease infinite;
+}
+.cp-result-grade-banner.grade-a {
+  background: linear-gradient(90deg, #059669, #10b981, #059669);
+  background-size: 200% 100%;
+  animation: gradientShift 4s ease infinite;
+}
+.cp-result-grade-banner.grade-b {
+  background: linear-gradient(90deg, #4338ca, #6366f1, #4338ca);
+  background-size: 200% 100%;
+  animation: gradientShift 5s ease infinite;
+}
+.cp-result-grade-banner.grade-c {
+  background: linear-gradient(90deg, #d97706, #f59e0b, #d97706);
+  background-size: 200% 100%;
+  animation: gradientShift 5s ease infinite;
+}
+.cp-result-grade-banner.grade-d,
+.cp-result-grade-banner.grade-f {
+  background: #ef4444;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §73 — RESPONSIVE IMPROVEMENTS (extra breakpoints)
+───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .cp-donut-wrap {
+    width: 140px;
+    height: 140px;
+  }
+  .cp-donut-pct { font-size: 1.5rem; }
+  .cp-result-chart-row { padding: .875rem 1rem; gap: 1rem; }
+  .cp-compare-table { min-width: 480px; }
+  .cp-engine-badge { font-size: .68rem; padding: .15rem .45rem; }
+  .cp-quick-action-btn span { display: none; }
+  .cp-quick-action-btn { padding: .3rem .5rem; }
+  .cp-social-proof-strip { gap: .625rem; }
+  .cp-sp-sep { display: none; }
+}
+
+@media (max-width: 380px) {
+  .cp-presets { grid-template-columns: repeat(3, 1fr); }
+  .cp-donut-wrap { width: 120px; height: 120px; }
+  .cp-donut-pct { font-size: 1.25rem; }
+}

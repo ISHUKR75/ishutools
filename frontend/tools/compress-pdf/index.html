@@ -846,6 +846,7 @@
     <div class="cp-progress-bar-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBarRole">
       <div class="cp-progress-bar" id="progressBar" style="width:0%"></div>
     </div>
+    <div class="cp-progress-wave" aria-hidden="true"></div>
     <div class="cp-progress-pct" id="progressPct" aria-hidden="true">0%</div>
     <div class="cp-progress-stages" id="progressStages" aria-hidden="true">
       <!-- Stages injected by JS -->
@@ -921,6 +922,67 @@
               <i class="fa fa-clock" aria-hidden="true"></i>
               Time: <strong id="resTime">—</strong>
             </span>
+          </div>
+
+          <!-- ── CHART + SIZE STATS ──────────────────────────────────────────── -->
+          <div class="cp-result-chart-row">
+            <div class="cp-donut-wrap" aria-hidden="true">
+              <canvas id="resultDonutChart" width="180" height="180" aria-hidden="true"></canvas>
+              <div class="cp-donut-center">
+                <div class="cp-donut-pct cp-counter-num" id="donutPctText">0%</div>
+                <div class="cp-donut-lbl">Saved</div>
+              </div>
+            </div>
+            <div class="cp-result-size-stats">
+              <div class="cp-size-stat-row">
+                <div class="cp-size-stat-dot dot-before"></div>
+                <div class="cp-size-stat-label">Original size</div>
+                <div class="cp-size-stat-value" id="chartStatBefore">—</div>
+              </div>
+              <div class="cp-size-stat-row">
+                <div class="cp-size-stat-dot dot-after"></div>
+                <div class="cp-size-stat-label">Compressed size</div>
+                <div class="cp-size-stat-value" id="chartStatAfter">—</div>
+              </div>
+              <div class="cp-size-stat-row">
+                <div class="cp-size-stat-dot dot-saved"></div>
+                <div class="cp-size-stat-label">Total saved</div>
+                <div class="cp-size-stat-value" id="chartStatSaved">—</div>
+              </div>
+              <!-- Before/After visual bar -->
+              <div class="cp-ba-bar-wrap" aria-hidden="true">
+                <div class="cp-ba-bar-before" id="baBarBefore"></div>
+                <div class="cp-ba-bar-after"  id="baBarAfter"  style="width:0%"></div>
+              </div>
+              <div class="cp-ba-bar-labels">
+                <span id="baLabelLeft">After</span>
+                <span id="baLabelRight">Before</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── QUICK NEXT ACTIONS ─────────────────────────────────────────── -->
+          <div class="cp-quick-actions" aria-label="Quick actions after compression">
+            <button class="cp-quick-action-btn" type="button" onclick="triggerDownload()" title="Download">
+              <i class="fa fa-download" aria-hidden="true"></i>
+              <span>Download</span>
+            </button>
+            <button class="cp-quick-action-btn" type="button" onclick="shareResult()" title="Share">
+              <i class="fa fa-share-alt" aria-hidden="true"></i>
+              <span>Share</span>
+            </button>
+            <button class="cp-quick-action-btn" type="button" onclick="copyReport()" title="Copy report">
+              <i class="fa fa-clipboard" aria-hidden="true"></i>
+              <span>Copy Report</span>
+            </button>
+            <a class="cp-quick-action-btn" href="/tools/merge-pdf/" title="Merge PDFs" style="text-decoration:none">
+              <i class="fa fa-compress" aria-hidden="true"></i>
+              <span>Merge PDFs</span>
+            </a>
+            <button class="cp-quick-action-btn" type="button" onclick="resetTool()" title="Compress another">
+              <i class="fa fa-redo" aria-hidden="true"></i>
+              <span>New File</span>
+            </button>
           </div>
 
           <!-- Engines tried (collapsible) -->
@@ -1480,6 +1542,98 @@
 </section>
 
 <!-- ████████████████████████████████████████████████████████████████████████████
+     COMPARISON TABLE (order:12b)
+████████████████████████████████████████████████████████████████████████████ -->
+<section class="cp-section" id="comparison" style="order:12;background:var(--bg2);border-top:1px solid var(--bdr)"
+         aria-labelledby="compHeading">
+  <div class="cp-section-head">
+    <div class="cp-section-eyebrow"><i class="fa fa-chart-bar" aria-hidden="true"></i> Comparison</div>
+    <h2 class="cp-section-title" id="compHeading">IshuTools vs <span class="em">Other PDF Compressors</span></h2>
+    <p class="cp-section-sub">See why IshuTools Compress PDF is the best free PDF compressor online.</p>
+  </div>
+  <div class="cp-max">
+    <div class="cp-compare-table-wrap" role="region" aria-label="Comparison table: IshuTools vs iLovePDF vs Smallpdf">
+      <table class="cp-compare-table" aria-label="Feature comparison">
+        <thead>
+          <tr>
+            <th scope="col">Feature</th>
+            <th scope="col" class="col-ishu">IshuTools <small style="font-weight:500;display:block;color:#a5b4fc">by Ishu Kumar</small></th>
+            <th scope="col">iLovePDF</th>
+            <th scope="col">Smallpdf</th>
+            <th scope="col">Adobe</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><i class="fa fa-rupee-sign" style="color:var(--green);margin-right:.4rem"></i>100% Free</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Always free</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Freemium</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> 2 tasks/day</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Subscription</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-infinity" style="color:var(--em3);margin-right:.4rem"></i>No File Size Limit</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Unlimited</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> 100 MB (free)</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> 5 MB (free)</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Paid only</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-user-slash" style="color:var(--cyan);margin-right:.4rem"></i>No Signup Required</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Never</span></td>
+            <td><span class="cp-check-yes"><i class="fa fa-check-circle"></i> No</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> Account needed</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> Account needed</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-server" style="color:var(--am);margin-right:.4rem"></i>Compression Engines</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> 12 engines</span></td>
+            <td><span class="cp-check-par">1–2 engines</span></td>
+            <td><span class="cp-check-par">1–2 engines</span></td>
+            <td><span class="cp-check-par">2 engines</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-gem" style="color:#8b5cf6;margin-right:.4rem"></i>True Lossless Mode</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Yes</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Paid</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-bullseye" style="color:var(--red);margin-right:.4rem"></i>Target File Size Mode</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Yes</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-layer-group" style="color:var(--green);margin-right:.4rem"></i>Batch Compression</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Unlimited batch</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Paid only</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Paid only</span></td>
+            <td><span class="cp-check-par"><i class="fa fa-exclamation-circle"></i> Paid only</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-chart-pie" style="color:var(--cyan);margin-right:.4rem"></i>Compression Chart</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Yes (Chart.js)</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> No</span></td>
+          </tr>
+          <tr>
+            <td><i class="fa fa-ad" style="color:var(--red);margin-right:.4rem"></i>Ad-Free</td>
+            <td class="col-ishu"><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Always</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> Ads on free</span></td>
+            <td><span class="cp-check-no"><i class="fa fa-times-circle"></i> Ads on free</span></td>
+            <td><span class="cp-check-yes"><i class="fa fa-check-circle"></i> Yes (paid)</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ████████████████████████████████████████████████████████████████████████████
      REVIEWS / TESTIMONIALS (order:13)
 ████████████████████████████████████████████████████████████████████████████ -->
 <section class="cp-section" id="reviews" style="order:13;background:var(--bg2);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)"
@@ -1902,6 +2056,25 @@
 </div>
 
 <!-- ████████████████████████████████████████████████████████████████████████████
+     STICKY DOWNLOAD BAR (mobile — shows after compression)
+████████████████████████████████████████████████████████████████████████████ -->
+<div class="cp-sticky-dl-bar" id="cpStickyDlBar" role="status" aria-live="polite" aria-label="Compressed file ready to download">
+  <div class="cp-sticky-dl-bar-info">
+    <div class="cp-sticky-dl-bar-name" id="stickyDlName">compressed.pdf</div>
+    <div class="cp-sticky-dl-bar-pct"  id="stickyDlPct">Saved 0%</div>
+  </div>
+  <button class="cp-sticky-dl-btn" type="button" onclick="triggerDownload()" aria-label="Download compressed PDF">
+    <i class="fa fa-download" aria-hidden="true"></i>
+    Download
+  </button>
+  <button type="button" onclick="hideStickyDlBar()"
+          style="background:none;border:none;color:var(--t5);cursor:pointer;padding:.3rem;font-size:.85rem"
+          aria-label="Dismiss download bar">
+    <i class="fa fa-times" aria-hidden="true"></i>
+  </button>
+</div>
+
+<!-- ████████████████████████████████████████████████████████████████████████████
      MOBILE FAB
 ████████████████████████████████████████████████████████████████████████████ -->
 <button class="cp-fab" id="cpFab" type="button" aria-label="Compress PDF or add file">
@@ -1993,6 +2166,7 @@
      CHART.JS + CANVAS-CONFETTI (deferred)
 ████████████████████████████████████████████████████████████████████████████ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer crossorigin="anonymous"></script>
 
 <!-- ████████████████████████████████████████████████████████████████████████████
      MAIN SCRIPT
