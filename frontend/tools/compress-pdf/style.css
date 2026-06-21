@@ -4910,3 +4910,34 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   animation: fadeSlideUp .4s ease forwards;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §101 — TESTIMONIALS SECTION (user-reviews)
+═══════════════════════════════════════════════════════════════════════════════ */
+#user-reviews > .cp-max > div[style*="grid"] > div {
+  transition: border-color var(--tx-fast), transform var(--tx-fast), background var(--tx-fast);
+}
+#user-reviews > .cp-max > div[style*="grid"] > div:hover {
+  border-color: rgba(245,158,11,.3);
+  background: rgba(245,158,11,.04);
+  transform: translateY(-2px);
+}
+[data-theme="light"] #user-reviews > .cp-max > div[style*="grid"] > div {
+  background: #fff;
+  border-color: rgba(0,0,0,.08);
+}
+[data-theme="light"] #user-reviews > .cp-max > div[style*="grid"] > div:hover {
+  background: rgba(245,158,11,.04);
+  border-color: rgba(245,158,11,.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §102 — INDIA USE-CASES CARDS hover
+═══════════════════════════════════════════════════════════════════════════════ */
+#india-use-cases > .cp-max > div[style*="grid"] > div {
+  transition: transform var(--tx-fast), box-shadow var(--tx-fast);
+}
+#india-use-cases > .cp-max > div[style*="grid"] > div:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+}
