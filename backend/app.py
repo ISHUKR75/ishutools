@@ -114,9 +114,11 @@ def add_seo_headers(response):
             '<https://ishutools.fun/tools/compress-pdf/>; rel="canonical", '
             '<https://ishutools.fun/sitemap-compress-pdf.xml>; rel="sitemap"'
         )
-        # Long cache for HTML (Googlebot re-crawls respect cache; updated lastmod in sitemap signals freshness)
+        # No-cache for HTML so crawlers + browsers always get fresh content
         if not path.startswith('/api/'):
-            response.headers['Cache-Control'] = 'public, max-age=3600, stale-while-revalidate=86400'
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
             response.headers['Vary'] = 'Accept-Encoding'
 
     # API endpoints: no cache, no index
