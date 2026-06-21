@@ -1004,10 +1004,22 @@ function openSSE(jobId) {
   closeSSE();
   try {
     SSE_SOURCE = new EventSource(`/api/compress-pdf/progress/${jobId}`);
+    // Backend sends default 'message' events (data: {...}\n\n) — listen on onmessage
+    SSE_SOURCE.onmessage = e => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.ping) return; // heartbeat
+        updateProgress(d.pct || 0, d.title || d.message || '', d.sub || d.detail || '');
+        if (d.done) { closeSSE(); }
+      } catch (_) {}
+    };
+    // Also listen for named 'progress' events for future compatibility
     SSE_SOURCE.addEventListener('progress', e => {
       try {
         const d = JSON.parse(e.data);
-        updateProgress(d.pct || 0, d.title || '', d.sub || '');
+        if (d.ping) return;
+        updateProgress(d.pct || 0, d.title || d.message || '', d.sub || d.detail || '');
+        if (d.done) { closeSSE(); }
       } catch (_) {}
     });
     SSE_SOURCE.onerror = () => closeSSE();
@@ -2486,3 +2498,485 @@ window.batchDragStart       = batchDragStart;
 window.batchDragEnd         = batchDragEnd;
 window.batchDragOver        = batchDragOver;
 window.batchDrop            = batchDrop;
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BENCHMARK — Fetch per-preset size estimates after file upload
+════════════════════════════════════════════════════════════════════════════ */
+let _benchmarkAbort = null;
+
+async function fetchBenchmark(file) {
+  if (_benchmarkAbort) { try { _benchmarkAbort.abort(); } catch(_) {} }
+  _benchmarkAbort = new AbortController();
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const resp = await fetch('/api/compress-pdf/benchmark', {
+      method: 'POST', body: fd, signal: _benchmarkAbort.signal,
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.success || !data.benchmark) return;
+    renderBenchmarkBadges(data.benchmark, file.size);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    // silently ignore — benchmark is enhancement only
+  }
+}
+
+function renderBenchmarkBadges(benchmark, originalBytes) {
+  const wrap = document.getElementById('presetBenchmarkWrap');
+  if (!wrap) return;
+  wrap.removeAttribute('hidden');
+
+  const presetOrder = ['lossless','high','medium','low','screen'];
+  const emojis      = { lossless:'🔮', high:'💎', medium:'⚖️', low:'📧', screen:'🔥' };
+
+  let html = '<div class="cp-bench-title"><i class="fa fa-chart-bar"></i> Estimated Output Size per Preset</div>';
+  html += '<div class="cp-bench-grid">';
+  for (const p of presetOrder) {
+    const b = benchmark[p];
+    if (!b) continue;
+    const pct   = b.estimated_reduction_pct || 0;
+    const estKb = b.estimated_kb || 0;
+    const savedKb = b.saved_kb || 0;
+    const info  = PRESET_INFO[p] || {};
+    const barW  = Math.min(100, Math.max(0, pct));
+    const isActive = p === _currentPreset;
+    html += `
+      <div class="cp-bench-item ${isActive ? 'active' : ''}" onclick="selectPreset('${p}')" role="button" tabindex="0" title="Select ${p} preset">
+        <div class="cp-bench-item-head">
+          <span class="cp-bench-emoji">${info.emoji || emojis[p] || ''}</span>
+          <span class="cp-bench-preset">${p.charAt(0).toUpperCase() + p.slice(1)}</span>
+          <span class="cp-bench-pct" style="color:${info.color||'var(--em)'}">−${pct.toFixed(0)}%</span>
+        </div>
+        <div class="cp-bench-bar-bg"><div class="cp-bench-bar-fill" style="width:${barW}%;background:${info.color||'var(--em)'}"></div></div>
+        <div class="cp-bench-meta">
+          <span class="cp-bench-est">${fmtBytes(estKb * 1024)}</span>
+          <span class="cp-bench-saved">saves ${fmtBytes(savedKb * 1024)}</span>
+        </div>
+      </div>`;
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+
+  // Wire keyboard for bench items
+  wrap.querySelectorAll('.cp-bench-item').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  });
+}
+
+function updateBenchmarkActivePreset(preset) {
+  const items = document.querySelectorAll('.cp-bench-item');
+  items.forEach(el => {
+    const onclick = el.getAttribute('onclick') || '';
+    el.classList.toggle('active', onclick.includes(`'${preset}'`));
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   QUICK VALIDATE — Validate PDF on upload via server
+════════════════════════════════════════════════════════════════════════════ */
+async function quickValidate(file) {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const resp = await fetch('/api/compress-pdf/validate', { method: 'POST', body: fd });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.success) return;
+    if (data.valid === false) {
+      toast('Invalid PDF', data.error || 'File may be corrupted or password-protected', 'warn', 5000);
+      return;
+    }
+    if (data.pages) {
+      const pgEl = document.getElementById('fiPages');
+      if (pgEl) pgEl.textContent = data.pages + (data.pages === 1 ? ' page' : ' pages');
+    }
+    if (data.pdf_version) {
+      const vEl = document.getElementById('fiPdfVersion');
+      if (vEl) { vEl.textContent = 'PDF ' + data.pdf_version; vEl.removeAttribute('hidden'); }
+    }
+  } catch (_) { /* enhancement only */ }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BEFORE/AFTER COMPARISON SLIDER
+════════════════════════════════════════════════════════════════════════════ */
+let _baSliderActive = false;
+let _baSliderDown   = false;
+
+function initComparisonSlider() {
+  const slider   = document.getElementById('cpBaSlider');
+  const handle   = document.getElementById('cpBaHandle');
+  const wrap     = document.getElementById('cpBaWrap');
+  if (!slider || !handle || !wrap) return;
+
+  function setSlider(pct) {
+    pct = Math.max(0, Math.min(100, pct));
+    slider.style.setProperty('--ba-split', pct + '%');
+    const label = document.getElementById('cpBaLabel');
+    if (label) label.textContent = pct < 40 ? 'After (compressed)' : pct > 60 ? 'Before (original)' : '← Drag →';
+  }
+
+  function getRelX(e) {
+    const rect = wrap.getBoundingClientRect();
+    const cx   = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    return (cx / rect.width) * 100;
+  }
+
+  handle.addEventListener('mousedown',  () => { _baSliderDown = true; });
+  handle.addEventListener('touchstart', () => { _baSliderDown = true; }, { passive: true });
+  document.addEventListener('mouseup',  () => { _baSliderDown = false; });
+  document.addEventListener('touchend', () => { _baSliderDown = false; });
+  document.addEventListener('mousemove', e => { if (_baSliderDown) setSlider(getRelX(e)); });
+  document.addEventListener('touchmove', e => { if (_baSliderDown) setSlider(getRelX(e.touches[0])); }, { passive: true });
+
+  setSlider(50);
+}
+
+function showComparisonSlider(beforeText, afterText, beforeSize, afterSize) {
+  const section = document.getElementById('cpBaSection');
+  if (!section) return;
+  section.removeAttribute('hidden');
+
+  const bEl = document.getElementById('cpBaBeforeLabel');
+  const aEl = document.getElementById('cpBaAfterLabel');
+  const bSz = document.getElementById('cpBaBeforeSize');
+  const aSz = document.getElementById('cpBaAfterSize');
+
+  if (bEl) bEl.textContent = beforeText || 'Original';
+  if (aEl) aEl.textContent = afterText  || 'Compressed';
+  if (bSz) bSz.textContent = fmtBytes(beforeSize);
+  if (aSz) aSz.textContent = fmtBytes(afterSize);
+
+  section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COPY URL
+════════════════════════════════════════════════════════════════════════════ */
+async function copyToolUrl() {
+  try {
+    await navigator.clipboard.writeText('https://ishutools.fun/tools/compress-pdf/');
+    toast('URL Copied!', 'Tool URL copied to clipboard', 'success', 2000);
+    S('CLICK');
+  } catch {
+    toast('Copy failed', 'Please copy manually from address bar', 'warn', 3000);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SMART FILE SIZE SUGGESTION
+════════════════════════════════════════════════════════════════════════════ */
+function getSuggestedPreset(fileSizeBytes) {
+  const mb = fileSizeBytes / (1024 * 1024);
+  if (mb < 0.5)  return 'lossless'; // tiny file — be conservative
+  if (mb < 2)    return 'high';
+  if (mb < 10)   return 'medium';
+  if (mb < 50)   return 'low';
+  return 'screen';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   QUALITY GUARANTEE TOOLTIP
+════════════════════════════════════════════════════════════════════════════ */
+function showGuaranteeTooltip(preset) {
+  const info = PRESET_INFO[preset];
+  if (!info) return;
+  const lines = [
+    `${info.emoji} ${info.name} Preset`,
+    `• Expected reduction: ${info.est}`,
+    info.guarantee.lossless ? '• ✅ Zero image quality loss (pikepdf streams only)' : '',
+    info.guarantee.noDpi    ? '• ✅ No DPI downsampling' : '• ⚠️ DPI may be reduced',
+    info.guarantee.noGray   ? '• ✅ Never auto-grayscale' : '• ⚠️ May convert to grayscale',
+    `• ${info.detail}`,
+  ].filter(Boolean).join('\n');
+  toast(`${info.emoji} ${info.name} Guarantee`, lines, 'info', 6000);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   EXPORT RESULT AS IMAGE (using Canvas)
+════════════════════════════════════════════════════════════════════════════ */
+function exportResultCard() {
+  if (!RESULT_DATA) { toast('Nothing to export', 'Compress a PDF first', 'warn', 2000); return; }
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = 800;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) { toast('Canvas not supported', '', 'error', 2000); return; }
+
+  // Background
+  ctx.fillStyle = '#080d18';
+  ctx.fillRect(0, 0, 800, 400);
+
+  // Gradient overlay
+  const grd = ctx.createLinearGradient(0, 0, 800, 400);
+  grd.addColorStop(0, 'rgba(99,102,241,.15)');
+  grd.addColorStop(1, 'rgba(139,92,246,.08)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, 800, 400);
+
+  // Title
+  ctx.fillStyle = '#f9fafb';
+  ctx.font = 'bold 28px Inter, sans-serif';
+  ctx.fillText('IshuTools PDF Compressor', 40, 60);
+
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '16px Inter, sans-serif';
+  ctx.fillText('ishutools.fun · by Ishu Kumar (ISHUKR41)', 40, 90);
+
+  // Stats
+  const rd = RESULT_DATA;
+  const stats = [
+    { label: 'Original',   value: fmtBytes(rd.inputSize)  },
+    { label: 'Compressed', value: fmtBytes(rd.outputSize) },
+    { label: 'Saved',      value: rd.reduction.toFixed(1) + '%' },
+    { label: 'Grade',      value: rd.qGrade || 'B' },
+  ];
+  stats.forEach((s, i) => {
+    const x = 40 + i * 190;
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    ctx.roundRect(x, 130, 170, 100, 12);
+    ctx.fill();
+    ctx.fillStyle = '#6366f1';
+    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.fillText(s.value, x + 15, 188);
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '13px Inter, sans-serif';
+    ctx.fillText(s.label, x + 15, 210);
+  });
+
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '13px Inter, sans-serif';
+  ctx.fillText('Compressed with ' + (rd.engine || 'multi-engine') + ' engine · ' + fmtMs(rd.procMs), 40, 300);
+  ctx.fillText('https://ishutools.fun/tools/compress-pdf/', 40, 340);
+
+  try {
+    canvas.toBlob(blob => {
+      if (!blob) { toast('Export failed', '', 'error', 2000); return; }
+      _triggerBlobDownload(blob, 'ishutools_compress_result.png');
+      toast('Result card exported!', 'Saved as PNG image', 'success', 2500);
+      S('DOWNLOAD');
+    }, 'image/png');
+  } catch(e) {
+    toast('Export error', e.message, 'error', 3000);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FULL-SCREEN DROP OVERLAY (drag file anywhere on page)
+════════════════════════════════════════════════════════════════════════════ */
+function initFullPageDrop() {
+  let _dragCounter = 0;
+  const overlay = document.getElementById('cpFullDropOverlay');
+  if (!overlay) return;
+
+  document.addEventListener('dragenter', e => {
+    if (!e.dataTransfer?.types?.includes('Files')) return;
+    _dragCounter++;
+    overlay.classList.add('active');
+  });
+
+  document.addEventListener('dragleave', e => {
+    _dragCounter--;
+    if (_dragCounter <= 0) { _dragCounter = 0; overlay.classList.remove('active'); }
+  });
+
+  document.addEventListener('dragover', e => {
+    if (!e.dataTransfer?.types?.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  document.addEventListener('drop', e => {
+    _dragCounter = 0;
+    overlay.classList.remove('active');
+    e.preventDefault();
+    const files = [...(e.dataTransfer?.files || [])];
+    if (files.length) handleFiles(files);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   THEME TRANSITIONS
+════════════════════════════════════════════════════════════════════════════ */
+function addThemeTransitionClass() {
+  document.documentElement.classList.add('cp-theme-transition');
+  setTimeout(() => document.documentElement.classList.remove('cp-theme-transition'), 400);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONFETTI ENHANCED
+════════════════════════════════════════════════════════════════════════════ */
+async function launchConfetti() {
+  if (_reduced) return;
+  try {
+    if (typeof confetti === 'function') {
+      const fire = (part, opts) => confetti({ particleCount: part, spread: 70, origin: { y: 0.6 }, ...opts });
+      fire(40, { origin: { x: 0.25, y: 0.6 }, colors: ['#6366f1','#8b5cf6','#a78bfa'] });
+      setTimeout(() => fire(35, { origin: { x: 0.75, y: 0.6 }, colors: ['#10b981','#059669','#34d399'] }), 150);
+      setTimeout(() => fire(25, { origin: { x: 0.5,  y: 0.5 }, colors: ['#f59e0b','#f97316','#ef4444'] }), 350);
+    }
+  } catch (_) {}
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ADDITIONAL PRESET HOTKEYS
+════════════════════════════════════════════════════════════════════════════ */
+function initPresetHotkeys() {
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement?.tagName?.toLowerCase() || '';
+    if (['input','textarea','select'].includes(tag)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    switch(e.key) {
+      case '1': selectPreset('lossless'); toast('Preset','🔮 Lossless selected','info',1500); break;
+      case '2': selectPreset('high');     toast('Preset','💎 High selected','info',1500); break;
+      case '3': selectPreset('medium');   toast('Preset','⚖️ Medium selected','info',1500); break;
+      case '4': selectPreset('low');      toast('Preset','📧 Low selected','info',1500); break;
+      case '5': selectPreset('screen');   toast('Preset','🔥 Screen selected','info',1500); break;
+      case 'd': case 'D': { if (RESULT_DATA?.blob) { triggerDownload(); } break; }
+      case 'e': case 'E': { exportResultCard(); break; }
+      case 'u': case 'U': { copyToolUrl(); break; }
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ANALYTICS MINI PANEL — shown in result section
+════════════════════════════════════════════════════════════════════════════ */
+function renderAnalyticsMini(data) {
+  const wrap = document.getElementById('cpAnalyticsMini');
+  if (!wrap || !data) return;
+  wrap.removeAttribute('hidden');
+
+  const ct   = data.content_type  || 'mixed';
+  const pg   = data.page_count    || '?';
+  const img  = data.image_count   || 0;
+  const fnt  = data.font_count    || 0;
+  const cmp  = data.compressibility ?? 0;
+  const enc  = data.has_encryption ? '🔒 Encrypted' : '🔓 Open';
+  const js   = data.has_javascript ? '⚠️ Has JS' : '';
+  const form = data.has_forms      ? '📝 Has Forms' : '';
+
+  wrap.innerHTML = `
+    <div class="cp-analytics-mini-title"><i class="fa fa-chart-pie"></i> PDF Analysis</div>
+    <div class="cp-analytics-mini-grid">
+      <div class="cp-am-chip"><i class="fa fa-file-pdf"></i> ${pg} page${pg!==1?'s':''}</div>
+      <div class="cp-am-chip"><i class="fa fa-image"></i> ${img} image${img!==1?'s':''}</div>
+      <div class="cp-am-chip"><i class="fa fa-font"></i> ${fnt} font${fnt!==1?'s':''}</div>
+      <div class="cp-am-chip"><i class="fa fa-tag"></i> ${ct}</div>
+      <div class="cp-am-chip" style="color:var(--green)"><i class="fa fa-compress-alt"></i> ${cmp}% compressible</div>
+      <div class="cp-am-chip">${enc}</div>
+      ${js   ? `<div class="cp-am-chip" style="color:var(--am)">${js}</div>` : ''}
+      ${form ? `<div class="cp-am-chip">${form}</div>` : ''}
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ADDITIONAL DOM SETUP — runs in DOMContentLoaded supplement
+════════════════════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize full-page drop overlay
+  initFullPageDrop();
+
+  // Initialize comparison slider
+  initComparisonSlider();
+
+  // Preset hotkeys (1-5)
+  initPresetHotkeys();
+
+  // Wire preset guarantee info buttons
+  document.querySelectorAll('[data-preset-info]').forEach(btn => {
+    btn.addEventListener('click', () => showGuaranteeTooltip(btn.dataset.presetInfo));
+  });
+
+  // Wire copy URL button if present
+  const copyUrlBtn = document.getElementById('cpCopyUrl');
+  if (copyUrlBtn) copyUrlBtn.addEventListener('click', copyToolUrl);
+
+  // Wire export card button if present
+  const exportCardBtn = document.getElementById('cpExportCard');
+  if (exportCardBtn) exportCardBtn.addEventListener('click', exportResultCard);
+
+  // Wire result section benchmark active state
+  document.addEventListener('presetchange', e => {
+    updateBenchmarkActivePreset(e.detail?.preset || _currentPreset);
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PATCH: selectPreset — fire benchmark update + dispatch event
+════════════════════════════════════════════════════════════════════════════ */
+const _origSelectPreset = window.selectPreset;
+window.selectPreset = function(preset) {
+  if (_origSelectPreset) _origSelectPreset(preset);
+  updateBenchmarkActivePreset(preset);
+  document.dispatchEvent(new CustomEvent('presetchange', { detail: { preset } }));
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PATCH: handleFiles — trigger benchmark + quickValidate after file added
+════════════════════════════════════════════════════════════════════════════ */
+const _origHandleFiles = window.handleFiles;
+if (typeof handleFiles === 'function') {
+  const _localHandleFiles = handleFiles;
+  window.handleFiles = function(files) {
+    _localHandleFiles(files);
+    const f = files[0];
+    if (f) {
+      // Suggest preset based on file size
+      const suggested = getSuggestedPreset(f.size);
+      // Only suggest if user hasn't explicitly chosen
+      // (only auto-suggest on first load / if no result yet)
+      if (!RESULT_DATA && !COMPRESS_DONE) {
+        setTimeout(() => {
+          toast(
+            '💡 Preset Suggestion',
+            `${PRESET_INFO[suggested]?.emoji} ${suggested.charAt(0).toUpperCase()+suggested.slice(1)} recommended for this file size`,
+            'info', 4000
+          );
+        }, 1200);
+      }
+      // Fetch benchmark estimates (non-blocking)
+      setTimeout(() => fetchBenchmark(f), 800);
+      // Quick server-side validate (non-blocking)
+      setTimeout(() => quickValidate(f), 400);
+    }
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PATCH: showResults — show comparison slider and analytics mini
+════════════════════════════════════════════════════════════════════════════ */
+const _origShowResults = window.showResults;
+if (typeof showResults === 'function') {
+  window.showResults = function(...args) {
+    if (_origShowResults) _origShowResults(...args);
+    // Show comparison panel
+    if (RESULT_DATA) {
+      showComparisonSlider(
+        RESULT_DATA.stem ? RESULT_DATA.stem + '.pdf' : 'Original',
+        RESULT_DATA.stem ? RESULT_DATA.stem + '_compressed.pdf' : 'Compressed',
+        RESULT_DATA.inputSize,
+        RESULT_DATA.outputSize
+      );
+    }
+    // Render analytics mini panel
+    if (ANALYSIS_DATA) renderAnalyticsMini(ANALYSIS_DATA);
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   EXPORT ADDITIONAL GLOBALS
+════════════════════════════════════════════════════════════════════════════ */
+window.copyToolUrl        = copyToolUrl;
+window.exportResultCard   = exportResultCard;
+window.fetchBenchmark     = fetchBenchmark;
+window.showGuaranteeTooltip = showGuaranteeTooltip;
+window.renderAnalyticsMini  = renderAnalyticsMini;

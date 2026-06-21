@@ -1193,6 +1193,74 @@ def api_compress_pdf():
         logger.exception('compress-pdf error')
         return error_response(str(e))
 
+
+@app.route('/api/compress-pdf/compress', methods=['POST'])
+def api_compress_pdf_compress():
+    """Alias: JS sends POST to /api/compress-pdf/compress — delegates to api_compress_pdf()."""
+    return api_compress_pdf()
+
+
+@app.route('/api/compress-pdf/progress/<job_id>')
+def api_compress_pdf_progress(job_id):
+    """SSE progress stream for compress-pdf — delegates to generic /api/progress handler."""
+    return api_progress(job_id)
+
+
+@app.route('/api/compress-pdf/benchmark', methods=['POST'])
+def api_compress_pdf_benchmark():
+    """Benchmark all presets on a file — returns size estimates for each preset."""
+    try:
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        path = save_uploaded_file(file)
+        from tools.pdf_compress import get_compression_estimate
+        data = get_compression_estimate(path)
+        estimates = data.get('estimated_reductions_by_preset', {})
+        file_size_kb = data.get('file_size_kb', 0)
+        results = {}
+        for preset, pct in estimates.items():
+            saved_kb = file_size_kb * (pct / 100)
+            results[preset] = {
+                'estimated_reduction_pct': pct,
+                'original_kb':   round(file_size_kb, 1),
+                'estimated_kb':  round(file_size_kb - saved_kb, 1),
+                'saved_kb':      round(saved_kb, 1),
+            }
+        return jsonify({'success': True, 'benchmark': results, 'original_kb': file_size_kb})
+    except Exception as e:
+        logger.exception('compress-pdf/benchmark error')
+        return error_response(str(e))
+
+
+@app.route('/api/compress-pdf/validate', methods=['POST'])
+def api_compress_pdf_validate():
+    """Quick validation — checks if uploaded file is a valid PDF and returns basic info."""
+    try:
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        if not file.filename.lower().endswith('.pdf'):
+            return jsonify({'success': False, 'valid': False, 'error': 'File must be a PDF.'})
+        path = save_uploaded_file(file)
+        try:
+            import pikepdf
+            with pikepdf.open(path) as pdf:
+                pages = len(pdf.pages)
+                version = str(pdf.pdf_version)
+            return jsonify({
+                'success': True, 'valid': True,
+                'pages': pages, 'pdf_version': version,
+                'file_size': os.path.getsize(path),
+                'filename': secure_filename(file.filename),
+            })
+        except Exception as pdf_err:
+            return jsonify({'success': True, 'valid': False, 'error': str(pdf_err)})
+    except Exception as e:
+        logger.exception('compress-pdf/validate error')
+        return error_response(str(e))
+
+
 @app.route('/api/remove-pages', methods=['POST'])
 def api_remove_pages():
     """Remove specific pages from a PDF."""

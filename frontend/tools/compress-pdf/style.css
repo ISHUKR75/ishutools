@@ -3450,3 +3450,470 @@ input,select,textarea { font-family: var(--font); }
 @media (max-width: 600px) {
   .cp-ishu-spotlight-grid { grid-template-columns: 1fr; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §47 — BENCHMARK PANEL (per-preset size estimates)
+───────────────────────────────────────────────────────────────────────────── */
+#presetBenchmarkWrap {
+  background: var(--bg3);
+  border: 1px solid var(--bdr2);
+  border-radius: var(--r-xl);
+  padding: 1.25rem 1.5rem;
+  margin-top: 1rem;
+}
+.cp-bench-title {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.cp-bench-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .75rem;
+}
+@media (max-width: 900px) { .cp-bench-grid { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 600px) { .cp-bench-grid { grid-template-columns: 1fr 1fr; } }
+.cp-bench-item {
+  background: var(--bg4);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-lg);
+  padding: .75rem .875rem;
+  cursor: pointer;
+  transition: border-color .2s, transform .15s, background .2s;
+}
+.cp-bench-item:hover { border-color: var(--bdr3); transform: translateY(-2px); background: var(--bg5); }
+.cp-bench-item.active {
+  border-color: var(--em);
+  background: rgba(99,102,241,.12);
+  box-shadow: 0 0 0 2px rgba(99,102,241,.25);
+}
+.cp-bench-item-head {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .5rem;
+}
+.cp-bench-emoji { font-size: 1.1rem; }
+.cp-bench-preset { font-weight: 600; font-size: .8rem; color: var(--t2); flex: 1; }
+.cp-bench-pct { font-weight: 700; font-size: .85rem; }
+.cp-bench-bar-bg {
+  height: 5px;
+  background: var(--bg6);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: .5rem;
+}
+.cp-bench-bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+.cp-bench-meta { display: flex; justify-content: space-between; font-size: .7rem; }
+.cp-bench-est  { color: var(--t2); font-weight: 600; }
+.cp-bench-saved { color: var(--t5); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §48 — FULL-PAGE DROP OVERLAY
+───────────────────────────────────────────────────────────────────────────── */
+#cpFullDropOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-top);
+  background: rgba(8,13,24,.88);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+}
+#cpFullDropOverlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+#cpFullDropOverlay .cp-fdo-inner {
+  border: 2px dashed var(--em);
+  border-radius: var(--r-3xl);
+  padding: 3rem 4rem;
+  text-align: center;
+  animation: fdo-pulse 1.5s ease-in-out infinite;
+}
+@keyframes fdo-pulse {
+  0%,100% { border-color: var(--em); box-shadow: 0 0 0 0 rgba(99,102,241,.4); }
+  50%      { border-color: var(--em3); box-shadow: 0 0 0 20px rgba(99,102,241,0); }
+}
+.cp-fdo-icon { font-size: 4rem; color: var(--em3); margin-bottom: 1rem; }
+.cp-fdo-text { font-size: 1.5rem; font-weight: 700; color: var(--t1); margin-bottom: .5rem; }
+.cp-fdo-sub  { font-size: 1rem; color: var(--t4); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §49 — BEFORE/AFTER COMPARISON SLIDER
+───────────────────────────────────────────────────────────────────────────── */
+#cpBaSection {
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-xl);
+  padding: 1.5rem;
+  margin-top: 1.25rem;
+}
+.cp-ba-section-title {
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+#cpBaWrap {
+  position: relative;
+  height: 80px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--bg4);
+  --ba-split: 50%;
+}
+.cp-ba-side {
+  position: absolute;
+  top: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: none;
+}
+.cp-ba-before {
+  left: 0;
+  width: var(--ba-split, 50%);
+  background: linear-gradient(135deg, rgba(239,68,68,.15), rgba(220,38,38,.08));
+  border-right: 2px solid var(--red);
+  color: var(--red);
+  justify-content: flex-end;
+  padding-right: 1rem;
+}
+.cp-ba-after {
+  right: 0;
+  left: var(--ba-split, 50%);
+  background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.15));
+  color: var(--green);
+  padding-left: 1rem;
+}
+#cpBaHandle {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: var(--ba-split, 50%);
+  transform: translateX(-50%);
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ew-resize;
+  z-index: 5;
+}
+.cp-ba-handle-inner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--em);
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: .75rem;
+  box-shadow: var(--shadow);
+}
+.cp-ba-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: .75rem;
+  font-size: .8rem;
+  color: var(--t4);
+}
+.cp-ba-label-wrap { text-align: center; }
+#cpBaLabel { font-size: .7rem; color: var(--t5); margin-top: .4rem; text-align: center; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §50 — ANALYTICS MINI PANEL
+───────────────────────────────────────────────────────────────────────────── */
+#cpAnalyticsMini {
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-lg);
+  padding: .875rem 1.125rem;
+  margin-top: .75rem;
+}
+.cp-analytics-mini-title {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: .625rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.cp-analytics-mini-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.cp-am-chip {
+  background: var(--bg5);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-pill);
+  padding: .2rem .6rem;
+  font-size: .72rem;
+  color: var(--t3);
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §51 — THEME TRANSITION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-theme-transition,
+.cp-theme-transition * {
+  transition: background-color .35s, color .35s, border-color .35s !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §52 — ADDITIONAL RESULT SECTION ENHANCEMENTS
+───────────────────────────────────────────────────────────────────────────── */
+.cp-result-share-row {
+  display: flex;
+  gap: .5rem;
+  margin-top: .75rem;
+  flex-wrap: wrap;
+}
+.cp-rs-btn {
+  flex: 1;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: .55rem 1rem;
+  border: 1px solid var(--bdr2);
+  border-radius: var(--r-lg);
+  background: var(--bg4);
+  color: var(--t3);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  text-decoration: none;
+}
+.cp-rs-btn:hover { background: var(--bg5); border-color: var(--em); color: var(--em3); }
+.cp-rs-btn i { font-size: .85rem; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §53 — PRESET INFO PILL BUTTON
+───────────────────────────────────────────────────────────────────────────── */
+.cp-preset-info-btn {
+  background: none;
+  border: none;
+  color: var(--t5);
+  cursor: pointer;
+  font-size: .75rem;
+  padding: .1rem .25rem;
+  border-radius: .25rem;
+  transition: color .15s;
+  display: inline-flex;
+  align-items: center;
+}
+.cp-preset-info-btn:hover { color: var(--em3); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §54 — PRINT STYLES
+───────────────────────────────────────────────────────────────────────────── */
+@media print {
+  .cp-nav, .cp-fab, #scrollTop, .cp-undo-bar,
+  #toastWrap, #cpFullDropOverlay, .cp-batch-panel,
+  #historyPanel, #cp-shortcuts-modal,
+  .cp-marquee-strip, canvas { display: none !important; }
+
+  body { background: #fff !important; color: #111 !important; }
+
+  .cp-result-wrap {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  .cp-result-val { color: #111 !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §55 — HIGH CONTRAST MODE
+───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-contrast: high) {
+  :root {
+    --bdr:  rgba(200,210,240,.4);
+    --bdr2: rgba(200,210,240,.6);
+    --t4:   #cbd5e1;
+    --t5:   #94a3b8;
+  }
+  .cp-preset-card { border-width: 2px; }
+  .cp-adv-toggle-btn { border-width: 2px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §56 — COMPARISON TABLE (vs competitors)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-compare-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--bdr2);
+  margin-top: 1rem;
+}
+.cp-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+.cp-compare-table th {
+  padding: .875rem 1rem;
+  background: var(--bg3);
+  color: var(--t3);
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 1px solid var(--bdr2);
+  white-space: nowrap;
+}
+.cp-compare-table th.ishu-col {
+  background: rgba(99,102,241,.15);
+  color: var(--em3);
+}
+.cp-compare-table td {
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--bdr);
+  color: var(--t3);
+  vertical-align: middle;
+}
+.cp-compare-table td.ishu-col { background: rgba(99,102,241,.06); }
+.cp-compare-table tr:last-child td { border-bottom: none; }
+.cp-compare-table tr:hover td { background: var(--bg3); }
+.cp-compare-table tr:hover td.ishu-col { background: rgba(99,102,241,.12); }
+.cp-ct-yes { color: var(--green); font-weight: 700; }
+.cp-ct-no  { color: var(--t5); }
+.cp-ct-partial { color: var(--am); }
+.cp-ct-feat { font-weight: 600; color: var(--t2); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §57 — PDF VERSION BADGE
+───────────────────────────────────────────────────────────────────────────── */
+#fiPdfVersion {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(99,102,241,.12);
+  border: 1px solid rgba(99,102,241,.25);
+  color: var(--em3);
+  font-size: .65rem;
+  font-weight: 700;
+  border-radius: var(--r-pill);
+  padding: .1rem .45rem;
+  margin-left: .5rem;
+  letter-spacing: .03em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §58 — TECHNOLOGY DEEP-DIVE SECTION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.cp-tech-card {
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-xl);
+  padding: 1.25rem 1.5rem;
+  transition: border-color .2s, transform .15s;
+}
+.cp-tech-card:hover { border-color: var(--bdr3); transform: translateY(-2px); }
+.cp-tech-card-head {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .75rem;
+}
+.cp-tech-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.cp-tech-name { font-weight: 700; color: var(--t1); font-size: .9rem; }
+.cp-tech-version { font-size: .7rem; color: var(--t5); font-family: var(--font-mono); }
+.cp-tech-desc { font-size: .8rem; color: var(--t4); line-height: 1.55; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §59 — SCROLLBAR CUSTOM (Webkit)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-batch-queue::-webkit-scrollbar,
+#histList::-webkit-scrollbar { width: 5px; }
+.cp-batch-queue::-webkit-scrollbar-track,
+#histList::-webkit-scrollbar-track { background: transparent; }
+.cp-batch-queue::-webkit-scrollbar-thumb,
+#histList::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 99px; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §60 — SHIMMER SKELETON (loading state)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: cp-skeleton-shimmer 1.4s infinite;
+  border-radius: var(--r-md);
+}
+@keyframes cp-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §61 — RESULT GRADE BADGE ANIMATION
+───────────────────────────────────────────────────────────────────────────── */
+@keyframes grade-pop {
+  0%   { transform: scale(.5) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(3deg); }
+  80%  { transform: scale(.95) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.cp-result-grade-banner.animated { animation: grade-pop .6s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §62 — MOBILE RESPONSIVE IMPROVEMENTS
+───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .cp-hero-title { font-size: clamp(1.5rem, 6vw, 2rem); }
+  .cp-result-numbers { grid-template-columns: 1fr 1fr; }
+  .cp-result-col:nth-child(2) { grid-column: 1 / -1; order: -1; }
+  .cp-result-val.pct { font-size: 2.8rem; }
+  .cp-quick-actions { grid-template-columns: repeat(3,1fr); }
+  .cp-result-actions { flex-direction: column; }
+  .cp-dl-btn, .cp-share-btn, .cp-copy-btn, .cp-again-btn { width: 100%; }
+  .cp-bench-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §63 — FOCUS RING (accessibility)
+───────────────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--em);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--em3);
+  outline-offset: 3px;
+}

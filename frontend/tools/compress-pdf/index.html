@@ -1213,6 +1213,11 @@
                 onclick="applyRecommendation()">Apply</button>
       </div>
 
+      <!-- ── BENCHMARK PANEL — per-preset size estimates ──────────────────── -->
+      <div id="presetBenchmarkWrap" hidden aria-label="Estimated output size per compression preset">
+        <!-- Populated by JS fetchBenchmark() after file upload -->
+      </div>
+
     </div>
   </div>
   <input type="file" id="fileInput" accept="application/pdf" multiple hidden aria-label="Select PDF file"/>
@@ -1598,6 +1603,47 @@
             <i class="fa fa-file-download" style="color:var(--green)" aria-hidden="true"></i>
             Download name:
             <span id="downloadFilenamePreview" class="font-mono" style="color:var(--t2)">—</span>
+          </div>
+
+          <!-- ── BEFORE/AFTER COMPARISON SLIDER ────────────────────────── -->
+          <div id="cpBaSection" hidden aria-label="Before and after file size comparison">
+            <div class="cp-ba-section-title">
+              <i class="fa fa-columns" aria-hidden="true"></i>
+              Before vs. After — Drag to compare
+            </div>
+            <div id="cpBaWrap" aria-hidden="true">
+              <div class="cp-ba-side cp-ba-before">
+                <span id="cpBaBeforeLabel">Original</span>
+                <span id="cpBaBeforeSize" style="font-size:.7rem;opacity:.8;margin-left:.4rem"></span>
+              </div>
+              <div class="cp-ba-side cp-ba-after">
+                <span id="cpBaAfterLabel">Compressed</span>
+                <span id="cpBaAfterSize" style="font-size:.7rem;opacity:.8;margin-left:.4rem"></span>
+              </div>
+              <div id="cpBaHandle" role="slider" aria-label="Compare before and after" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0">
+                <div class="cp-ba-handle-inner"><i class="fa fa-arrows-alt-h"></i></div>
+              </div>
+            </div>
+            <div id="cpBaLabel">← Drag handle to compare →</div>
+          </div>
+
+          <!-- ── ANALYTICS MINI PANEL ───────────────────────────────────── -->
+          <div id="cpAnalyticsMini" hidden aria-label="PDF analysis summary"></div>
+
+          <!-- ── EXTRA SHARE ROW ────────────────────────────────────────── -->
+          <div class="cp-result-share-row" style="margin-top:.75rem">
+            <button class="cp-rs-btn" type="button" onclick="exportResultCard()" title="Export result as image" aria-label="Export compression result as PNG image">
+              <i class="fa fa-image"></i> Export Card
+            </button>
+            <button class="cp-rs-btn" type="button" id="cpCopyUrl" title="Copy tool URL" aria-label="Copy IshuTools compress PDF URL">
+              <i class="fa fa-link"></i> Copy URL
+            </button>
+            <a class="cp-rs-btn" href="/tools/merge-pdf/" title="Merge multiple PDFs" style="text-decoration:none">
+              <i class="fa fa-compress"></i> Merge PDFs
+            </a>
+            <a class="cp-rs-btn" href="/tools/split-pdf/" title="Split PDF into pages" style="text-decoration:none">
+              <i class="fa fa-cut"></i> Split PDF
+            </a>
           </div>
 
           <!-- Action buttons -->
@@ -3546,6 +3592,219 @@
     </p>
   </div>
 </div>
+
+<!-- ████████████████████████████████████████████████████████████████████████████
+     FULL-PAGE DROP OVERLAY
+████████████████████████████████████████████████████████████████████████████ -->
+<div id="cpFullDropOverlay" aria-hidden="true">
+  <div class="cp-fdo-inner">
+    <div class="cp-fdo-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+    <div class="cp-fdo-text">Drop your PDF anywhere</div>
+    <div class="cp-fdo-sub">Release to compress instantly</div>
+  </div>
+</div>
+
+<!-- ████████████████████████████████████████████████████████████████████████████
+     COMPARISON TABLE SECTION (order:10b) — SEO + UX
+████████████████████████████████████████████████████████████████████████████ -->
+<section class="cp-section" id="comparison" style="order:10;background:var(--bg2);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)"
+         aria-labelledby="compHeading">
+  <div class="cp-section-head">
+    <div class="cp-section-eyebrow"><i class="fa fa-balance-scale" aria-hidden="true"></i> How We Compare</div>
+    <h2 class="cp-section-title" id="compHeading">IshuTools vs. <span class="em">Other PDF Compressors</span></h2>
+    <p class="cp-section-sub">See why IshuTools by <strong>Ishu Kumar (ISHUKR41)</strong> is India's best free PDF compressor.</p>
+  </div>
+  <div class="cp-max" style="margin-top:1.5rem">
+    <div class="cp-compare-table-wrap" role="region" aria-label="Feature comparison table">
+      <table class="cp-compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="ishu-col">IshuTools (Ishu Kumar)</th>
+            <th>iLovePDF</th>
+            <th>Smallpdf</th>
+            <th>Adobe Acrobat</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cp-ct-feat">Price</td>
+            <td class="ishu-col cp-ct-yes">100% Free</td>
+            <td class="cp-ct-partial">Freemium</td>
+            <td class="cp-ct-partial">Freemium</td>
+            <td class="cp-ct-no">Paid ($20+/mo)</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">File Size Limit</td>
+            <td class="ishu-col cp-ct-yes">No Limit ∞</td>
+            <td class="cp-ct-no">100 MB (free)</td>
+            <td class="cp-ct-no">5 MB (free)</td>
+            <td class="cp-ct-yes">No Limit</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Lossless Mode</td>
+            <td class="ishu-col cp-ct-yes">✅ True Lossless</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-partial">⚠️ Limited</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Compression Engines</td>
+            <td class="ishu-col cp-ct-yes">12 Engines</td>
+            <td class="cp-ct-partial">1–2</td>
+            <td class="cp-ct-partial">1–2</td>
+            <td class="cp-ct-partial">2–3</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Batch Compression</td>
+            <td class="ishu-col cp-ct-yes">✅ Free</td>
+            <td class="cp-ct-partial">⚠️ Paid only</td>
+            <td class="cp-ct-partial">⚠️ Paid only</td>
+            <td class="cp-ct-yes">✅ Paid</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Target File Size</td>
+            <td class="ishu-col cp-ct-yes">✅ Free</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-partial">⚠️ Paid</td>
+            <td class="cp-ct-partial">⚠️ Limited</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">No Signup Required</td>
+            <td class="ishu-col cp-ct-yes">✅ Always</td>
+            <td class="cp-ct-yes">✅ Yes</td>
+            <td class="cp-ct-partial">⚠️ Limited</td>
+            <td class="cp-ct-no">❌ Account needed</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Open Source Libraries</td>
+            <td class="ishu-col cp-ct-yes">✅ pikepdf, GS, fitz</td>
+            <td class="cp-ct-no">❌ Proprietary</td>
+            <td class="cp-ct-no">❌ Proprietary</td>
+            <td class="cp-ct-no">❌ Proprietary</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Quality Score &amp; Report</td>
+            <td class="ishu-col cp-ct-yes">✅ Full Report</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-partial">⚠️ Basic</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">SSE Real-time Progress</td>
+            <td class="ishu-col cp-ct-yes">✅ Live Progress</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-no">❌ No</td>
+            <td class="cp-ct-no">❌ No</td>
+          </tr>
+          <tr>
+            <td class="cp-ct-feat">Made in India</td>
+            <td class="ishu-col cp-ct-yes">✅ Ishu Kumar 🇮🇳</td>
+            <td class="cp-ct-no">❌ Spain</td>
+            <td class="cp-ct-no">❌ Switzerland</td>
+            <td class="cp-ct-no">❌ USA</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:.78rem;color:var(--t5);margin-top:.75rem;text-align:center">
+      * Comparison based on free-tier features as of June 2026. IshuTools by <strong>Ishu Kumar (ISHUKR41)</strong> — always 100% free with no hidden limits.
+    </p>
+  </div>
+</section>
+
+<!-- ████████████████████████████████████████████████████████████████████████████
+     TECHNOLOGY DEEP-DIVE SECTION (order:11)
+████████████████████████████████████████████████████████████████████████████ -->
+<section class="cp-section" id="technology" style="order:11" aria-labelledby="techHeading">
+  <div class="cp-section-head">
+    <div class="cp-section-eyebrow"><i class="fa fa-microchip" aria-hidden="true"></i> Under the Hood</div>
+    <h2 class="cp-section-title" id="techHeading">12 Compression Engines — <span class="em">Technical Deep-Dive</span></h2>
+    <p class="cp-section-sub">Every engine is tried in parallel. The smallest valid result is kept. <strong>Ishu Kumar (ISHUKR41)</strong> built this at ishutools.fun.</p>
+  </div>
+  <div class="cp-tech-grid cp-max cp-stagger">
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(99,102,241,.15)"><i class="fa fa-compress" style="color:var(--em3)"></i></div>
+        <div>
+          <div class="cp-tech-name">pikepdf (libqpdf)</div>
+          <div class="cp-tech-version">Engine #1 — Lossless King</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">DEFLATE-9 stream recompression with ObjStm + XRef cross-reference stream. Zero image re-encoding. The only truly lossless engine — used exclusively for Lossless and High presets' image handling. Guarantees bitwise-identical visual quality.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(239,68,68,.15)"><i class="fa fa-ghost" style="color:var(--red)"></i></div>
+        <div>
+          <div class="cp-tech-name">Ghostscript</div>
+          <div class="cp-tech-version">Engine #2 — Industry Standard</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">The industry-standard PDF distiller since 1988. Supports screen (72 DPI), ebook (150 DPI), printer (300 DPI) and prepress (600 DPI) presets. Ghostscript image resampling is NEVER used for Lossless or High quality presets — quality guarantee is absolute.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(16,185,129,.15)"><i class="fa fa-image" style="color:var(--green)"></i></div>
+        <div>
+          <div class="cp-tech-name">PyMuPDF (fitz)</div>
+          <div class="cp-tech-version">Engine #3 — Image Master</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">MuPDF-based per-image DPI downsampling with JPEG and WebP re-encoding. Extremely precise — applies only where beneficial. Skips images already at or below target DPI. Used for Medium, Low, and Screen presets where quality trade-off is acceptable.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(6,182,212,.15)"><i class="fa fa-bolt" style="color:var(--cyan)"></i></div>
+        <div>
+          <div class="cp-tech-name">qpdf</div>
+          <div class="cp-tech-version">Engine #4 — Stream Optimizer</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">qpdf linearization + stream recompression. Produces web-optimized PDFs (fast-web-view) and removes orphaned/dead objects. Extremely fast and reliable — often provides 5–15% savings with zero quality impact on top of pikepdf.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(245,158,11,.15)"><i class="fa fa-layer-group" style="color:var(--am)"></i></div>
+        <div>
+          <div class="cp-tech-name">pypdf + Pillow</div>
+          <div class="cp-tech-version">Engines #5–6 — Stream + Image</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">pypdf compress_content_streams removes orphaned objects and compresses PDF drawing operators. Pillow handles JPEG progressive encoding and WebP conversion — providing additional savings especially for image-heavy PDFs with many embedded photographs.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(168,85,247,.15)"><i class="fa fa-database" style="color:var(--purple)"></i></div>
+        <div>
+          <div class="cp-tech-name">Dedup + mutool + Content Streams</div>
+          <div class="cp-tech-version">Engines #7–9 — Specialist Passes</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">MD5-hash deduplication removes identical image streams, saving space when the same image appears multiple times. mutool clean runs MuPDF's garbage collector. Content-stream optimization recompresses PDF drawing commands (DEFLATE-9) without any visual change.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(249,115,22,.15)"><i class="fa fa-code-branch" style="color:var(--orange)"></i></div>
+        <div>
+          <div class="cp-tech-name">GS+pikepdf Chain &amp; GS+fitz Chain</div>
+          <div class="cp-tech-version">Engines #10–12 — Double-Pass Masters</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">Two-pass chained engines: GS distills first, then pikepdf recompresses the already-distilled PDF for maximum stream compression. The GS+fitz chain runs Ghostscript distillation then applies PyMuPDF image polishing as a second pass. Often achieves 5–10% better than either engine alone.</p>
+    </div>
+    <div class="cp-tech-card cp-reveal" style="border-color:var(--bdr3);background:rgba(99,102,241,.06)">
+      <div class="cp-tech-card-head">
+        <div class="cp-tech-icon" style="background:rgba(99,102,241,.2)"><i class="fa fa-trophy" style="color:var(--em3)"></i></div>
+        <div>
+          <div class="cp-tech-name">Auto-Selection</div>
+          <div class="cp-tech-version">Intelligent Winner Selection</div>
+        </div>
+      </div>
+      <p class="cp-tech-desc">All 12 engines run (where applicable for the chosen preset). The smallest valid output is automatically selected and returned. A quality score (0–100) and grade (S/A+/A/B/C/D/F) is calculated based on reduction achieved vs. file type and compressibility. The compression fingerprint is a unique ID for audit purposes.</p>
+    </div>
+  </div>
+</section>
 
 <!-- ████████████████████████████████████████████████████████████████████████████
      TOAST CONTAINER
