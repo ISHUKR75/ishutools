@@ -3338,3 +3338,99 @@ input,select,textarea { font-family: var(--font); }
   .cp-donut-wrap { width: 120px; height: 120px; }
   .cp-donut-pct { font-size: 1.25rem; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §74 — ISHU KUMAR CREDIT STRIP (order:4)
+───────────────────────────────────────────────────────────────────────────── */
+.cp-ishu-strip {
+  background: linear-gradient(90deg,rgba(99,102,241,.12) 0%,rgba(139,92,246,.10) 50%,rgba(6,182,212,.08) 100%);
+  border-top: 1px solid rgba(99,102,241,.25);
+  border-bottom: 1px solid rgba(99,102,241,.20);
+  padding: .55rem 1.25rem;
+  backdrop-filter: blur(4px);
+}
+.cp-ishu-strip-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-size: .82rem;
+  color: var(--t3);
+  font-weight: 500;
+}
+.cp-ishu-strip-tag {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  white-space: nowrap;
+}
+.cp-ishu-strip-tag i { color: var(--em); font-size: .8rem; }
+.cp-ishu-strip-tag strong { color: var(--t1); }
+.cp-ishu-strip-handle { color: var(--t4); font-size: .78rem; }
+.cp-ishu-strip-sep { color: var(--bdr); font-size: 1rem; line-height:1; }
+@media (max-width: 600px) {
+  .cp-ishu-strip-sep { display: none; }
+  .cp-ishu-strip-inner { gap: .35rem .75rem; }
+  .cp-ishu-strip-handle { display: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §75 — FAQ OPEN STATE HIGHLIGHT
+───────────────────────────────────────────────────────────────────────────── */
+.cp-faq-item.open { border-color: rgba(99,102,241,.4); }
+.cp-faq-item.open .cp-faq-q { color: var(--em); background: rgba(99,102,241,.06); }
+.cp-faq-item.open .cp-faq-q .cp-faq-chevron { color: var(--em); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   §76 — LONG-FORM SEO CONTENT SECTION
+───────────────────────────────────────────────────────────────────────────── */
+.cp-longform-section { padding: 3rem 1.5rem; }
+.cp-longform-inner { max-width: 1100px; margin: 0 auto; }
+.cp-longform-h2 {
+  font-family: 'Poppins',sans-serif;
+  font-size: clamp(1.4rem,3vw,2rem);
+  font-weight: 700;
+  margin: 0 0 2rem;
+  line-height: 1.3;
+  color: var(--t1);
+  text-align: center;
+}
+.cp-longform-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem 3rem;
+}
+.cp-longform-col h3 {
+  font-family: 'Poppins',sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--em);
+  margin: 1.5rem 0 .5rem;
+  padding-bottom: .3rem;
+  border-bottom: 1px solid rgba(99,102,241,.2);
+}
+.cp-longform-col h3:first-child { margin-top: 0; }
+.cp-longform-col p {
+  font-size: .875rem;
+  color: var(--t3);
+  line-height: 1.75;
+  margin: 0 0 .75rem;
+}
+.cp-longform-col a { color: var(--em); text-decoration: none; }
+.cp-longform-col a:hover { text-decoration: underline; }
+.cp-longform-ol {
+  margin: .5rem 0 .75rem 1.2rem;
+  padding: 0;
+  color: var(--t3);
+  font-size: .875rem;
+  line-height: 1.75;
+}
+.cp-longform-ol li { margin-bottom: .25rem; }
+.cp-longform-ol a { color: var(--em); }
+@media (max-width: 760px) {
+  .cp-longform-grid { grid-template-columns: 1fr; gap: 0; }
+  .cp-longform-section { padding: 2rem 1rem; }
+}
