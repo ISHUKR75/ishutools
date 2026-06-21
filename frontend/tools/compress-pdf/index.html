@@ -1708,14 +1708,19 @@
       </div>
     </div>
 
+    <div class="cp-batch-stats-wrap" id="batchStatsWrap" style="display:flex;gap:.5rem;flex-wrap:wrap;font-size:.78rem;color:var(--t4);margin-bottom:.5rem"></div>
     <div class="cp-batch-actions">
       <button class="cp-batch-run-btn" id="batchRunBtn" type="button" disabled aria-label="Run batch compression">
         <i class="fa fa-play" aria-hidden="true"></i>
         Compress All (<span id="batchRunCount">0</span> files)
       </button>
-      <button class="cp-batch-zip-btn" id="batchZipBtn" type="button" hidden aria-label="Download all as ZIP">
-        <i class="fa fa-file-archive" aria-hidden="true"></i>
-        Download ZIP
+      <button class="cp-batch-zip-btn" id="batchDownloadAllBtn" type="button" hidden aria-label="Download all compressed files">
+        <i class="fa fa-download" aria-hidden="true"></i>
+        Download All
+      </button>
+      <button class="cp-batch-clear-btn" id="batchClearBtn" type="button" style="background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:var(--r-md);padding:.45rem .75rem;font-size:.8rem;cursor:pointer" aria-label="Clear batch queue">
+        <i class="fa fa-trash" aria-hidden="true"></i>
+        Clear
       </button>
     </div>
   </div>
