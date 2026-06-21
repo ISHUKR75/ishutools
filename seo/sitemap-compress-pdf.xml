@@ -19,7 +19,7 @@
   <url>
     <loc>https://ishutools.fun/tools/compress-pdf/</loc>
     <lastmod>2026-06-21</lastmod>
-    <changefreq>always</changefreq>
+    <changefreq>hourly</changefreq>
     <priority>1.0</priority>
 
     <!-- Hreflang: English + Hindi + India variants -->
@@ -107,6 +107,27 @@
       <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
       <news:title>Ishu Kumar (ISHUKR41) — Indian PDF Tools Developer — IshuTools.fun Creator</news:title>
       <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, ishutools, ishutools.fun, compress pdf, pdf tools india, free pdf tools, indian developer</news:keywords>
+    </news:news>
+  </url>
+
+
+  <!-- ═══ ISHU KUMAR Author Entity Page ═══════════════════════════════════════ -->
+  <url>
+    <loc>https://ishutools.fun/ishu-kumar/</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en"    href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://ishutools.fun/ishu-kumar/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/ishu-kumar/"/>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-21T00:00:00+05:30</news:publication_date>
+      <news:title>Ishu Kumar (ISHUKR41) — Indian Developer, Creator of IshuTools.fun Free PDF Tools — Author Page</news:title>
+      <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, ishu ka tool, ishu tools, ishu developer, ishu compress pdf, ishu pdf, ishutools, ishutools.fun, indian developer, free pdf tools india</news:keywords>
     </news:news>
   </url>
 
