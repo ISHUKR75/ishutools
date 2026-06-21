@@ -4804,3 +4804,109 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   .cp-compress-btn      { border: 2px solid ButtonText; }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §96 — KEYWORD TAG CHIPS (related searches section)
+═══════════════════════════════════════════════════════════════════════════════ */
+.cp-kw-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: .25rem .7rem;
+  background: var(--bg4);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-pill);
+  font-size: .75rem;
+  color: var(--t3);
+  text-decoration: none;
+  transition: background var(--tx-fast), border-color var(--tx-fast), color var(--tx-fast);
+  white-space: nowrap;
+}
+.cp-kw-tag:hover {
+  background: rgba(99,102,241,.1);
+  border-color: rgba(99,102,241,.35);
+  color: var(--em3);
+}
+[data-theme="light"] .cp-kw-tag {
+  background: #fff;
+  border-color: rgba(0,0,0,.1);
+  color: #374151;
+}
+[data-theme="light"] .cp-kw-tag:hover {
+  background: rgba(99,102,241,.08);
+  border-color: rgba(99,102,241,.3);
+  color: var(--em);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §97 — ABOUT GRID RESPONSIVE (ishu-kumar-about section)
+═══════════════════════════════════════════════════════════════════════════════ */
+.cp-about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+@media (max-width: 640px) {
+  .cp-about-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  #hindi-guide .cp-section-sub,
+  #hindi-guide > .cp-max > div[style*="grid-template-columns:1fr 1fr"] {
+    display: block !important;
+  }
+  #hindi-guide > .cp-max > div[style*="grid-template-columns:1fr 1fr"] > div {
+    margin-bottom: 1rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §98 — TOOL LINK CARDS (more-ishu-tools section)
+═══════════════════════════════════════════════════════════════════════════════ */
+#more-ishu-tools a {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .75rem;
+  background: var(--bg4);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-lg);
+  text-decoration: none;
+  color: var(--t2);
+  font-size: .82rem;
+  font-weight: 600;
+  transition: border-color var(--tx-fast), background var(--tx-fast), transform var(--tx-fast);
+}
+#more-ishu-tools a:hover {
+  border-color: rgba(99,102,241,.4);
+  background: rgba(99,102,241,.06);
+  transform: translateY(-1px);
+}
+[data-theme="light"] #more-ishu-tools a {
+  background: #fff;
+  border-color: rgba(0,0,0,.08);
+  color: #111827;
+}
+[data-theme="light"] #more-ishu-tools a:hover {
+  background: rgba(99,102,241,.06);
+  border-color: rgba(99,102,241,.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §99 — AI ANSWERS SECTION (quick answer cards)
+═══════════════════════════════════════════════════════════════════════════════ */
+#ai-answers > .cp-max > div[style*="grid"] > div {
+  transition: border-color var(--tx-fast), background var(--tx-fast), transform var(--tx-fast);
+}
+#ai-answers > .cp-max > div[style*="grid"] > div:hover {
+  border-color: rgba(99,102,241,.3);
+  background: rgba(99,102,241,.05);
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §100 — ISHU KUMAR ABOUT SECTION (stat cards grid)
+═══════════════════════════════════════════════════════════════════════════════ */
+#ishu-kumar-about .cp-max > .cp-about-grid > div:first-child > div:first-child {
+  animation: fadeSlideUp .4s ease forwards;
+}
+
